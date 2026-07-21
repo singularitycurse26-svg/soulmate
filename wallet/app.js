@@ -122,6 +122,7 @@ function showPage(pageId) {
     const navItems = document.querySelectorAll(".nav-item");
     if (navMap[pageId] !== undefined && navItems[navMap[pageId]]) navItems[navMap[pageId]].classList.add("active");
     if (pageId === "page-buy") updateBuyDisplay();
+    if (pageId === "page-receive") updateReceiveQR();
 }
 
 function shortenAddr(addr) {
@@ -714,6 +715,101 @@ async function setupSquarePayment() {
     }
 }
 
+// ===== QR CODE FUNCTIONS =====
+
+function generateQRCode(text, containerId, size) {
+    size = size || 200;
+    const container = $(containerId);
+    if (!container) return;
+    container.innerHTML = "";
+    try {
+        const qr = qrcode(0, "M");
+        qr.addData(text);
+        qr.make();
+        const imgSrc = qr.createDataURL(8, 0);
+        const img = document.createElement("img");
+        img.src = imgSrc;
+        img.style.width = size + "px";
+        img.style.height = size + "px";
+        container.appendChild(img);
+    } catch (e) {
+        container.innerHTML = '<p style="color:var(--muted);font-size:12px;">QR code unavailable</p>';
+    }
+}
+
+function updateReceiveQR() {
+    if (wallet && wallet.address) {
+        generateQRCode(wallet.address, "receive-qr", 200);
+    }
+}
+
+let qrScanner = null;
+
+function openQRScanner() {
+    const modal = $("qr-scanner-modal");
+    modal.style.display = "flex";
+    $("qr-scan-status").textContent = "Starting camera...";
+
+    try {
+        qrScanner = new Html5Qrcode("qr-reader");
+        qrScanner.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText) => {
+                onQRScanned(decodedText);
+            },
+            (errorMessage) => {
+                // Ignore per-frame errors
+            }
+        ).then(() => {
+            $("qr-scan-status").textContent = "Point camera at a wallet QR code";
+        }).catch((err) => {
+            $("qr-scan-status").textContent = "Camera error: " + err;
+            $("qr-scan-status").style.color = "var(--danger)";
+        });
+    } catch (e) {
+        $("qr-scan-status").textContent = "Scanner error: " + e.message;
+        $("qr-scan-status").style.color = "var(--danger)";
+    }
+}
+
+function closeQRScanner() {
+    if (qrScanner) {
+        qrScanner.stop().then(() => {
+            qrScanner.clear();
+            qrScanner = null;
+        }).catch(() => {
+            qrScanner = null;
+        });
+    }
+    $("qr-scanner-modal").style.display = "none";
+}
+
+function onQRScanned(text) {
+    closeQRScanner();
+    let scanned = text.trim();
+
+    // Handle different QR code formats
+    if (scanned.startsWith("ethereum:")) {
+        scanned = scanned.replace("ethereum:", "");
+    }
+    if (scanned.startsWith("https://") && scanned.includes("/")) {
+        const parts = scanned.split("/");
+        const last = parts[parts.length - 1];
+        if (last.startsWith("0x") || last.startsWith("@")) {
+            scanned = last;
+        }
+    }
+
+    $("send-to").value = scanned;
+    showAlert("info", "QR scanned: " + scanned.slice(0, 20) + (scanned.length > 20 ? "..." : ""));
+
+    // Trigger tag resolution if it's a tag
+    if (scanned.startsWith("@")) {
+        resolveTagInput(scanned);
+    }
+}
+
 // ===== EVENT LISTENERS =====
 
 // Social media share platforms
@@ -835,6 +931,24 @@ document.addEventListener("DOMContentLoaded", () => {
     $("btn-copy-receive").addEventListener("click", () => {
         copyToClipboard(wallet ? wallet.address : "");
     });
+
+    // Share receive address
+    $("btn-share-receive").addEventListener("click", () => {
+        if (wallet && navigator.share) {
+            navigator.share({
+                title: "My BSC Wallet Address",
+                text: "Send me crypto on BSC:",
+                url: wallet.address,
+            }).catch(() => {});
+        } else if (wallet) {
+            copyToClipboard(wallet.address);
+            showAlert("info", "Address copied — paste it anywhere to share");
+        }
+    });
+
+    // QR scanner
+    $("btn-scan-qr").addEventListener("click", openQRScanner);
+    $("btn-close-scanner").addEventListener("click", closeQRScanner);
 
     // Quick actions
     $("btn-quick-send").addEventListener("click", () => showPage("page-send"));

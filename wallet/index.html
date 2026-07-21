@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Incentives Wallet — INC</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
     <div class="app">
@@ -260,7 +262,10 @@
                         <option value="dai">DAI — Dai Stablecoin</option>
                     </select>
                     <span class="label-text">Recipient Address or @Tag</span>
-                    <input type="text" id="send-to" placeholder="0x... or @username">
+                    <div style="display:flex;gap:8px;">
+                        <input type="text" id="send-to" placeholder="0x... or @username" style="flex:1;">
+                        <button id="btn-scan-qr" style="white-space:nowrap;font-size:18px;padding:8px 12px;" title="Scan QR Code">&#9678;</button>
+                    </div>
                     <div id="tag-resolve-box" style="display:none;margin-top:6px;padding:8px 12px;background:var(--card-alt);border-radius:8px;font-size:13px;">
                         <span id="tag-resolved-info"></span>
                     </div>
@@ -294,12 +299,14 @@
             <div id="page-receive" class="hidden">
                 <div class="card">
                     <h2>Receive Funds</h2>
-                    <div class="qr-placeholder">
-                        <div style="font-size:48px;">QR</div>
+                    <div class="qr-placeholder" style="text-align:center;">
+                        <div id="receive-qr" style="display:inline-block;padding:16px;background:#fff;border-radius:12px;"></div>
                         <p style="color:var(--muted);font-size:13px;margin-top:8px;">Scan to send funds</p>
                         <div class="addr-full" id="receive-address">0x0000...0000</div>
                     </div>
                     <button class="copy-btn" id="btn-copy-receive" style="width:100%;padding:12px;">Copy Address</button>
+                    <div style="height:8px;"></div>
+                    <button class="copy-btn" id="btn-share-receive" style="width:100%;padding:12px;">Share Address</button>
                     <div style="height:12px;"></div>
                     <button class="secondary" id="btn-back-dashboard2">Back</button>
                 </div>
@@ -359,6 +366,17 @@
                 <div class="spinner" style="width:32px;height:32px;margin:0 auto 16px;"></div>
                 <p class="loading-text" id="loading-text">Loading...</p>
             </div>
+        </div>
+    </div>
+
+    <!-- QR SCANNER MODAL -->
+    <div id="qr-scanner-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;flex-direction:column;align-items:center;justify-content:center;">
+        <div style="background:var(--card);border-radius:16px;padding:20px;width:90%;max-width:400px;text-align:center;">
+            <h3 style="margin-bottom:12px;">Scan QR Code</h3>
+            <div id="qr-reader" style="width:100%;border-radius:12px;overflow:hidden;"></div>
+            <p id="qr-scan-status" style="font-size:12px;color:var(--muted);margin-top:12px;">Point camera at a wallet QR code</p>
+            <div style="height:12px;"></div>
+            <button class="secondary" id="btn-close-scanner" style="width:100%;">Cancel</button>
         </div>
     </div>
 
