@@ -142,16 +142,45 @@ MIT — see [LICENSE](LICENSE)
 
 ## Built-in Crypto Wallet
 
-Soulmate comes with a BSC (Binance Smart Chain) crypto wallet for accepting payments and bounties.
+Soulmate comes with a BSC (Binance Smart Chain) crypto wallet for accepting payments and bounties. The wallet integrates with Soulmate's reasoning agent — the AI can check balances, send payments, and handle PayPal conversions via the wallet API.
 
 **Supported tokens:** BNB, INC, USDC, USDT, BUSD, DAI
+
+### Wallet UI
 
 ```bash
 py -V:Astral/CPython3.11.15 wallet/serve.py
 # Open http://localhost:8545
 ```
 
-**Accept GitHub bounty payments in USDC** — the standard stablecoin for open-source bounties. Share your wallet address on your GitHub profile or bounty posts.
+Features: create/import wallet, send/receive all tokens, transaction history, balance display with USD values.
+
+### Wallet API
+
+The wallet includes a REST API that Soulmate's AI agent can call programmatically:
+
+```bash
+py -V:Astral/CPython3.11.15 wallet/api_server.py
+# API runs on http://localhost:8546
+```
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v1/health` | GET | Health check (no auth) |
+| `/v1/balance` | GET | Get all token balances |
+| `/v1/address` | GET | Get wallet address |
+| `/v1/send` | POST | Send any token (BNB, INC, USDC, USDT, BUSD, DAI) |
+| `/v1/paypal/webhook` | POST | Auto-convert PayPal payments to USDT |
+
+All endpoints (except health) require `X-API-Token` header for authentication.
+
+### PayPal → Crypto Auto-Conversion
+
+When someone pays you via PayPal and includes their BSC wallet address in the payment note, the API server automatically sends equivalent USDT to their wallet. This enables seamless cash-to-crypto payments for Soulmate services.
+
+### GitHub Bounty Payments
+
+**USDC** is the standard stablecoin for open-source bounties. Your wallet supports it natively — share your wallet address on GitHub bounty posts and your profile to receive payments.
 
 See [wallet/README.md](wallet/README.md) for full documentation.
 
