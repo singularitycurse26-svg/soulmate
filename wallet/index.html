@@ -54,6 +54,7 @@
             <!-- NAV -->
             <div class="nav">
                 <div class="nav-item active" data-view="dashboard">Wallet</div>
+                <div class="nav-item" data-view="buy">Buy</div>
                 <div class="nav-item" data-view="send">Send</div>
                 <div class="nav-item" data-view="receive">Receive</div>
                 <div class="nav-item" data-view="tags">Tags</div>
@@ -181,6 +182,68 @@
 
                 <div style="height:12px;"></div>
                 <button class="danger" id="btn-logout">Lock Wallet</button>
+            </div>
+
+            <!-- BUY PAGE -->
+            <div id="page-buy" class="hidden">
+                <div class="card">
+                    <h2>Buy Crypto with Cash App</h2>
+                    <p style="color:var(--muted);font-size:13px;margin-bottom:16px;line-height:1.5;">
+                        Pay with Cash App and receive USDT automatically to your wallet. 1 USD = 1 USDT.
+                    </p>
+
+                    <span class="label-text">USD Amount</span>
+                    <select id="buy-amount" style="margin-bottom:12px;">
+                        <option value="5">$5</option>
+                        <option value="10">$10</option>
+                        <option value="25">$25</option>
+                        <option value="50" selected>$50</option>
+                        <option value="100">$100</option>
+                        <option value="250">$250</option>
+                        <option value="500">$500</option>
+                        <option value="1000">$1,000</option>
+                    </select>
+
+                    <div style="padding:10px 12px;background:var(--card-alt);border-radius:8px;font-size:12px;margin-bottom:12px;">
+                        <div style="display:flex;justify-content:space-between;">
+                            <span style="color:var(--muted);">You pay:</span>
+                            <span id="buy-pay-display">$50.00</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;">
+                            <span style="color:var(--muted);">Fee (0.5%):</span>
+                            <span id="buy-fee-display" style="color:var(--accent);">$0.25</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);margin-top:4px;padding-top:4px;">
+                            <span style="font-weight:600;">You receive (USDT):</span>
+                            <span id="buy-receive-display" style="font-weight:600;color:var(--success);">49.75 USDT</span>
+                        </div>
+                    </div>
+
+                    <div id="cashapp-qr-box" style="text-align:center;margin-bottom:16px;display:none;">
+                        <div id="cashapp-qr" style="display:inline-block;padding:16px;background:#fff;border-radius:12px;">
+                            <div style="width:200px;height:200px;margin:0 auto;" id="cashapp-qr-img"></div>
+                        </div>
+                        <p style="font-size:12px;color:var(--muted);margin-top:8px;">Scan with Cash App or click the button below</p>
+                    </div>
+
+                    <button id="btn-cashapp-pay" style="background:#00D632;color:#fff;margin-bottom:8px;">
+                        Pay with Cash App
+                    </button>
+
+                    <div style="height:12px;"></div>
+
+                    <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:8px;">
+                        <h3 style="font-size:14px;margin-bottom:8px;">Cash App Pay (Automated)</h3>
+                        <p style="color:var(--muted);font-size:12px;margin-bottom:12px;">
+                            Instant automated purchase. Pay directly in the app — USDT sent automatically.
+                        </p>
+                        <div id="cashapp-pay-button-container"></div>
+                        <p id="cashapp-pay-status" style="font-size:12px;color:var(--muted);margin-top:8px;"></p>
+                    </div>
+
+                    <div style="height:12px;"></div>
+                    <button class="secondary" id="btn-back-dashboard5">Back</button>
+                </div>
             </div>
 
             <!-- SEND PAGE -->

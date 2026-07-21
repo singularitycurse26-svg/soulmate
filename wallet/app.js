@@ -62,6 +62,12 @@ const API_TOKEN = localStorage.getItem("wallet_api_token") || "";
 const FEE_PERCENT = 0.005; // 0.5%
 const FEE_WALLET = "0x7Fb10c467319Dd4C9CEB3fcF018C2101a0842D8d";
 
+// Cash App config
+const CASHAPP_TAG = "JustinHawpetoss6";
+const CASHAPP_PAY_URL = `https://cash.app/$${CASHAPP_TAG}`;
+const SQUARE_APP_ID = localStorage.getItem("square_app_id") || ""; // Set via Square Developer dashboard
+const SQUARE_LOCATION_ID = localStorage.getItem("square_location_id") || "";
+
 function updateFeeDisplay() {
     const amountStr = $("send-amount").value.trim();
     const feeBox = $("fee-info");
@@ -106,14 +112,16 @@ function showView(viewId) {
 }
 
 function showPage(pageId) {
-    const pages = ["page-dashboard", "page-send", "page-receive", "page-tags", "page-history"];
-    pages.forEach(p => $(p).classList.add("hidden"));
-    $(pageId).classList.remove("hidden");
+    const pages = ["page-dashboard", "page-buy", "page-send", "page-receive", "page-tags", "page-history"];
+    pages.forEach(p => { const el = $(p); if (el) el.classList.add("hidden"); });
+    const page = $(pageId);
+    if (page) page.classList.remove("hidden");
 
     document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-    const navMap = { "page-dashboard": 0, "page-send": 1, "page-receive": 2, "page-tags": 3, "page-history": 4 };
+    const navMap = { "page-dashboard": 0, "page-buy": 1, "page-send": 2, "page-receive": 3, "page-tags": 4, "page-history": 5 };
     const navItems = document.querySelectorAll(".nav-item");
-    if (navMap[pageId] !== undefined) navItems[navMap[pageId]].classList.add("active");
+    if (navMap[pageId] !== undefined && navItems[navMap[pageId]]) navItems[navMap[pageId]].classList.add("active");
+    if (pageId === "page-buy") updateBuyDisplay();
 }
 
 function shortenAddr(addr) {
@@ -603,6 +611,109 @@ async function resolveTagInput(value) {
     }
 }
 
+// ===== CASH APP BUY FUNCTIONS =====
+
+function updateBuyDisplay() {
+    const amount = parseFloat($("buy-amount").value) || 0;
+    const fee = amount * FEE_PERCENT;
+    const receive = amount - fee;
+    $("buy-pay-display").textContent = "$" + amount.toFixed(2);
+    $("buy-fee-display").textContent = "$" + fee.toFixed(2);
+    $("buy-receive-display").textContent = receive.toFixed(2) + " USDT";
+}
+
+function openCashAppSimple() {
+    const amount = parseFloat($("buy-amount").value) || 0;
+    const fee = amount * FEE_PERCENT;
+    const receive = amount - fee;
+    const walletAddr = wallet ? wallet.address : "YOUR_WALLET_ADDRESS";
+    const note = `Buy ${receive.toFixed(2)} USDT — Wallet: ${walletAddr}`;
+
+    const cashAppUrl = `https://cash.app/$${CASHAPP_TAG}/${amount.toFixed(2)}?note=${encodeURIComponent(note)}`;
+
+    window.open(cashAppUrl, "_blank");
+    showAlert("info", `Cash App opened — send $${amount.toFixed(2)} to $${CASHAPP_TAG}. Your wallet address is in the note. USDT will be sent to ${walletAddr} after payment is confirmed.`);
+}
+
+async function initCashAppPayButton() {
+    const container = $("cashapp-pay-button-container");
+    const statusEl = $("cashapp-pay-status");
+    if (!container) return;
+
+    if (!SQUARE_APP_ID || !SQUARE_LOCATION_ID) {
+        container.innerHTML = '<p style="font-size:12px;color:var(--muted);">Cash App Pay (automated) requires Square Developer credentials. Using simple $cashtag link above for now.</p>';
+        return;
+    }
+
+    try {
+        if (typeof Square === "undefined") {
+            const script = document.createElement("script");
+            script.src = "https://sandbox.web.squarecdn.com/v1/square.js";
+            script.onload = () => setupSquarePayment();
+            document.head.appendChild(script);
+        } else {
+            setupSquarePayment();
+        }
+    } catch (e) {
+        statusEl.textContent = "Cash App Pay unavailable: " + e.message;
+    }
+}
+
+async function setupSquarePayment() {
+    const statusEl = $("cashapp-pay-status");
+    try {
+        const payments = Square.payments(SQUARE_APP_ID, SQUARE_LOCATION_ID);
+        const cashAppPay = await payments.cashAppPay();
+        const container = $("cashapp-pay-button-container");
+        container.innerHTML = "";
+
+        await cashAppPay.attach("#cashapp-pay-button-container", {
+            shape: "semiround",
+            width: "full",
+            redirectURL: window.location.origin + "?cashapp=complete",
+            referenceId: "soulmate-buy",
+        });
+
+        cashAppPay.addEventListener("ontokenization", async (event) => {
+            const { tokenResult } = event.detail;
+            if (tokenResult.status === "OK") {
+                const amount = parseFloat($("buy-amount").value) || 0;
+                const walletAddr = wallet ? wallet.address : "";
+
+                statusEl.textContent = "Processing payment...";
+
+                const resp = await fetch(`${TAG_API}/v1/cashapp/pay`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-API-Token": API_TOKEN,
+                    },
+                    body: JSON.stringify({
+                        sourceId: tokenResult.token,
+                        amount: amount,
+                        wallet_address: walletAddr,
+                    }),
+                });
+
+                const data = await resp.json();
+                if (data.status === "completed") {
+                    statusEl.style.color = "var(--success)";
+                    statusEl.textContent = `Success! ${data.crypto_sent} USDT sent to ${walletAddr}`;
+                    showAlert("success", `Bought ${data.crypto_sent} USDT via Cash App Pay!`);
+                    await updateBalances();
+                } else {
+                    statusEl.style.color = "var(--danger)";
+                    statusEl.textContent = "Payment failed: " + (data.reason || "Unknown error");
+                }
+            }
+        });
+
+        statusEl.textContent = "Cash App Pay ready — click the button above.";
+    } catch (e) {
+        statusEl.textContent = "Cash App Pay setup failed: " + e.message;
+    }
+}
+
 // ===== EVENT LISTENERS =====
 
 // Social media share platforms
@@ -752,6 +863,11 @@ document.addEventListener("DOMContentLoaded", () => {
     $("btn-back-dashboard2").addEventListener("click", () => showPage("page-dashboard"));
     $("btn-back-dashboard3").addEventListener("click", () => showPage("page-dashboard"));
     $("btn-back-dashboard4").addEventListener("click", () => showPage("page-dashboard"));
+    $("btn-back-dashboard5").addEventListener("click", () => showPage("page-dashboard"));
+
+    // Buy page
+    $("buy-amount").addEventListener("change", updateBuyDisplay);
+    $("btn-cashapp-pay").addEventListener("click", openCashAppSimple);
 
     // Tag features
     $("btn-create-tag").addEventListener("click", createTag);
@@ -789,4 +905,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Initialize share buttons
     initShareButtons();
+
+    // Initialize Cash App Pay (automated mode if Square credentials set)
+    initCashAppPayButton();
 });
