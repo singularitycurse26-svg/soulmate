@@ -9,7 +9,7 @@
 [![Tests: 286](https://img.shields.io/badge/tests-286%20passing-brightgreen.svg)](#)
 [![Ollama](https://img.shields.io/badge/Ollama-compatible-orange.svg)](https://ollama.ai)
 
-<img src="assets/heart.svg" width="120" height="120" alt="Soulmate Heart Logo" />
+<img src="assets/soulmate.jpg" width="200" alt="Soulmate Heart Logo" />
 
 **Soulmate** gives your AI agent a structured mind — a 9-phase reasoning loop, 3-layer persistent memory, a recursive knowledge graph, and guard hooks that prevent grinding. It works with [Cascade/Windsurf](https://windsurf.com), [Ollama](https://ollama.ai), or any OpenAI-compatible backend.
 
