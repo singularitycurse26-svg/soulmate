@@ -53,6 +53,11 @@ let bnbPrice = 0;
 let incPrice = 0;
 let tokenBalances = {};
 
+// API config for tag registry
+const API_BASE = window.location.protocol === "https:" ? window.location.origin.replace(/:\d+$/, "") + ":8546" : "http://localhost:8546";
+const TAG_API = localStorage.getItem("wallet_api_url") || API_BASE;
+const API_TOKEN = localStorage.getItem("wallet_api_token") || "";
+
 // ===== UTILITIES =====
 
 function $(id) { return document.getElementById(id); }
@@ -80,12 +85,12 @@ function showView(viewId) {
 }
 
 function showPage(pageId) {
-    const pages = ["page-dashboard", "page-send", "page-receive", "page-history"];
+    const pages = ["page-dashboard", "page-send", "page-receive", "page-tags", "page-history"];
     pages.forEach(p => $(p).classList.add("hidden"));
     $(pageId).classList.remove("hidden");
 
     document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-    const navMap = { "page-dashboard": 0, "page-send": 1, "page-receive": 2, "page-history": 3 };
+    const navMap = { "page-dashboard": 0, "page-send": 1, "page-receive": 2, "page-tags": 3, "page-history": 4 };
     const navItems = document.querySelectorAll(".nav-item");
     if (navMap[pageId] !== undefined) navItems[navMap[pageId]].classList.add("active");
 }
@@ -303,11 +308,30 @@ async function sendTransaction() {
     const amount = $("send-amount").value.trim();
 
     if (!to || !amount) {
-        showAlert("error", "Enter recipient address and amount");
+        showAlert("error", "Enter recipient address or @tag and amount");
         return;
     }
 
-    if (!to.startsWith("0x") || to.length !== 42) {
+    let recipientAddress = to;
+
+    // Resolve @tag to address
+    if (to.startsWith("@")) {
+        try {
+            const resp = await fetch(`${TAG_API}/v1/tags/${to.substring(1)}`);
+            if (!resp.ok) {
+                showAlert("error", `Tag ${to} not found`);
+                return;
+            }
+            const data = await resp.json();
+            recipientAddress = data.address;
+            showAlert("info", `Resolved ${to} → ${recipientAddress.slice(0, 10)}...`);
+        } catch (e) {
+            showAlert("error", `Failed to resolve tag: ${e.message}`);
+            return;
+        }
+    }
+
+    if (!recipientAddress.startsWith("0x") || recipientAddress.length !== 42) {
         showAlert("error", "Invalid recipient address");
         return;
     }
@@ -322,7 +346,7 @@ async function sendTransaction() {
         if (token === "bnb") {
             const value = ethers.parseEther(amount);
             tx = await wallet.sendTransaction({
-                to: to,
+                to: recipientAddress,
                 value: value
             });
         } else if (token === "inc") {
@@ -334,7 +358,7 @@ async function sendTransaction() {
             }
             const decimals = await incContract.decimals();
             const value = ethers.parseUnits(amount, decimals);
-            tx = await incContract.transfer(to, value);
+            tx = await incContract.transfer(recipientAddress, value);
         } else {
             // Stablecoin transfer
             const contract = tokenContracts[token.toUpperCase()];
@@ -346,7 +370,7 @@ async function sendTransaction() {
             }
             const info = STABLECOINS[token.toUpperCase()];
             const value = ethers.parseUnits(amount, info.decimals);
-            tx = await contract.transfer(to, value);
+            tx = await contract.transfer(recipientAddress, value);
         }
 
         $("loading-text").textContent = "Waiting for confirmation...";
@@ -355,7 +379,7 @@ async function sendTransaction() {
         // Save to local transaction history
         saveTransaction({
             type: token.toUpperCase(),
-            to: to,
+            to: recipientAddress,
             amount: amount,
             hash: tx.hash,
             direction: "out",
@@ -411,6 +435,131 @@ async function loadTransactionHistory() {
     `).join("");
 }
 
+// ===== TAG REGISTRY =====
+
+async function createTag() {
+    const tag = $("tag-input").value.trim();
+    if (!tag) {
+        showAlert("error", "Enter a tag name");
+        return;
+    }
+    if (!wallet) {
+        showAlert("error", "Wallet not loaded");
+        return;
+    }
+
+    try {
+        const resp = await fetch(`${TAG_API}/v1/tags/create`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-API-Token": API_TOKEN },
+            body: JSON.stringify({ tag: tag, address: wallet.address, owner_name: "" })
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+            showAlert("error", data.detail || "Failed to create tag");
+            return;
+        }
+        showAlert("success", `Tag @${tag} created! Share it to receive crypto.`);
+        $("tag-input").value = "";
+        await loadUserTags();
+    } catch (e) {
+        showAlert("error", "Failed to create tag: " + e.message);
+    }
+}
+
+async function loadUserTags() {
+    if (!wallet) return;
+    const list = $("user-tags-list");
+    try {
+        const resp = await fetch(`${TAG_API}/v1/tags/search?q=`, {
+            headers: { "X-API-Token": API_TOKEN }
+        });
+        const data = await resp.json();
+        const userTags = data.tags.filter(t => t.address.toLowerCase() === wallet.address.toLowerCase());
+        if (userTags.length === 0) {
+            list.innerHTML = '<div class="empty-state">No tags created yet</div>';
+            return;
+        }
+        list.innerHTML = userTags.map(t => `
+            <div class="balance-row" style="cursor:pointer;" onclick="copyToClipboard('${t.address}')">
+                <div class="token">
+                    <div class="token-icon" style="background:linear-gradient(135deg,#ff6b9d,#c44dff);color:#fff;">@</div>
+                    <div>
+                        <div style="font-weight:600;">${t.tag}</div>
+                        <div style="color:var(--muted);font-size:12px;">${t.address.slice(0,10)}...${t.address.slice(-4)}</div>
+                    </div>
+                </div>
+                <div class="val">
+                    <div class="num" style="font-size:12px;color:var(--muted);">Tap to copy</div>
+                </div>
+            </div>
+        `).join("");
+    } catch (e) {
+        list.innerHTML = '<div class="empty-state">Failed to load tags</div>';
+    }
+}
+
+let searchTimer = null;
+async function searchTags(query) {
+    const results = $("tag-search-results");
+    if (!query || query.length < 1) {
+        results.innerHTML = '<div class="empty-state" style="font-size:13px;">Type to search</div>';
+        return;
+    }
+    try {
+        const resp = await fetch(`${TAG_API}/v1/tags/search?q=${encodeURIComponent(query)}`, {
+            headers: { "X-API-Token": API_TOKEN }
+        });
+        const data = await resp.json();
+        if (data.tags.length === 0) {
+            results.innerHTML = '<div class="empty-state" style="font-size:13px;">No tags found</div>';
+            return;
+        }
+        results.innerHTML = data.tags.map(t => `
+            <div class="balance-row" style="cursor:pointer;" onclick="copyToClipboard('${t.address}')">
+                <div class="token">
+                    <div class="token-icon" style="background:linear-gradient(135deg,#ff6b9d,#c44dff);color:#fff;">@</div>
+                    <div>
+                        <div style="font-weight:600;">${t.tag}</div>
+                        <div style="color:var(--muted);font-size:12px;">${t.address.slice(0,10)}...${t.address.slice(-4)}</div>
+                    </div>
+                </div>
+                <div class="val">
+                    <div class="num" style="font-size:12px;color:var(--muted);">Tap to copy</div>
+                </div>
+            </div>
+        `).join("");
+    } catch (e) {
+        results.innerHTML = '<div class="empty-state" style="font-size:13px;">Search failed</div>';
+    }
+}
+
+let tagResolveTimer = null;
+async function resolveTagInput(value) {
+    const box = $("tag-resolve-box");
+    const info = $("tag-resolved-info");
+    const v = value.trim();
+
+    if (!v.startsWith("@")) {
+        box.style.display = "none";
+        return;
+    }
+
+    try {
+        const resp = await fetch(`${TAG_API}/v1/tags/${v.substring(1)}`);
+        if (resp.ok) {
+            const data = await resp.json();
+            box.style.display = "block";
+            info.innerHTML = `<strong>${data.tag}</strong> → ${data.address.slice(0,10)}...${data.address.slice(-4)}` + (data.owner_name ? ` <span style="color:var(--muted);">(${data.owner_name})</span>` : "");
+        } else {
+            box.style.display = "block";
+            info.innerHTML = `<span style="color:var(--danger);">Tag ${v} not found</span>`;
+        }
+    } catch (e) {
+        box.style.display = "none";
+    }
+}
+
 // ===== EVENT LISTENERS =====
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -445,6 +594,7 @@ document.addEventListener("DOMContentLoaded", () => {
         item.addEventListener("click", () => {
             const view = item.dataset.view;
             showPage("page-" + view);
+            if (view === "tags") loadUserTags();
         });
     });
 
@@ -479,6 +629,19 @@ document.addEventListener("DOMContentLoaded", () => {
     $("btn-back-dashboard").addEventListener("click", () => showPage("page-dashboard"));
     $("btn-back-dashboard2").addEventListener("click", () => showPage("page-dashboard"));
     $("btn-back-dashboard3").addEventListener("click", () => showPage("page-dashboard"));
+    $("btn-back-dashboard4").addEventListener("click", () => showPage("page-dashboard"));
+
+    // Tag features
+    $("btn-create-tag").addEventListener("click", createTag);
+    $("tag-input").addEventListener("keypress", (e) => { if (e.key === "Enter") createTag(); });
+    $("tag-search").addEventListener("input", (e) => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => searchTags(e.target.value.trim()), 300);
+    });
+    $("send-to").addEventListener("input", (e) => {
+        clearTimeout(tagResolveTimer);
+        tagResolveTimer = setTimeout(() => resolveTagInput(e.target.value), 300);
+    });
 
     // Logout
     $("btn-logout").addEventListener("click", () => {

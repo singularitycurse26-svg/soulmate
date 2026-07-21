@@ -18,9 +18,31 @@ A BSC (Binance Smart Chain) crypto wallet that comes bundled with the Soulmate A
 - **Create wallet** — Generate a new BSC wallet with 12-word mnemonic
 - **Import wallet** — Load existing wallet via private key or mnemonic
 - **Send/Receive** — All 6 supported tokens
+- **Payment Tags** — Create short @tags like `@soulmate` instead of sharing long wallet addresses
+- **Tag Search** — Find anyone's tag and send crypto instantly
 - **Balance display** — Real-time balances with USD values
 - **Transaction history** — Local history of all transactions
 - **Auto-lock** — Lock wallet to clear session
+
+## Payment Tags
+
+Like CashApp tags but for crypto. Create a short @tag that maps to your wallet address. Anyone can send you crypto by typing your @tag instead of your full wallet address.
+
+```bash
+# Create a tag via API
+curl -X POST https://191.44.121.29.sslip.io/v1/tags/create \
+  -H "X-API-Token: YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"tag": "myname", "address": "0x...", "owner_name": "My Name"}'
+
+# Resolve a tag
+curl https://191.44.121.29.sslip.io/v1/tags/myname
+
+# Search tags
+curl -H "X-API-Token: YOUR_TOKEN" https://191.44.121.29.sslip.io/v1/tags/search?q=soul
+```
+
+In the wallet UI, just type `@username` in the send field — it auto-resolves to the wallet address.
 
 ## Quick Start
 

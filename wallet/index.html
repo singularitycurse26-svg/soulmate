@@ -55,6 +55,7 @@
                 <div class="nav-item active" data-view="dashboard">Wallet</div>
                 <div class="nav-item" data-view="send">Send</div>
                 <div class="nav-item" data-view="receive">Receive</div>
+                <div class="nav-item" data-view="tags">Tags</div>
                 <div class="nav-item" data-view="history">History</div>
             </div>
 
@@ -186,8 +187,11 @@
                         <option value="busd">BUSD — Binance USD</option>
                         <option value="dai">DAI — Dai Stablecoin</option>
                     </select>
-                    <span class="label-text">Recipient Address</span>
-                    <input type="text" id="send-to" placeholder="0x... recipient wallet address">
+                    <span class="label-text">Recipient Address or @Tag</span>
+                    <input type="text" id="send-to" placeholder="0x... or @username">
+                    <div id="tag-resolve-box" style="display:none;margin-top:6px;padding:8px 12px;background:var(--card-alt);border-radius:8px;font-size:13px;">
+                        <span id="tag-resolved-info"></span>
+                    </div>
                     <span class="label-text">Amount</span>
                     <input type="text" id="send-amount" placeholder="0.00">
                     <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
@@ -213,6 +217,41 @@
                     <div style="height:12px;"></div>
                     <button class="secondary" id="btn-back-dashboard2">Back</button>
                 </div>
+            </div>
+
+            <!-- TAGS PAGE -->
+            <div id="page-tags" class="hidden">
+                <div class="card">
+                    <h2>Payment Tags</h2>
+                    <p style="color:var(--muted);font-size:13px;margin-bottom:16px;line-height:1.5;">
+                        Create a short @tag like <strong>@soulmate</strong> that anyone can use to send you crypto. No need to share your long wallet address.
+                    </p>
+
+                    <span class="label-text">Create Your Tag</span>
+                    <div style="display:flex;gap:8px;">
+                        <input type="text" id="tag-input" placeholder="username" style="flex:1;">
+                        <button id="btn-create-tag" style="white-space:nowrap;">Create</button>
+                    </div>
+                    <p style="color:var(--muted);font-size:11px;margin-top:6px;">3-20 chars: lowercase letters, numbers, underscores</p>
+
+                    <div style="height:20px;"></div>
+
+                    <span class="label-text">Your Tags</span>
+                    <div id="user-tags-list">
+                        <div class="empty-state">No tags created yet</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Search Tags</h2>
+                    <input type="text" id="tag-search" placeholder="Search @tags...">
+                    <div id="tag-search-results" style="margin-top:12px;">
+                        <div class="empty-state" style="font-size:13px;">Type to search</div>
+                    </div>
+                </div>
+
+                <div style="height:12px;"></div>
+                <button class="secondary" id="btn-back-dashboard4">Back</button>
             </div>
 
             <!-- HISTORY PAGE -->
