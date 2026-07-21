@@ -749,6 +749,14 @@ function openQRScanner() {
     const modal = $("qr-scanner-modal");
     modal.style.display = "flex";
     $("qr-scan-status").textContent = "Starting camera...";
+    $("qr-scan-status").style.color = "var(--muted)";
+    $("qr-reader").innerHTML = "";
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        $("qr-scan-status").textContent = "No camera detected. You can still paste an address or @tag manually.";
+        $("qr-scan-status").style.color = "var(--accent)";
+        return;
+    }
 
     try {
         qrScanner = new Html5Qrcode("qr-reader");
@@ -764,12 +772,14 @@ function openQRScanner() {
         ).then(() => {
             $("qr-scan-status").textContent = "Point camera at a wallet QR code";
         }).catch((err) => {
-            $("qr-scan-status").textContent = "Camera error: " + err;
-            $("qr-scan-status").style.color = "var(--danger)";
+            $("qr-scan-status").textContent = "No camera available. You can still paste an address or @tag manually.";
+            $("qr-scan-status").style.color = "var(--accent)";
+            qrScanner = null;
         });
     } catch (e) {
-        $("qr-scan-status").textContent = "Scanner error: " + e.message;
-        $("qr-scan-status").style.color = "var(--danger)";
+        $("qr-scan-status").textContent = "No camera available. You can still paste an address or @tag manually.";
+        $("qr-scan-status").style.color = "var(--accent)";
+        qrScanner = null;
     }
 }
 
@@ -779,10 +789,14 @@ function closeQRScanner() {
             qrScanner.clear();
             qrScanner = null;
         }).catch(() => {
+            try { qrScanner.clear(); } catch (e) {}
             qrScanner = null;
         });
     }
+    $("qr-reader").innerHTML = "";
     $("qr-scanner-modal").style.display = "none";
+    $("qr-scan-status").textContent = "Point camera at a wallet QR code";
+    $("qr-scan-status").style.color = "var(--muted)";
 }
 
 function onQRScanned(text) {
