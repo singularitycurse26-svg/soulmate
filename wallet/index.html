@@ -18,8 +18,49 @@
 
         <div id="alert-container"></div>
 
+        <!-- LOGIN VIEW -->
+        <div id="view-login" class="card">
+            <h2>Welcome Back</h2>
+            <p style="color:var(--muted);font-size:14px;margin-bottom:16px;line-height:1.5;">
+                Unlock your wallet with your fingerprint or password.
+            </p>
+            <div id="login-fingerprint-box" style="text-align:center;margin-bottom:16px;display:none;">
+                <button id="btn-fingerprint-login" style="background:none;border:none;font-size:48px;cursor:pointer;width:80px;height:80px;border-radius:50%;background:var(--card-alt);display:inline-flex;align-items:center;justify-content:center;" title="Unlock with fingerprint">
+                    &#128079;
+                </button>
+                <p style="color:var(--muted);font-size:12px;margin-top:8px;">Tap to unlock with fingerprint</p>
+            </div>
+            <div style="border-top:1px solid var(--border);padding-top:16px;margin-bottom:16px;" id="login-divider"></div>
+            <span class="label-text">Email</span>
+            <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email">
+            <span class="label-text">Password</span>
+            <input type="password" id="login-password" placeholder="Your password" autocomplete="current-password">
+            <button id="btn-login">Log In</button>
+            <div style="height:12px;"></div>
+            <button class="secondary" id="btn-show-signup">Create Account</button>
+            <div style="height:8px;"></div>
+            <button class="copy-btn" id="btn-skip-login" style="width:100%;font-size:12px;">Skip — Use Wallet Without Account</button>
+        </div>
+
+        <!-- SIGNUP VIEW -->
+        <div id="view-signup" class="card hidden">
+            <h2>Create Account</h2>
+            <p style="color:var(--muted);font-size:14px;margin-bottom:16px;line-height:1.5;">
+                Sign up with email and password. After that, you can unlock with just your fingerprint.
+            </p>
+            <span class="label-text">Email</span>
+            <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email">
+            <span class="label-text">Password (min 8 characters)</span>
+            <input type="password" id="signup-password" placeholder="Create a password" autocomplete="new-password">
+            <span class="label-text">Confirm Password</span>
+            <input type="password" id="signup-password2" placeholder="Repeat password" autocomplete="new-password">
+            <button id="btn-signup">Sign Up</button>
+            <div style="height:12px;"></div>
+            <button class="secondary" id="btn-back-login">Back to Login</button>
+        </div>
+
         <!-- CREATE WALLET VIEW -->
-        <div id="view-create" class="card">
+        <div id="view-create" class="card hidden">
             <h2>Create New Wallet</h2>
             <p style="color:var(--muted);font-size:14px;margin-bottom:16px;line-height:1.5;">
                 Generate a fresh BSC wallet with a new mnemonic phrase. Write it down — it's the only way to recover your funds.

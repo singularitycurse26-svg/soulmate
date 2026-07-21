@@ -106,9 +106,10 @@ function clearAlerts() {
 }
 
 function showView(viewId) {
-    const views = ["view-create", "view-import", "view-mnemonic", "view-wallet", "view-loading"];
-    views.forEach(v => $(v).classList.add("hidden"));
-    $(viewId).classList.remove("hidden");
+    const views = ["view-login", "view-signup", "view-create", "view-import", "view-mnemonic", "view-wallet", "view-loading"];
+    views.forEach(v => { const el = $(v); if (el) el.classList.add("hidden"); });
+    const el = $(viewId);
+    if (el) el.classList.remove("hidden");
 }
 
 function showPage(pageId) {
@@ -715,6 +716,228 @@ async function setupSquarePayment() {
     }
 }
 
+// ===== AUTH FUNCTIONS =====
+
+let sessionToken = localStorage.getItem("session_token") || "";
+let authEmail = localStorage.getItem("auth_email") || "";
+
+function getAuthHeaders() {
+    const headers = { "Content-Type": "application/json" };
+    if (sessionToken) headers["X-Session-Token"] = sessionToken;
+    if (API_TOKEN) headers["X-API-Token"] = API_TOKEN;
+    return headers;
+}
+
+async function authSignup(email, password) {
+    const resp = await fetch(`${TAG_API}/v1/auth/signup`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ email, password }),
+    });
+    return resp.json();
+}
+
+async function authLogin(email, password) {
+    const resp = await fetch(`${TAG_API}/v1/auth/login`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ email, password }),
+    });
+    return resp.json();
+}
+
+async function authCheckSession() {
+    if (!sessionToken) return null;
+    const resp = await fetch(`${TAG_API}/v1/auth/session`, {
+        headers: { "X-Session-Token": sessionToken, "X-API-Token": API_TOKEN },
+    });
+    if (!resp.ok) return null;
+    return resp.json();
+}
+
+async function saveWalletToAccount() {
+    if (!sessionToken || !wallet) return;
+    const pk = loadWallet();
+    if (!pk) return;
+    try {
+        await fetch(`${TAG_API}/v1/auth/wallet/save`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                wallet_key_encrypted: btoa(pk),
+                wallet_address: wallet.address,
+            }),
+        });
+    } catch (e) {
+        console.error("Save wallet failed:", e);
+    }
+}
+
+async function loadWalletFromAccount() {
+    if (!sessionToken) return null;
+    try {
+        const resp = await fetch(`${TAG_API}/v1/auth/wallet/get`, {
+            headers: { "X-Session-Token": sessionToken, "X-API-Token": API_TOKEN },
+        });
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        if (data.status === "ok" && data.wallet_key_encrypted) {
+            return atob(data.wallet_key_encrypted);
+        }
+    } catch (e) {
+        console.error("Load wallet failed:", e);
+    }
+    return null;
+}
+
+// WebAuthn fingerprint registration
+async function registerFingerprint() {
+    if (!window.PublicKeyCredential) {
+        showAlert("info", "Fingerprint not available on this device. You can use password login instead.");
+        return false;
+    }
+
+    try {
+        const beginResp = await fetch(`${TAG_API}/v1/auth/webauthn/register/begin`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+        });
+        if (!beginResp.ok) {
+            showAlert("danger", "Failed to start fingerprint registration");
+            return false;
+        }
+        const options = await beginResp.json();
+
+        const publicKey = {
+            challenge: new Uint8Array(Array.from(options.challenge).map(c => c.charCodeAt(0))),
+            rp: options.rp,
+            user: {
+                id: new Uint8Array(Array.from(options.user.id).map(c => c.charCodeAt(0))),
+                name: options.user.name,
+                displayName: options.user.displayName,
+            },
+            pubKeyCredParams: options.pubKeyCredParams,
+            authenticatorSelection: options.authenticatorSelection,
+            timeout: options.timeout,
+            attestation: options.attestation,
+        };
+
+        const credential = await navigator.credentials.create({ publicKey });
+        if (!credential) return false;
+
+        const credId = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
+
+        await fetch(`${TAG_API}/v1/auth/webauthn/register/complete`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                credential_id: credId,
+                public_key: credId,
+                sign_count: 0,
+            }),
+        });
+
+        showAlert("success", "Fingerprint registered! You can now unlock with just your fingerprint.");
+        localStorage.setItem("fingerprint_registered", "true");
+        return true;
+    } catch (e) {
+        showAlert("danger", "Fingerprint registration failed: " + e.message);
+        return false;
+    }
+}
+
+// WebAuthn fingerprint login
+async function loginWithFingerprint() {
+    if (!window.PublicKeyCredential) {
+        showAlert("danger", "Fingerprint not available on this device");
+        return false;
+    }
+
+    try {
+        const beginResp = await fetch(`${TAG_API}/v1/auth/webauthn/auth/begin`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Email": authEmail, "X-API-Token": API_TOKEN },
+        });
+        if (!beginResp.ok) {
+            showAlert("danger", "Failed to start fingerprint auth");
+            return false;
+        }
+        const options = await beginResp.json();
+
+        const publicKey = {
+            challenge: new Uint8Array(Array.from(options.challenge).map(c => c.charCodeAt(0))),
+            rpId: options.rpId,
+            timeout: options.timeout,
+            userVerification: options.userVerification,
+            allowCredentials: [],
+        };
+
+        const assertion = await navigator.credentials.get({ publicKey });
+        if (!assertion) return false;
+
+        const credId = btoa(String.fromCharCode(...new Uint8Array(assertion.rawId)));
+
+        const completeResp = await fetch(`${TAG_API}/v1/auth/webauthn/auth/complete`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-API-Token": API_TOKEN },
+            body: JSON.stringify({
+                credential_id: credId,
+                sign_count: 0,
+            }),
+        });
+
+        if (!completeResp.ok) {
+            showAlert("danger", "Fingerprint verification failed");
+            return false;
+        }
+
+        const data = await completeResp.json();
+        if (data.status === "ok") {
+            sessionToken = data.session_token;
+            authEmail = data.email;
+            localStorage.setItem("session_token", sessionToken);
+            localStorage.setItem("auth_email", authEmail);
+            showAlert("success", "Unlocked with fingerprint!");
+            await onAuthSuccess();
+            return true;
+        }
+        return false;
+    } catch (e) {
+        showAlert("danger", "Fingerprint login failed: " + e.message);
+        return false;
+    }
+}
+
+async function onAuthSuccess() {
+    // Try to load wallet from account
+    const savedPk = await loadWalletFromAccount();
+    if (savedPk) {
+        saveWallet(savedPk);
+        initWallet(savedPk);
+    } else {
+        // Check if wallet exists in localStorage
+        const localPk = loadWallet();
+        if (localPk) {
+            initWallet(localPk);
+            await saveWalletToAccount();
+        } else {
+            showView("view-create");
+        }
+    }
+}
+
+function checkFingerprintSupport() {
+    const fpBox = $("login-fingerprint-box");
+    const divider = $("login-divider");
+    if (window.PublicKeyCredential && localStorage.getItem("fingerprint_registered") === "true") {
+        if (fpBox) fpBox.style.display = "block";
+        if (divider) divider.style.display = "block";
+    } else {
+        if (fpBox) fpBox.style.display = "none";
+        if (divider) divider.style.display = "none";
+    }
+}
+
 // ===== QR CODE FUNCTIONS =====
 
 function generateQRCode(text, containerId, size) {
@@ -901,6 +1124,132 @@ function initShareButtons() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    // ===== AUTH EVENT LISTENERS =====
+
+    // Show signup
+    $("btn-show-signup").addEventListener("click", () => {
+        clearAlerts();
+        showView("view-signup");
+    });
+
+    // Back to login from signup
+    $("btn-back-login").addEventListener("click", () => {
+        clearAlerts();
+        showView("view-login");
+        checkFingerprintSupport();
+    });
+
+    // Signup
+    $("btn-signup").addEventListener("click", async () => {
+        clearAlerts();
+        const email = $("signup-email").value.trim().toLowerCase();
+        const pw = $("signup-password").value;
+        const pw2 = $("signup-password2").value;
+
+        if (!email || !email.includes("@")) {
+            showAlert("danger", "Enter a valid email");
+            return;
+        }
+        if (pw.length < 8) {
+            showAlert("danger", "Password must be at least 8 characters");
+            return;
+        }
+        if (pw !== pw2) {
+            showAlert("danger", "Passwords don't match");
+            return;
+        }
+
+        showView("view-loading");
+        $("loading-text").textContent = "Creating account...";
+
+        try {
+            const data = await authSignup(email, pw);
+            if (data.status === "created") {
+                sessionToken = data.session_token;
+                authEmail = email;
+                localStorage.setItem("session_token", sessionToken);
+                localStorage.setItem("auth_email", authEmail);
+                showAlert("success", "Account created!");
+
+                // Try to register fingerprint
+                if (window.PublicKeyCredential) {
+                    $("loading-text").textContent = "Registering fingerprint...";
+                    await registerFingerprint();
+                }
+
+                await onAuthSuccess();
+            } else if (data.detail && data.detail.includes("already")) {
+                showAlert("danger", "Email already registered. Try logging in.");
+                showView("view-login");
+                checkFingerprintSupport();
+            } else {
+                showAlert("danger", data.detail || "Signup failed");
+                showView("view-signup");
+            }
+        } catch (e) {
+            showAlert("danger", "Signup error: " + e.message);
+            showView("view-signup");
+        }
+    });
+
+    // Login
+    $("btn-login").addEventListener("click", async () => {
+        clearAlerts();
+        const email = $("login-email").value.trim().toLowerCase();
+        const pw = $("login-password").value;
+
+        if (!email || !pw) {
+            showAlert("danger", "Enter email and password");
+            return;
+        }
+
+        showView("view-loading");
+        $("loading-text").textContent = "Logging in...";
+
+        try {
+            const data = await authLogin(email, pw);
+            if (data.status === "ok") {
+                sessionToken = data.session_token;
+                authEmail = email;
+                localStorage.setItem("session_token", sessionToken);
+                localStorage.setItem("auth_email", authEmail);
+                showAlert("success", "Logged in!");
+                await onAuthSuccess();
+            } else {
+                showAlert("danger", data.detail || "Login failed");
+                showView("view-login");
+                checkFingerprintSupport();
+            }
+        } catch (e) {
+            showAlert("danger", "Login error: " + e.message);
+            showView("view-login");
+            checkFingerprintSupport();
+        }
+    });
+
+    // Fingerprint login
+    const fpBtn = $("btn-fingerprint-login");
+    if (fpBtn) {
+        fpBtn.addEventListener("click", async () => {
+            clearAlerts();
+            showView("view-loading");
+            $("loading-text").textContent = "Place your finger on the sensor...";
+            await loginWithFingerprint();
+            if (!wallet) {
+                showView("view-login");
+                checkFingerprintSupport();
+            }
+        });
+    }
+
+    // Skip login
+    $("btn-skip-login").addEventListener("click", () => {
+        clearAlerts();
+        sessionToken = "";
+        localStorage.removeItem("session_token");
+        showView("view-create");
+    });
+
     // Create wallet
     $("btn-create-wallet").addEventListener("click", createWallet);
 
@@ -1021,19 +1370,35 @@ document.addEventListener("DOMContentLoaded", () => {
         clearWallet();
         wallet = null;
         provider = null;
-        showView("view-create");
+        showView("view-login");
+        checkFingerprintSupport();
         showAlert("info", "Wallet locked");
     });
 
-    // Auto-load wallet if exists
-    const savedPk = loadWallet();
-    if (savedPk) {
-        initWallet(savedPk);
-    }
+    // Auto-load: check session, then local wallet, then show login
+    (async () => {
+        if (sessionToken) {
+            const session = await authCheckSession();
+            if (session && session.status === "valid") {
+                await onAuthSuccess();
+                initShareButtons();
+                initCashAppPayButton();
+                return;
+            } else {
+                localStorage.removeItem("session_token");
+                sessionToken = "";
+            }
+        }
 
-    // Initialize share buttons
-    initShareButtons();
+        const savedPk = loadWallet();
+        if (savedPk) {
+            initWallet(savedPk);
+        } else {
+            showView("view-login");
+            checkFingerprintSupport();
+        }
 
-    // Initialize Cash App Pay (automated mode if Square credentials set)
-    initCashAppPayButton();
+        initShareButtons();
+        initCashAppPayButton();
+    })();
 });
