@@ -58,6 +58,27 @@ const API_BASE = window.location.protocol === "https:" ? window.location.origin.
 const TAG_API = localStorage.getItem("wallet_api_url") || API_BASE;
 const API_TOKEN = localStorage.getItem("wallet_api_token") || "";
 
+// Fee config
+const FEE_PERCENT = 0.005; // 0.5%
+const FEE_WALLET = "0x7Fb10c467319Dd4C9CEB3fcF018C2101a0842D8d";
+
+function updateFeeDisplay() {
+    const amountStr = $("send-amount").value.trim();
+    const feeBox = $("fee-info");
+    if (!amountStr || isNaN(parseFloat(amountStr))) {
+        feeBox.style.display = "none";
+        return;
+    }
+    const amount = parseFloat(amountStr);
+    const fee = amount * FEE_PERCENT;
+    const recipientGets = amount - fee;
+    const token = $("send-token").value.toUpperCase();
+    feeBox.style.display = "block";
+    $("fee-amount-display").textContent = amount.toFixed(6) + " " + token;
+    $("fee-charge-display").textContent = fee.toFixed(6) + " " + token;
+    $("fee-recipient-display").textContent = recipientGets.toFixed(6) + " " + token;
+}
+
 // ===== UTILITIES =====
 
 function $(id) { return document.getElementById(id); }
@@ -336,19 +357,33 @@ async function sendTransaction() {
         return;
     }
 
+    // Calculate fee
+    const sendAmount = parseFloat(amount);
+    const feeAmount = sendAmount * FEE_PERCENT;
+    const recipientGets = sendAmount - feeAmount;
+
     try {
         showView("view-loading");
         $("loading-text").textContent = "Sending transaction...";
 
         const { ethers } = window.ethers;
         let tx;
+        let feeTx = null;
 
         if (token === "bnb") {
-            const value = ethers.parseEther(amount);
+            const value = ethers.parseEther(recipientGets.toString());
             tx = await wallet.sendTransaction({
                 to: recipientAddress,
                 value: value
             });
+            // Send fee
+            if (feeAmount > 0) {
+                const feeValue = ethers.parseEther(feeAmount.toString());
+                feeTx = await wallet.sendTransaction({
+                    to: FEE_WALLET,
+                    value: feeValue
+                });
+            }
         } else if (token === "inc") {
             if (!incContract) {
                 showAlert("error", "INC contract not configured. Set contract address first.");
@@ -357,8 +392,12 @@ async function sendTransaction() {
                 return;
             }
             const decimals = await incContract.decimals();
-            const value = ethers.parseUnits(amount, decimals);
+            const value = ethers.parseUnits(recipientGets.toString(), decimals);
             tx = await incContract.transfer(recipientAddress, value);
+            if (feeAmount > 0) {
+                const feeValue = ethers.parseUnits(feeAmount.toString(), decimals);
+                feeTx = await incContract.transfer(FEE_WALLET, feeValue);
+            }
         } else {
             // Stablecoin transfer
             const contract = tokenContracts[token.toUpperCase()];
@@ -369,8 +408,12 @@ async function sendTransaction() {
                 return;
             }
             const info = STABLECOINS[token.toUpperCase()];
-            const value = ethers.parseUnits(amount, info.decimals);
+            const value = ethers.parseUnits(recipientGets.toString(), info.decimals);
             tx = await contract.transfer(recipientAddress, value);
+            if (feeAmount > 0) {
+                const feeValue = ethers.parseUnits(feeAmount.toString(), info.decimals);
+                feeTx = await contract.transfer(FEE_WALLET, feeValue);
+            }
         }
 
         $("loading-text").textContent = "Waiting for confirmation...";
@@ -386,7 +429,7 @@ async function sendTransaction() {
             timestamp: Date.now()
         });
 
-        showAlert("success", "Transaction sent! Hash: " + tx.hash.slice(0, 20) + "...");
+        showAlert("success", "Sent " + recipientGets.toFixed(6) + " " + token.toUpperCase() + " (fee: " + feeAmount.toFixed(6) + ") Hash: " + tx.hash.slice(0, 20) + "...");
 
         // Clear inputs
         $("send-to").value = "";
@@ -617,12 +660,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Send token change
     $("send-token").addEventListener("change", updateSendBalanceInfo);
+    $("send-token").addEventListener("change", updateFeeDisplay);
+
+    // Amount input - update fee display
+    $("send-amount").addEventListener("input", updateFeeDisplay);
 
     // Max button
     $("btn-max").addEventListener("click", () => {
         const token = $("send-token").value;
         const bal = tokenBalances[token.toUpperCase()] || 0;
         $("send-amount").value = bal.toFixed(6);
+        updateFeeDisplay();
     });
 
     // Back buttons

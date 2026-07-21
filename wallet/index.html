@@ -11,6 +11,7 @@
         <div class="logo">
             <h1>Incentives Wallet</h1>
             <p>BSC · INC Token</p>
+            <p style="font-size:13px;color:var(--accent);margin-top:4px;">@soulmate · 0.5% fee</p>
         </div>
 
         <div id="alert-container"></div>
@@ -197,6 +198,20 @@
                     <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
                         <span class="loading-text" id="send-balance-info">Available: 0</span>
                         <button class="copy-btn" id="btn-max">MAX</button>
+                    </div>
+                    <div id="fee-info" style="display:none;padding:8px 12px;background:var(--card-alt);border-radius:8px;font-size:12px;margin-bottom:12px;">
+                        <div style="display:flex;justify-content:space-between;">
+                            <span style="color:var(--muted);">Amount:</span>
+                            <span id="fee-amount-display">0.00</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;">
+                            <span style="color:var(--muted);">Fee (0.5%):</span>
+                            <span id="fee-charge-display" style="color:var(--accent);">0.00</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);margin-top:4px;padding-top:4px;">
+                            <span style="font-weight:600;">Recipient gets:</span>
+                            <span id="fee-recipient-display" style="font-weight:600;">0.00</span>
+                        </div>
                     </div>
                     <button id="btn-send">Send Transaction</button>
                     <div style="height:12px;"></div>
