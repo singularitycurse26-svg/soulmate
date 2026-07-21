@@ -15,6 +15,18 @@
 
 100% local. 100% free. No API keys required.
 
+### Works With Your AI Stack
+
+Soulmate integrates with the tools and agents you already use:
+
+**AI Coding IDEs:** Cursor · Windsurf · Antigravity · Zed AI · Void IDE · Aide IDE · Trae IDE · Replit AI
+
+**AI Coding Agents:** Claude Code · OpenAI Codex · Cline · Roo Cline · Aider · OpenCode · Gemini CLI · Amp · Continue · Goose AI
+
+**Autonomous Agent Frameworks:** OpenClaw · Hermes Agent · OpenHands · AutoGPT · BabyAGI · SuperAGI · CrewAI · Microsoft AutoGen · LangGraph · MetaGPT · Agent Zero · Devin · OpenDevin
+
+Soulmate's REST API and wallet endpoints work with any agent that can make HTTP requests — your AI can check balances, send crypto, resolve payment tags, and handle PayPal conversions programmatically.
+
 </div>
 
 ---
@@ -189,10 +201,22 @@ py -V:Astral/CPython3.11.15 wallet/api_server.py
 | `/v1/health` | GET | Health check (no auth) |
 | `/v1/balance` | GET | Get all token balances |
 | `/v1/address` | GET | Get wallet address |
-| `/v1/send` | POST | Send any token (BNB, INC, USDC, USDT, BUSD, DAI) |
+| `/v1/send` | POST | Send any token (BNB, INC, USDC, USDT, BUSD, DAI) — supports @tags |
+| `/v1/tags/create` | POST | Create a payment @tag |
+| `/v1/tags/{tag}` | GET | Resolve a @tag to wallet address |
+| `/v1/tags/search` | GET | Search tags |
 | `/v1/paypal/webhook` | POST | Auto-convert PayPal payments to USDT |
 
-All endpoints (except health) require `X-API-Token` header for authentication.
+All endpoints (except health and tag lookups) require `X-API-Token` header for authentication.
+
+### Security
+
+The wallet API is hardened with:
+- **Rate limiting** — 30 req/min general, 10 req/min for sends, 5 req/min for tag creation
+- **Input validation** — Pydantic validators on all request bodies, address/format checking
+- **Audit logging** — All transactions, tag creations, and webhook events logged
+- **CORS lockdown** — Only allowed origins can make requests
+- **0.5% transaction fee** — Every send deducts 0.5% to the wallet owner
 
 ### PayPal → Crypto Auto-Conversion
 
