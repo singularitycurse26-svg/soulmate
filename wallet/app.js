@@ -605,6 +605,80 @@ async function resolveTagInput(value) {
 
 // ===== EVENT LISTENERS =====
 
+// Social media share platforms
+const SHARE_PLATFORMS = [
+    { name: "X", color: "#000", icon: "𝕏", url: (text, url) => `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}` },
+    { name: "Facebook", color: "#1877F2", icon: "f", url: (text, url) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}` },
+    { name: "Reddit", color: "#FF4500", icon: "R", url: (text, url) => `https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}` },
+    { name: "LinkedIn", color: "#0A66C2", icon: "in", url: (text, url) => `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}` },
+    { name: "WhatsApp", color: "#25D366", icon: "W", url: (text, url) => `https://wa.me/?text=${encodeURIComponent(text + " " + url)}` },
+    { name: "Telegram", color: "#0088CC", icon: "T", url: (text, url) => `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}` },
+    { name: "Discord", color: "#5865F2", icon: "D", url: (text, url) => `https://discord.com/channels/@me` },
+    { name: "YouTube", color: "#FF0000", icon: "Y", url: (text, url) => `https://www.youtube.com` },
+    { name: "Instagram", color: "#E4405F", icon: "I", url: (text, url) => `https://www.instagram.com` },
+    { name: "TikTok", color: "#000", icon: "TT", url: (text, url) => `https://www.tiktok.com` },
+    { name: "Snapchat", color: "#FFFC00", icon: "S", url: (text, url) => `https://www.snapchat.com` },
+    { name: "Pinterest", color: "#BD081C", icon: "P", url: (text, url) => `https://pinterest.com/pin/create/button/?url=${encodeURIComponent(url)}&description=${encodeURIComponent(text)}` },
+    { name: "Tumblr", color: "#36465D", icon: "t", url: (text, url) => `https://www.tumblr.com/share/link?url=${encodeURIComponent(url)}&name=${encodeURIComponent(text)}` },
+    { name: "Mastodon", color: "#6364FF", icon: "M", url: (text, url) => `https://mastodon.social/share?text=${encodeURIComponent(text + " " + url)}` },
+    { name: "VK", color: "#4C75C3", icon: "VK", url: (text, url) => `https://vk.com/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}` },
+    { name: "Myspace", color: "#0A0A0A", icon: "MS", url: (text, url) => `https://myspace.com` },
+    { name: "Email", color: "#EA4335", icon: "@", url: (text, url) => `mailto:?subject=${encodeURIComponent(text)}&body=${encodeURIComponent(url)}` },
+    { name: "SMS", color: "#34A853", icon: "SMS", url: (text, url) => `sms:?&body=${encodeURIComponent(text + " " + url)}` },
+    { name: "Signal", color: "#3A76F0", icon: "SG", url: (text, url) => `https://signal.me` },
+    { name: "Threads", color: "#000", icon: "TH", url: (text, url) => `https://threads.net` },
+    { name: "Bluesky", color: "#0085FF", icon: "BS", url: (text, url) => `https://bsky.app` },
+    { name: "Hacker News", color: "#FF6600", icon: "HN", url: (text, url) => `https://news.ycombinator.com/submitlink?u=${encodeURIComponent(url)}&t=${encodeURIComponent(text)}` },
+    { name: "StumbleUpon", color: "#EB4924", icon: "SU", url: (text, url) => `https://stumbleupon.com` },
+    { name: "Digg", color: "#0080FF", icon: "DG", url: (text, url) => `https://digg.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}` },
+    { name: "Blogger", color: "#FF8000", icon: "B", url: (text, url) => `https://www.blogger.com` },
+    { name: "WordPress", color: "#21759B", icon: "WP", url: (text, url) => `https://wordpress.com` },
+    { name: "Medium", color: "#000", icon: "MD", url: (text, url) => `https://medium.com` },
+    { name: "Quora", color: "#B92B27", icon: "Q", url: (text, url) => `https://www.quora.com` },
+    { name: "Flipboard", color: "#E12828", icon: "FL", url: (text, url) => `https://share.flipboard.com/bookmarklet/popout?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}` },
+    { name: "Mix", color: "#FF6600", icon: "MX", url: (text, url) => `https://mix.com/mixit?url=${encodeURIComponent(url)}` },
+    { name: "WeChat", color: "#07C160", icon: "WC", url: (text, url) => `https://web.wechat.com` },
+    { name: "Line", color: "#00B900", icon: "LN", url: (text, url) => `https://line.me/R/msg/text/?${encodeURIComponent(text + " " + url)}` },
+    { name: "Viber", color: "#7360F2", icon: "VB", url: (text, url) => `viber://forward?text=${encodeURIComponent(text + " " + url)}` },
+    { name: "Skype", color: "#00AFF0", icon: "SK", url: (text, url) => `https://web.skype.com/share?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}` },
+    { name: "Slack", color: "#4A154B", icon: "SL", url: (text, url) => `https://slack.com` },
+    { name: "Teams", color: "#6264A7", icon: "TM", url: (text, url) => `https://teams.microsoft.com` },
+    { name: "Gab", color: "#21CF7A", icon: "GB", url: (text, url) => `https://gab.com` },
+    { name: "Parler", color: "#BE1E2D", icon: "PR", url: (text, url) => `https://parler.com` },
+    { name: "Truth Social", color: "#1A78E2", icon: "TS", url: (text, url) => `https://truthsocial.com` },
+    { name: "Gettr", color: "#E3000F", icon: "GT", url: (text, url) => `https://gettr.com` },
+    { name: "Clubhouse", color: "#6515DD", icon: "CH", url: (text, url) => `https://www.clubhouse.com` },
+    { name: "Twitch", color: "#9146FF", icon: "TW", url: (text, url) => `https://www.twitch.tv` },
+    { name: "Steam", color: "#171A21", icon: "ST", url: (text, url) => `https://store.steampowered.com` },
+    { name: "Reddit Chat", color: "#FF4500", icon: "RC", url: (text, url) => `https://www.reddit.com/chat` },
+    { name: "Koo", color: "#AC1E2D", icon: "KO", url: (text, url) => `https://www.kooapp.com` },
+    { name: "Weibo", color: "#E6162D", icon: "WB", url: (text, url) => `https://service.weibo.com/share/share.php?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}` },
+    { name: "Qzone", color: "#FEBE0F", icon: "QZ", url: (text, url) => `https://sns.qzone.qq.com/cgi-bin/qzshare/cgi_qzshare_onekey?url=${encodeURIComponent(url)}` },
+    { name: "Douban", color: "#007722", icon: "DB", url: (text, url) => `https://www.douban.com/share/?url=${encodeURIComponent(url)}&name=${encodeURIComponent(text)}` },
+    { name: "Renren", color: "#217DC6", icon: "RR", url: (text, url) => `http://widget.renren.com/dialog/share?resourceUrl=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}` },
+    { name: "Pocket", color: "#EF4056", icon: "PK", url: (text, url) => `https://getpocket.com/save?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}` },
+    { name: "Instapaper", color: "#000", icon: "IP", url: (text, url) => `https://www.instapaper.com/edit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}` },
+    { name: "Buffer", color: "#168EEA", icon: "BF", url: (text, url) => `https://buffer.com/add?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}` },
+    { name: "Evernote", color: "#00A82D", icon: "EN", url: (text, url) => `https://www.evernote.com/clip.action?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}` },
+    { name: "Trello", color: "#0079BF", icon: "TR", url: (text, url) => `https://trello.com` },
+    { name: "RSS", color: "#FFA500", icon: "RSS", url: (text, url) => `https://rss.com` },
+    { name: "Print", color: "#666", icon: "PR", url: (text, url) => `javascript:window.print()` },
+];
+
+function initShareButtons() {
+    const container = $("share-buttons");
+    if (!container) return;
+    const walletUrl = window.location.origin;
+    const shareText = "Check out the Incentives Wallet — BSC crypto wallet with @tags, 0.5% fees, and PayPal integration!";
+
+    container.innerHTML = SHARE_PLATFORMS.map(p => {
+        const isLight = ["WhatsApp", "Snapchat", "Signal", "Truth Social", "Clubhouse", "Pocket", "Flipboard", "Koo", "Qzone", "RSS"].includes(p.name);
+        const textColor = isLight ? "#000" : "#fff";
+        const fontSize = p.icon.length > 2 ? "10px" : "13px";
+        return `<a href="${p.url(shareText, walletUrl)}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;background:${p.color};color:${textColor};text-decoration:none;font-weight:bold;font-size:${fontSize};cursor:pointer;transition:transform 0.1s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" title="Share to ${p.name}">${p.icon}</a>`;
+    }).join("");
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     // Create wallet
     $("btn-create-wallet").addEventListener("click", createWallet);
@@ -691,6 +765,13 @@ document.addEventListener("DOMContentLoaded", () => {
         tagResolveTimer = setTimeout(() => resolveTagInput(e.target.value), 300);
     });
 
+    // Copy share link
+    $("btn-copy-share-link").addEventListener("click", () => {
+        const link = window.location.origin;
+        copyToClipboard(link);
+        showAlert("info", "Share link copied: " + link);
+    });
+
     // Logout
     $("btn-logout").addEventListener("click", () => {
         clearWallet();
@@ -705,4 +786,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (savedPk) {
         initWallet(savedPk);
     }
+
+    // Initialize share buttons
+    initShareButtons();
 });
