@@ -1,0 +1,497 @@
+/**
+ * Incentives Wallet — BSC wallet for INC token
+ * Uses ethers.js v6 for blockchain interaction
+ */
+
+// BSC Mainnet config
+const BSC_RPC = "https://bsc-dataseed.binance.org";
+const BSC_CHAIN_ID = 56;
+const PANCAKE_ROUTER = "0x10ED43C718714eb63d5aA57B78B54704E256024E";
+
+// INC Token contract — update after deployment
+let INC_CONTRACT = localStorage.getItem("inc_contract") || "";
+
+// Stablecoin contracts on BSC mainnet
+const STABLECOINS = {
+    USDT: { address: "0x55d398326f99059fF775485246999027B3197955", decimals: 18, name: "Tether USD", icon: "T", color: "#26a17b" },
+    USDC: { address: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d", decimals: 18, name: "USD Coin", icon: "U", color: "#2775ca" },
+    BUSD: { address: "0xe9e7cea3dedca5984780bafc599bd69add087d56", decimals: 18, name: "Binance USD", icon: "B", color: "#f0b90b" },
+    DAI:  { address: "0x1af3f329e963e609a3a4f2173050835a825754b0", decimals: 18, name: "Dai Stablecoin", icon: "D", color: "#f5ac37" },
+};
+
+// All supported tokens
+const ALL_TOKENS = {
+    BNB: { symbol: "BNB", name: "Binance Coin", decimals: 18, native: true, icon: "B", color: "#f0b90b" },
+    INC: { symbol: "INC", name: "Incentives", decimals: 18, address: "", icon: "I", color: "linear-gradient(135deg, #ff6b9d, #c44dff)" },
+    USDT: { ...STABLECOINS.USDT, symbol: "USDT" },
+    USDC: { ...STABLECOINS.USDC, symbol: "USDC" },
+    BUSD: { ...STABLECOINS.BUSD, symbol: "BUSD" },
+    DAI:  { ...STABLECOINS.DAI, symbol: "DAI" },
+};
+
+// Token contracts cache
+let tokenContracts = {};
+
+// ERC-20 ABI (minimal)
+const ERC20_ABI = [
+    "function name() view returns (string)",
+    "function symbol() view returns (string)",
+    "function decimals() view returns (uint8)",
+    "function totalSupply() view returns (uint256)",
+    "function balanceOf(address) view returns (uint256)",
+    "function transfer(address to, uint256 amount) returns (bool)",
+    "function allowance(address owner, address spender) view returns (uint256)",
+    "function approve(address spender, uint256 amount) returns (bool)",
+    "event Transfer(address indexed from, address indexed to, uint256 value)",
+];
+
+// State
+let provider = null;
+let wallet = null;
+let incContract = null;
+let bnbPrice = 0;
+let incPrice = 0;
+let tokenBalances = {};
+
+// ===== UTILITIES =====
+
+function $(id) { return document.getElementById(id); }
+
+function showAlert(type, msg, autoDismiss = true) {
+    const container = $("alert-container");
+    const el = document.createElement("div");
+    el.className = `alert ${type}`;
+    el.textContent = msg;
+    container.appendChild(el);
+    if (autoDismiss) {
+        setTimeout(() => el.remove(), 5000);
+    }
+    return el;
+}
+
+function clearAlerts() {
+    $("alert-container").innerHTML = "";
+}
+
+function showView(viewId) {
+    const views = ["view-create", "view-import", "view-mnemonic", "view-wallet", "view-loading"];
+    views.forEach(v => $(v).classList.add("hidden"));
+    $(viewId).classList.remove("hidden");
+}
+
+function showPage(pageId) {
+    const pages = ["page-dashboard", "page-send", "page-receive", "page-history"];
+    pages.forEach(p => $(p).classList.add("hidden"));
+    $(pageId).classList.remove("hidden");
+
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+    const navMap = { "page-dashboard": 0, "page-send": 1, "page-receive": 2, "page-history": 3 };
+    const navItems = document.querySelectorAll(".nav-item");
+    if (navMap[pageId] !== undefined) navItems[navMap[pageId]].classList.add("active");
+}
+
+function shortenAddr(addr) {
+    if (!addr) return "0x0000...0000";
+    return addr.slice(0, 6) + "..." + addr.slice(-4);
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showAlert("success", "Copied to clipboard!");
+    }).catch(() => {
+        showAlert("error", "Failed to copy");
+    });
+}
+
+function saveWallet(pk) {
+    localStorage.setItem("inc_wallet_pk", pk);
+}
+
+function loadWallet() {
+    return localStorage.getItem("inc_wallet_pk");
+}
+
+function clearWallet() {
+    localStorage.removeItem("inc_wallet_pk");
+}
+
+// ===== WALLET CREATION =====
+
+async function createWallet() {
+    try {
+        showView("view-loading");
+        $("loading-text").textContent = "Generating wallet...";
+
+        const { ethers } = window.ethers;
+        const newWallet = ethers.Wallet.createRandom();
+
+        // Store the mnemonic for display and private key for session
+        window._pendingMnemonic = newWallet.mnemonic.phrase;
+        window._pendingPrivateKey = newWallet.privateKey;
+
+        // Show mnemonic
+        $("mnemonic-text").textContent = newWallet.mnemonic.phrase;
+        showView("view-mnemonic");
+    } catch (e) {
+        showAlert("error", "Failed to create wallet: " + e.message);
+        showView("view-create");
+    }
+}
+
+// ===== WALLET IMPORT =====
+
+async function importWallet() {
+    const input = $("import-input").value.trim();
+    if (!input) {
+        showAlert("error", "Please enter a private key or mnemonic phrase");
+        return;
+    }
+
+    try {
+        showView("view-loading");
+        $("loading-text").textContent = "Importing wallet...";
+
+        const { ethers } = window.ethers;
+        let importedWallet;
+
+        if (input.startsWith("0x") && input.length === 66) {
+            // Private key
+            importedWallet = new ethers.Wallet(input);
+        } else if (input.split(" ").length === 12 || input.split(" ").length === 24) {
+            // Mnemonic
+            importedWallet = ethers.Wallet.fromPhrase(input);
+        } else {
+            showAlert("error", "Invalid input. Enter a private key (0x...) or 12/24 word mnemonic.");
+            showView("view-import");
+            return;
+        }
+
+        saveWallet(importedWallet.privateKey);
+        await initWallet(importedWallet.privateKey);
+    } catch (e) {
+        showAlert("error", "Failed to import: " + e.message);
+        showView("view-import");
+    }
+}
+
+// ===== INIT WALLET =====
+
+async function initWallet(privateKey) {
+    try {
+        showView("view-loading");
+        $("loading-text").textContent = "Connecting to BSC...";
+
+        const { ethers } = window.ethers;
+        provider = new ethers.JsonRpcProvider(BSC_RPC);
+        wallet = new ethers.Wallet(privateKey, provider);
+
+        // Display address
+        $("wallet-address").textContent = shortenAddr(wallet.address);
+        $("receive-address").textContent = wallet.address;
+
+        // Init INC contract if address is set
+        if (INC_CONTRACT) {
+            incContract = new ethers.Contract(INC_CONTRACT, ERC20_ABI, wallet);
+            ALL_TOKENS.INC.address = INC_CONTRACT;
+        }
+
+        // Init stablecoin contracts
+        for (const [sym, info] of Object.entries(STABLECOINS)) {
+            tokenContracts[sym] = new ethers.Contract(info.address, ERC20_ABI, wallet);
+        }
+        if (INC_CONTRACT) {
+            tokenContracts["INC"] = incContract;
+        }
+
+        // Load balances
+        $("loading-text").textContent = "Loading balances...";
+        await updateBalances();
+
+        // Load transaction history
+        await loadTransactionHistory();
+
+        showView("view-wallet");
+        showPage("page-dashboard");
+        showAlert("success", "Wallet connected!");
+    } catch (e) {
+        showAlert("error", "Failed to connect: " + e.message);
+        showView("view-create");
+    }
+}
+
+// ===== BALANCES =====
+
+async function updateBalances() {
+    if (!wallet || !provider) return;
+
+    try {
+        const { ethers } = window.ethers;
+        let totalUsd = 0;
+
+        // BNB balance
+        const bnbBal = await provider.getBalance(wallet.address);
+        const bnbFormatted = ethers.formatEther(bnbBal);
+        $("bnb-balance").textContent = parseFloat(bnbFormatted).toFixed(4);
+        tokenBalances["BNB"] = parseFloat(bnbFormatted);
+
+        // Fetch BNB price
+        try {
+            const resp = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=binancecoin&vs_currencies=usd");
+            const data = await resp.json();
+            bnbPrice = data.binancecoin?.usd || 0;
+        } catch { bnbPrice = 0; }
+
+        const bnbUsd = parseFloat(bnbFormatted) * bnbPrice;
+        $("bnb-usd").textContent = "$" + bnbUsd.toFixed(2);
+        totalUsd += bnbUsd;
+
+        // INC balance
+        if (incContract) {
+            const incBal = await incContract.balanceOf(wallet.address);
+            const incDecimals = await incContract.decimals();
+            const incFormatted = ethers.formatUnits(incBal, incDecimals);
+            $("inc-balance").textContent = parseFloat(incFormatted).toFixed(2);
+            tokenBalances["INC"] = parseFloat(incFormatted);
+            const incUsd = parseFloat(incFormatted) * incPrice;
+            $("inc-usd").textContent = "$" + incUsd.toFixed(2);
+            totalUsd += incUsd;
+        } else {
+            $("inc-balance").textContent = "0.00";
+            $("inc-usd").textContent = "$0.00";
+            tokenBalances["INC"] = 0;
+        }
+
+        // Stablecoin balances
+        for (const [sym, info] of Object.entries(STABLECOINS)) {
+            try {
+                const contract = tokenContracts[sym];
+                if (!contract) continue;
+                const bal = await contract.balanceOf(wallet.address);
+                const formatted = ethers.formatUnits(bal, info.decimals);
+                tokenBalances[sym] = parseFloat(formatted);
+                const el = $(sym.toLowerCase() + "-balance");
+                if (el) {
+                    el.textContent = parseFloat(formatted).toFixed(2);
+                    const usdEl = $(sym.toLowerCase() + "-usd");
+                    if (usdEl) usdEl.textContent = "$" + parseFloat(formatted).toFixed(2);
+                }
+                totalUsd += parseFloat(formatted); // Stablecoins are ~$1 each
+            } catch { tokenBalances[sym] = 0; }
+        }
+
+        // Total
+        $("total-balance").textContent = "$" + totalUsd.toFixed(2);
+
+        // Update send page balance info
+        updateSendBalanceInfo();
+    } catch (e) {
+        showAlert("error", "Failed to load balances: " + e.message);
+    }
+}
+
+function updateSendBalanceInfo() {
+    const token = $("send-token").value;
+    const bal = tokenBalances[token.toUpperCase()] || 0;
+    $("send-balance-info").textContent = "Available: " + bal.toFixed(4) + " " + token.toUpperCase();
+}
+
+// ===== SEND =====
+
+async function sendTransaction() {
+    const token = $("send-token").value;
+    const to = $("send-to").value.trim();
+    const amount = $("send-amount").value.trim();
+
+    if (!to || !amount) {
+        showAlert("error", "Enter recipient address and amount");
+        return;
+    }
+
+    if (!to.startsWith("0x") || to.length !== 42) {
+        showAlert("error", "Invalid recipient address");
+        return;
+    }
+
+    try {
+        showView("view-loading");
+        $("loading-text").textContent = "Sending transaction...";
+
+        const { ethers } = window.ethers;
+        let tx;
+
+        if (token === "bnb") {
+            const value = ethers.parseEther(amount);
+            tx = await wallet.sendTransaction({
+                to: to,
+                value: value
+            });
+        } else if (token === "inc") {
+            if (!incContract) {
+                showAlert("error", "INC contract not configured. Set contract address first.");
+                showView("view-wallet");
+                showPage("page-send");
+                return;
+            }
+            const decimals = await incContract.decimals();
+            const value = ethers.parseUnits(amount, decimals);
+            tx = await incContract.transfer(to, value);
+        } else {
+            // Stablecoin transfer
+            const contract = tokenContracts[token.toUpperCase()];
+            if (!contract) {
+                showAlert("error", token.toUpperCase() + " contract not loaded.");
+                showView("view-wallet");
+                showPage("page-send");
+                return;
+            }
+            const info = STABLECOINS[token.toUpperCase()];
+            const value = ethers.parseUnits(amount, info.decimals);
+            tx = await contract.transfer(to, value);
+        }
+
+        $("loading-text").textContent = "Waiting for confirmation...";
+        await tx.wait();
+
+        // Save to local transaction history
+        saveTransaction({
+            type: token.toUpperCase(),
+            to: to,
+            amount: amount,
+            hash: tx.hash,
+            direction: "out",
+            timestamp: Date.now()
+        });
+
+        showAlert("success", "Transaction sent! Hash: " + tx.hash.slice(0, 20) + "...");
+
+        // Clear inputs
+        $("send-to").value = "";
+        $("send-amount").value = "";
+
+        // Refresh
+        await updateBalances();
+        await loadTransactionHistory();
+        showView("view-wallet");
+        showPage("page-dashboard");
+    } catch (e) {
+        showAlert("error", "Transaction failed: " + e.message);
+        showView("view-wallet");
+        showPage("page-send");
+    }
+}
+
+// ===== TRANSACTION HISTORY =====
+
+function saveTransaction(tx) {
+    let history = JSON.parse(localStorage.getItem("inc_tx_history") || "[]");
+    history.unshift(tx);
+    if (history.length > 50) history = history.slice(0, 50);
+    localStorage.setItem("inc_tx_history", JSON.stringify(history));
+}
+
+async function loadTransactionHistory() {
+    const history = JSON.parse(localStorage.getItem("inc_tx_history") || "[]");
+    const list = $("tx-list");
+
+    if (history.length === 0) {
+        list.innerHTML = '<div class="empty-state">No transactions yet</div>';
+        return;
+    }
+
+    list.innerHTML = history.map(tx => `
+        <div class="tx-item">
+            <div class="tx-info">
+                <div class="tx-type">${tx.direction === "out" ? "Sent" : "Received"} ${tx.type}</div>
+                <div class="tx-hash">${tx.hash.slice(0, 18)}...</div>
+            </div>
+            <div class="tx-amount ${tx.direction}">
+                ${tx.direction === "out" ? "-" : "+"}${tx.amount} ${tx.type}
+            </div>
+        </div>
+    `).join("");
+}
+
+// ===== EVENT LISTENERS =====
+
+document.addEventListener("DOMContentLoaded", () => {
+    // Create wallet
+    $("btn-create-wallet").addEventListener("click", createWallet);
+
+    // Show import
+    $("btn-show-import").addEventListener("click", () => {
+        showView("view-import");
+    });
+
+    // Import wallet
+    $("btn-import-wallet").addEventListener("click", importWallet);
+
+    // Back from import
+    $("btn-back-create").addEventListener("click", () => {
+        showView("view-create");
+    });
+
+    // Confirm mnemonic
+    $("btn-confirm-mnemonic").addEventListener("click", async () => {
+        if (window._pendingPrivateKey) {
+            saveWallet(window._pendingPrivateKey);
+            await initWallet(window._pendingPrivateKey);
+            window._pendingMnemonic = null;
+            window._pendingPrivateKey = null;
+        }
+    });
+
+    // Nav items
+    document.querySelectorAll(".nav-item").forEach(item => {
+        item.addEventListener("click", () => {
+            const view = item.dataset.view;
+            showPage("page-" + view);
+        });
+    });
+
+    // Copy address
+    $("btn-copy-address").addEventListener("click", () => {
+        copyToClipboard(wallet ? wallet.address : "");
+    });
+
+    // Copy receive address
+    $("btn-copy-receive").addEventListener("click", () => {
+        copyToClipboard(wallet ? wallet.address : "");
+    });
+
+    // Quick actions
+    $("btn-quick-send").addEventListener("click", () => showPage("page-send"));
+    $("btn-quick-receive").addEventListener("click", () => showPage("page-receive"));
+
+    // Send
+    $("btn-send").addEventListener("click", sendTransaction);
+
+    // Send token change
+    $("send-token").addEventListener("change", updateSendBalanceInfo);
+
+    // Max button
+    $("btn-max").addEventListener("click", () => {
+        const token = $("send-token").value;
+        const bal = tokenBalances[token.toUpperCase()] || 0;
+        $("send-amount").value = bal.toFixed(6);
+    });
+
+    // Back buttons
+    $("btn-back-dashboard").addEventListener("click", () => showPage("page-dashboard"));
+    $("btn-back-dashboard2").addEventListener("click", () => showPage("page-dashboard"));
+    $("btn-back-dashboard3").addEventListener("click", () => showPage("page-dashboard"));
+
+    // Logout
+    $("btn-logout").addEventListener("click", () => {
+        clearWallet();
+        wallet = null;
+        provider = null;
+        showView("view-create");
+        showAlert("info", "Wallet locked");
+    });
+
+    // Auto-load wallet if exists
+    const savedPk = loadWallet();
+    if (savedPk) {
+        initWallet(savedPk);
+    }
+});

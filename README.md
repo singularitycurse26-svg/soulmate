@@ -140,6 +140,21 @@ MIT — see [LICENSE](LICENSE)
 
 [singularitycurse26-svg](https://github.com/singularitycurse26-svg)
 
+## Built-in Crypto Wallet
+
+Soulmate comes with a BSC (Binance Smart Chain) crypto wallet for accepting payments and bounties.
+
+**Supported tokens:** BNB, INC, USDC, USDT, BUSD, DAI
+
+```bash
+py -V:Astral/CPython3.11.15 wallet/serve.py
+# Open http://localhost:8545
+```
+
+**Accept GitHub bounty payments in USDC** — the standard stablecoin for open-source bounties. Share your wallet address on your GitHub profile or bounty posts.
+
+See [wallet/README.md](wallet/README.md) for full documentation.
+
 ## Support the Project
 
 If Soulmate helps you, consider supporting development:
@@ -147,6 +162,12 @@ If Soulmate helps you, consider supporting development:
 <div align="center">
 
 [![Donate](https://img.shields.io/badge/PayPal-Donate-red.svg?logo=paypal)](https://paypal.me/soulmate4)
+
+**Or send crypto:**
+
+[![Wallet](https://img.shields.io/badge/BSC-Wallet-blue.svg)](https://191.44.121.29.sslip.io)
+
+`0x7Fb10c467319Dd4C9CEB3fcF018C2101a0842D8d` — USDC / USDT / BNB / INC
 
 </div>
 

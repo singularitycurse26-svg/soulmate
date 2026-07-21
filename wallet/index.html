@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incentives Wallet — INC</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <div class="logo">
+            <h1>Incentives Wallet</h1>
+            <p>BSC · INC Token</p>
+        </div>
+
+        <div id="alert-container"></div>
+
+        <!-- CREATE WALLET VIEW -->
+        <div id="view-create" class="card">
+            <h2>Create New Wallet</h2>
+            <p style="color:var(--muted);font-size:14px;margin-bottom:16px;line-height:1.5;">
+                Generate a fresh BSC wallet with a new mnemonic phrase. Write it down — it's the only way to recover your funds.
+            </p>
+            <button id="btn-create-wallet">Generate New Wallet</button>
+            <div style="height:12px;"></div>
+            <button class="secondary" id="btn-show-import">Import Existing Wallet</button>
+        </div>
+
+        <!-- IMPORT WALLET VIEW -->
+        <div id="view-import" class="card hidden">
+            <h2>Import Wallet</h2>
+            <span class="label-text">Private Key or Mnemonic Phrase</span>
+            <textarea id="import-input" placeholder="Paste your private key (0x...) or 12/24 word mnemonic phrase"></textarea>
+            <button id="btn-import-wallet">Import Wallet</button>
+            <div style="height:12px;"></div>
+            <button class="secondary" id="btn-back-create">Back</button>
+        </div>
+
+        <!-- MNEMONIC DISPLAY VIEW -->
+        <div id="view-mnemonic" class="card hidden">
+            <h2>Your Recovery Phrase</h2>
+            <div class="mnemonic-display" id="mnemonic-text"></div>
+            <p class="warning-text">
+                Write these 12 words down on paper and keep them safe.<br>
+                Anyone with these words can steal your funds. Never share them.
+            </p>
+            <button id="btn-confirm-mnemonic">I've Saved It — Continue</button>
+        </div>
+
+        <!-- MAIN WALLET VIEW -->
+        <div id="view-wallet" class="hidden">
+
+            <!-- NAV -->
+            <div class="nav">
+                <div class="nav-item active" data-view="dashboard">Wallet</div>
+                <div class="nav-item" data-view="send">Send</div>
+                <div class="nav-item" data-view="receive">Receive</div>
+                <div class="nav-item" data-view="history">History</div>
+            </div>
+
+            <!-- DASHBOARD -->
+            <div id="page-dashboard">
+                <div class="card">
+                    <div class="balance-box">
+                        <div class="amount" id="total-balance">$0.00</div>
+                        <div class="label">Total Balance</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>My Wallet</h2>
+                    <div class="address-box">
+                        <span class="addr" id="wallet-address">0x0000...0000</span>
+                        <button class="copy-btn" id="btn-copy-address">Copy</button>
+                    </div>
+                    <div class="balance-row">
+                        <div class="token">
+                            <div class="token-icon bnb">B</div>
+                            <div>
+                                <div style="font-weight:600;">BNB</div>
+                                <div style="color:var(--muted);font-size:12px;">Binance Coin</div>
+                            </div>
+                        </div>
+                        <div class="val">
+                            <div class="num" id="bnb-balance">0.0000</div>
+                            <div class="usd" id="bnb-usd">$0.00</div>
+                        </div>
+                    </div>
+                    <div class="balance-row">
+                        <div class="token">
+                            <div class="token-icon inc">I</div>
+                            <div>
+                                <div style="font-weight:600;">INC</div>
+                                <div style="color:var(--muted);font-size:12px;">Incentives</div>
+                            </div>
+                        </div>
+                        <div class="val">
+                            <div class="num" id="inc-balance">0.00</div>
+                            <div class="usd" id="inc-usd">$0.00</div>
+                        </div>
+                    </div>
+                    <div class="balance-row">
+                        <div class="token">
+                            <div class="token-icon" style="background:#26a17b;color:#fff;">T</div>
+                            <div>
+                                <div style="font-weight:600;">USDT</div>
+                                <div style="color:var(--muted);font-size:12px;">Tether USD</div>
+                            </div>
+                        </div>
+                        <div class="val">
+                            <div class="num" id="usdt-balance">0.00</div>
+                            <div class="usd" id="usdt-usd">$0.00</div>
+                        </div>
+                    </div>
+                    <div class="balance-row">
+                        <div class="token">
+                            <div class="token-icon" style="background:#2775ca;color:#fff;">U</div>
+                            <div>
+                                <div style="font-weight:600;">USDC</div>
+                                <div style="color:var(--muted);font-size:12px;">USD Coin</div>
+                            </div>
+                        </div>
+                        <div class="val">
+                            <div class="num" id="usdc-balance">0.00</div>
+                            <div class="usd" id="usdc-usd">$0.00</div>
+                        </div>
+                    </div>
+                    <div class="balance-row">
+                        <div class="token">
+                            <div class="token-icon" style="background:#f0b90b;color:#000;">B</div>
+                            <div>
+                                <div style="font-weight:600;">BUSD</div>
+                                <div style="color:var(--muted);font-size:12px;">Binance USD</div>
+                            </div>
+                        </div>
+                        <div class="val">
+                            <div class="num" id="busd-balance">0.00</div>
+                            <div class="usd" id="busd-usd">$0.00</div>
+                        </div>
+                    </div>
+                    <div class="balance-row">
+                        <div class="token">
+                            <div class="token-icon" style="background:#f5ac37;color:#000;">D</div>
+                            <div>
+                                <div style="font-weight:600;">DAI</div>
+                                <div style="color:var(--muted);font-size:12px;">Dai Stablecoin</div>
+                            </div>
+                        </div>
+                        <div class="val">
+                            <div class="num" id="dai-balance">0.00</div>
+                            <div class="usd" id="dai-usd">$0.00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Quick Actions</h2>
+                    <div class="btn-row">
+                        <button id="btn-quick-send">Send</button>
+                        <button class="secondary" id="btn-quick-receive">Receive</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Network</h2>
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-size:14px;">Binance Smart Chain</span>
+                        <span style="color:var(--success);font-size:13px;" id="network-status">Connected</span>
+                    </div>
+                </div>
+
+                <div style="height:12px;"></div>
+                <button class="danger" id="btn-logout">Lock Wallet</button>
+            </div>
+
+            <!-- SEND PAGE -->
+            <div id="page-send" class="hidden">
+                <div class="card">
+                    <h2>Send Funds</h2>
+                    <span class="label-text">Select Token</span>
+                    <select id="send-token">
+                        <option value="bnb">BNB — Binance Coin</option>
+                        <option value="inc">INC — Incentives</option>
+                        <option value="usdt">USDT — Tether USD</option>
+                        <option value="usdc">USDC — USD Coin</option>
+                        <option value="busd">BUSD — Binance USD</option>
+                        <option value="dai">DAI — Dai Stablecoin</option>
+                    </select>
+                    <span class="label-text">Recipient Address</span>
+                    <input type="text" id="send-to" placeholder="0x... recipient wallet address">
+                    <span class="label-text">Amount</span>
+                    <input type="text" id="send-amount" placeholder="0.00">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+                        <span class="loading-text" id="send-balance-info">Available: 0</span>
+                        <button class="copy-btn" id="btn-max">MAX</button>
+                    </div>
+                    <button id="btn-send">Send Transaction</button>
+                    <div style="height:12px;"></div>
+                    <button class="secondary" id="btn-back-dashboard">Back</button>
+                </div>
+            </div>
+
+            <!-- RECEIVE PAGE -->
+            <div id="page-receive" class="hidden">
+                <div class="card">
+                    <h2>Receive Funds</h2>
+                    <div class="qr-placeholder">
+                        <div style="font-size:48px;">QR</div>
+                        <p style="color:var(--muted);font-size:13px;margin-top:8px;">Scan to send funds</p>
+                        <div class="addr-full" id="receive-address">0x0000...0000</div>
+                    </div>
+                    <button class="copy-btn" id="btn-copy-receive" style="width:100%;padding:12px;">Copy Address</button>
+                    <div style="height:12px;"></div>
+                    <button class="secondary" id="btn-back-dashboard2">Back</button>
+                </div>
+            </div>
+
+            <!-- HISTORY PAGE -->
+            <div id="page-history" class="hidden">
+                <div class="card">
+                    <h2>Transaction History</h2>
+                    <div id="tx-list">
+                        <div class="empty-state">No transactions yet</div>
+                    </div>
+                </div>
+                <div style="height:12px;"></div>
+                <button class="secondary" id="btn-back-dashboard3">Back</button>
+            </div>
+        </div>
+
+        <!-- LOADING VIEW -->
+        <div id="view-loading" class="card hidden">
+            <div style="text-align:center;padding:20px;">
+                <div class="spinner" style="width:32px;height:32px;margin:0 auto 16px;"></div>
+                <p class="loading-text" id="loading-text">Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
