@@ -140,6 +140,16 @@ MIT — see [LICENSE](LICENSE)
 
 [singularitycurse26-svg](https://github.com/singularitycurse26-svg)
 
+## Support the Project
+
+If Soulmate helps you, consider supporting development:
+
+<div align="center">
+
+[![Donate](https://img.shields.io/badge/PayPal-Donate-red.svg?logo=paypal)](https://paypal.me/soulmate4)
+
+</div>
+
 <div align="center">
 
 Built with love for the local-first AI community
