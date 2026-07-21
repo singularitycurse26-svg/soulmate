@@ -1,0 +1,172 @@
+{
+  "name": "Soulmate OS",
+  "version": "1.0.0",
+  "description": "Personal AI communication platform with email, contacts, crypto wallet, games, and AI assistant",
+  "base_url": "http://191.44.121.29:8546",
+  "auth": {
+    "type": "header",
+    "header": "X-Session-Token",
+    "description": "Session token from /v1/auth/login or /v1/auth/signup"
+  },
+  "tools": [
+    {
+      "name": "chat",
+      "description": "Send a message to the Soulmate AI assistant and get a response with tool use",
+      "endpoint": "/v1/ai/chat",
+      "method": "POST",
+      "parameters": {"message": {"type": "string", "required": true}}
+    },
+    {
+      "name": "check_balance",
+      "description": "Check wallet token balances for BSC address",
+      "endpoint": "/v1/balance/{address}",
+      "method": "GET"
+    },
+    {
+      "name": "send_crypto",
+      "description": "Send crypto tokens to an address",
+      "endpoint": "/v1/send",
+      "method": "POST",
+      "parameters": {"to": "string", "amount": "string", "token": "string", "from": "string"}
+    },
+    {
+      "name": "list_contacts",
+      "description": "List all contacts",
+      "endpoint": "/v1/contacts",
+      "method": "GET"
+    },
+    {
+      "name": "create_contact",
+      "description": "Add a new contact",
+      "endpoint": "/v1/contacts",
+      "method": "POST",
+      "parameters": {"name": "string", "email": "string?", "phone": "string?", "wallet_address": "string?", "notes": "string?"}
+    },
+    {
+      "name": "update_contact",
+      "description": "Update an existing contact",
+      "endpoint": "/v1/contacts/{id}",
+      "method": "PUT"
+    },
+    {
+      "name": "delete_contact",
+      "description": "Delete a contact",
+      "endpoint": "/v1/contacts/{id}",
+      "method": "DELETE"
+    },
+    {
+      "name": "import_contacts",
+      "description": "Bulk import contacts",
+      "endpoint": "/v1/contacts/import",
+      "method": "POST",
+      "parameters": {"contacts": "array"}
+    },
+    {
+      "name": "setup_email",
+      "description": "Set up email account on the server",
+      "endpoint": "/v1/email/setup",
+      "method": "POST"
+    },
+    {
+      "name": "get_email_account",
+      "description": "Get email account info",
+      "endpoint": "/v1/email/account",
+      "method": "GET"
+    },
+    {
+      "name": "read_inbox",
+      "description": "Get recent emails from inbox",
+      "endpoint": "/v1/email/inbox",
+      "method": "GET"
+    },
+    {
+      "name": "read_email",
+      "description": "Read a specific email by ID",
+      "endpoint": "/v1/email/{id}",
+      "method": "GET"
+    },
+    {
+      "name": "send_email",
+      "description": "Send an email",
+      "endpoint": "/v1/email/send",
+      "method": "POST",
+      "parameters": {"to": "string", "subject": "string", "body": "string"}
+    },
+    {
+      "name": "get_subscription",
+      "description": "Check current subscription tier",
+      "endpoint": "/v1/subscription",
+      "method": "GET"
+    },
+    {
+      "name": "get_tiers",
+      "description": "List available subscription tiers and pricing",
+      "endpoint": "/v1/subscription/tiers",
+      "method": "GET"
+    },
+    {
+      "name": "upgrade_subscription",
+      "description": "Upgrade subscription with payment tx hash",
+      "endpoint": "/v1/subscription/upgrade",
+      "method": "POST",
+      "parameters": {"tx_hash": "string", "tier": "string"}
+    },
+    {
+      "name": "ai_history",
+      "description": "Get AI conversation history",
+      "endpoint": "/v1/ai/history",
+      "method": "GET"
+    },
+    {
+      "name": "ai_memories",
+      "description": "List all stored AI memories",
+      "endpoint": "/v1/ai/memory",
+      "method": "GET"
+    },
+    {
+      "name": "store_memory",
+      "description": "Store a memory in RecursiveLink",
+      "endpoint": "/v1/ai/memory",
+      "method": "POST",
+      "parameters": {"type": "string", "content": "string", "importance": "float?"}
+    },
+    {
+      "name": "delete_memory",
+      "description": "Delete a specific memory",
+      "endpoint": "/v1/ai/memory/{id}",
+      "method": "DELETE"
+    },
+    {
+      "name": "clear_memories",
+      "description": "Clear all memories",
+      "endpoint": "/v1/ai/memory/clear",
+      "method": "POST"
+    },
+    {
+      "name": "consolidate_memories",
+      "description": "Merge similar memories to save space",
+      "endpoint": "/v1/ai/memory/consolidate",
+      "method": "POST"
+    },
+    {
+      "name": "ai_settings",
+      "description": "Get or update AI settings (model preference, personality, memory retention)",
+      "endpoint": "/v1/ai/settings",
+      "method": "GET"
+    },
+    {
+      "name": "ai_tools",
+      "description": "List all tools the AI assistant can call",
+      "endpoint": "/v1/ai/tools",
+      "method": "GET"
+    }
+  ],
+  "cli": "python soulmate-cli.py <command> [args]",
+  "notes": [
+    "All endpoints require X-Session-Token header for authentication",
+    "Session token obtained from POST /v1/auth/login or POST /v1/auth/signup",
+    "AI assistant uses Gemini 1.5 Flash (primary) with Ollama Qwen 2.5 3B (fallback)",
+    "Any AI tool that can make HTTP requests can use these endpoints",
+    "Use soulmate-cli.py for command-line access to all features"
+  ]
+}

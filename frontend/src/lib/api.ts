@@ -178,3 +178,23 @@ export const emailApi = {
   send: (to: string, subject: string, body: string) =>
     apiFetch("/v1/email/send", { method: "POST", body: JSON.stringify({ to, subject, body }) }),
 };
+
+// AI API
+export const aiApi = {
+  chat: (message: string) =>
+    apiFetch("/v1/ai/chat", { method: "POST", body: JSON.stringify({ message }) }),
+  history: () => apiFetch("/v1/ai/history"),
+  memories: () => apiFetch("/v1/ai/memory"),
+  deleteMemory: (id: number) =>
+    apiFetch(`/v1/ai/memory/${id}`, { method: "DELETE" }),
+  clearMemories: () =>
+    apiFetch("/v1/ai/memory/clear", { method: "POST" }),
+  consolidateMemories: () =>
+    apiFetch("/v1/ai/memory/consolidate", { method: "POST" }),
+  storeMemory: (type: string, content: string, importance?: number) =>
+    apiFetch("/v1/ai/memory", { method: "POST", body: JSON.stringify({ type, content, importance }) }),
+  settings: () => apiFetch("/v1/ai/settings"),
+  updateSettings: (data: any) =>
+    apiFetch("/v1/ai/settings", { method: "POST", body: JSON.stringify(data) }),
+  tools: () => apiFetch("/v1/ai/tools"),
+};

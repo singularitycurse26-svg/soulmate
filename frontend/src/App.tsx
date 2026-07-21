@@ -11,7 +11,8 @@ import { GamesPage } from "@/components/games/GamesPage";
 import { EmailPage } from "@/components/pages/EmailPage";
 import { ContactsPage } from "@/components/pages/ContactsPage";
 import { SecurityPage } from "@/components/pages/SecurityPage";
-import { PhonePage, AIPage } from "@/components/pages/PlaceholderPages";
+import { AIPage } from "@/components/pages/AIPage";
+import { PhonePage } from "@/components/pages/PlaceholderPages";
 
 export default function App() {
   const {
