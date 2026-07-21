@@ -132,6 +132,26 @@ pytest
 - [Ollama](https://ollama.ai) (for local LLM backend) or any OpenAI-compatible API
 - Optional: [Cascade/Windsurf](https://windsurf.com) IDE for full integration
 
+## Secure Vault
+
+Soulmate includes an AES-256 encrypted vault for storing sensitive credentials — API keys, wallet private keys, recovery codes, and more. Secrets are stored outside the git repo in `~/.fablemythos/vault/` so they're never pushed to GitHub.
+
+```bash
+# Store a secret
+py -V:Astral/CPython3.11.15 vault/vault.py --store my_api_key "sk-abc123" "Note"
+
+# Store with a category
+py -V:Astral/CPython3.11.15 vault/vault.py --store wallet_key "0xABC..." --category incentives_corp
+
+# Retrieve a secret
+py -V:Astral/CPython3.11.15 vault/vault.py --get my_api_key
+
+# List all secrets by category
+py -V:Astral/CPython3.11.15 vault/vault.py --list
+```
+
+Supports categories/folders for organizing secrets by project. See [vault/README.md](vault/README.md) for full documentation.
+
 ## License
 
 MIT — see [LICENSE](LICENSE)
