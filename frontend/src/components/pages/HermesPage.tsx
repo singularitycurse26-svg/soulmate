@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { aiApi, emailApi, smsApi, walletApi, contactsApi, hermesApi } from "@/lib/api";
+import { aiApi, emailApi, smsApi, walletApi, contactsApi, openclawApi } from "@/lib/api";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import {
@@ -65,7 +65,7 @@ interface Subagent {
 }
 
 const LLM_PROVIDERS = [
-  { id: "backend", label: "Soulmate Backend", icon: Server, models: ["gemini", "ollama"] },
+  { id: "backend", label: "Soulmate Backend (Gemini)", icon: Server, models: ["gemini-flash-latest", "gemini-1.5-flash", "gemini-1.5-pro"] },
   { id: "openai", label: "OpenAI", icon: Cloud, models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"] },
   { id: "anthropic", label: "Anthropic", icon: Cpu, models: ["claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022", "claude-3-opus-20240229"] },
   { id: "google", label: "Google Gemini", icon: Cloud, models: ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash-exp"] },
@@ -108,7 +108,7 @@ export function HermesPage() {
 
   // LLM settings
   const [provider, setProvider] = useState("backend");
-  const [model, setModel] = useState("gemini");
+  const [model, setModel] = useState("gemini-flash-latest");
   const [apiKey, setApiKey] = useState("");
   const [ollamaUrl, setOllamaUrl] = useState("http://localhost:11434");
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
@@ -319,26 +319,26 @@ export function HermesPage() {
         }
         case "read_page": {
           if (currentUrl) {
-            const html = await hermesApi.browseUrl(currentUrl);
+            const html = await openclawApi.browseUrl(currentUrl);
             const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 2000);
             return { tool: toolName, result: { url: currentUrl, content: text } };
           }
           return { tool: toolName, result: { error: "No page loaded" } };
         }
         case "run_command": {
-          const data = await hermesApi.terminalExec(args.join(" "));
+          const data = await openclawApi.terminalExec(args.join(" "));
           return { tool: toolName, result: data };
         }
         case "write_file": {
-          const data = await hermesApi.terminalExec(`echo '${args[1]?.replace(/'/g, "'\\''")}' > ${args[0]}`);
+          const data = await openclawApi.terminalExec(`echo '${args[1]?.replace(/'/g, "'\\''")}' > ${args[0]}`);
           return { tool: toolName, result: { status: "written", path: args[0], ...data } };
         }
         case "read_file": {
-          const data = await hermesApi.terminalExec(`cat ${args[0]}`);
+          const data = await openclawApi.terminalExec(`cat ${args[0]}`);
           return { tool: toolName, result: { path: args[0], ...data } };
         }
         case "install_package": {
-          const data = await hermesApi.terminalExec(`pip install ${args[0]} || npm install -g ${args[0]}`);
+          const data = await openclawApi.terminalExec(`pip install ${args[0]} || npm install -g ${args[0]}`);
           return { tool: toolName, result: { package: args[0], ...data } };
         }
         default:
@@ -388,11 +388,12 @@ export function HermesPage() {
       let modelUsed = provider;
 
       if (provider === "backend") {
-        const data = await aiApi.chat(`${systemPrompt}\n\nUser: ${message}`);
+        const data = await openclawApi.llmProxy("backend", model || "gemini-flash-latest", chatMessages, apiKey);
+        if (data.error) throw new Error(data.error);
         responseText = data.response || "";
         modelUsed = data.model || "backend";
       } else {
-        const data = await hermesApi.llmProxy(provider, model, chatMessages, apiKey);
+        const data = await openclawApi.llmProxy(provider, model, chatMessages, apiKey);
         if (data.error) throw new Error(data.error);
         responseText = data.response || data.choices?.[0]?.message?.content || "";
         modelUsed = `${provider}/${model}`;
@@ -406,10 +407,14 @@ export function HermesPage() {
         try {
           let followUp = "";
           if (provider === "backend") {
-            const data2 = await aiApi.chat(`Tool results:\n${toolResults}\n\nRespond naturally about what happened.`);
+            const data2 = await openclawApi.llmProxy("backend", model || "gemini-flash-latest", [
+              ...chatMessages,
+              { role: "assistant", content: responseText },
+              { role: "user", content: `Tool results:\n${toolResults}\n\nRespond naturally about what happened.` },
+            ], apiKey);
             followUp = data2.response || "";
           } else {
-            const data2 = await hermesApi.llmProxy(provider, model, [
+            const data2 = await openclawApi.llmProxy(provider, model, [
               ...chatMessages,
               { role: "assistant", content: responseText },
               { role: "user", content: `Tool results:\n${toolResults}\n\nRespond naturally about what happened.` },
@@ -460,7 +465,7 @@ export function HermesPage() {
       fullUrl = "https://" + url;
     }
     setBrowserLoading(true);
-    const proxiedUrl = hermesApi.browserProxy(fullUrl);
+    const proxiedUrl = openclawApi.browserProxy(fullUrl);
     setCurrentUrl(fullUrl);
     setBrowserUrl(fullUrl);
     setBrowserHistory((prev) => [...prev.slice(0, historyIndex + 1), fullUrl]);
@@ -475,7 +480,7 @@ export function HermesPage() {
       const url = browserHistory[newIdx];
       setBrowserUrl(url);
       setCurrentUrl(url);
-      if (iframeRef.current) iframeRef.current.src = hermesApi.browserProxy(url);
+      if (iframeRef.current) iframeRef.current.src = openclawApi.browserProxy(url);
     }
   };
 
@@ -486,14 +491,14 @@ export function HermesPage() {
       const url = browserHistory[newIdx];
       setBrowserUrl(url);
       setCurrentUrl(url);
-      if (iframeRef.current) iframeRef.current.src = hermesApi.browserProxy(url);
+      if (iframeRef.current) iframeRef.current.src = openclawApi.browserProxy(url);
     }
   };
 
   const refreshBrowser = () => {
     if (currentUrl && iframeRef.current) {
       setBrowserLoading(true);
-      iframeRef.current.src = hermesApi.browserProxy(currentUrl);
+      iframeRef.current.src = openclawApi.browserProxy(currentUrl);
     }
   };
 
@@ -553,7 +558,7 @@ export function HermesPage() {
     }]);
     setNewSubagentTask("");
     try {
-      hermesApi.subagentSpawn(newSubagentTask.trim()).catch(() => {});
+      openclawApi.terminalExec(`echo "subagent: ${newSubagentTask.trim()}" >> /tmp/subagents.log`).catch(() => {});
     } catch {}
     setTimeout(() => {
       setSubagents((prev) => prev.map((s) =>

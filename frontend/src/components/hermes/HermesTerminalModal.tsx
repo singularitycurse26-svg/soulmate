@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { hermesApi, aiApi } from "@/lib/api";
+import { openclawApi, aiApi } from "@/lib/api";
 import {
   X, Terminal, Brain, Target, Clock, Layers, Globe, Mail,
   FileText, Shield, GitCompare, Server, Bot, Send, Loader2,
@@ -165,7 +165,7 @@ export function HermesTerminalModal({ onClose }: { onClose: () => void }) {
     setTermInput("");
     setTermOutput((prev) => [...prev, `$ ${cmd}`]);
     try {
-      const res = await hermesApi.terminalExec(cmd, termCwd);
+      const res = await openclawApi.terminalExec(cmd, termCwd);
       if (res.stdout) setTermOutput((prev) => [...prev, res.stdout]);
       if (res.stderr) setTermOutput((prev) => [...prev, res.stderr]);
       if (res.exitCode !== 0) setTermOutput((prev) => [...prev, `[exit code: ${res.exitCode}]`]);
@@ -203,7 +203,7 @@ export function HermesTerminalModal({ onClose }: { onClose: () => void }) {
     setBrowserUrl(fullUrl);
     setBrowserHistory((prev) => [...prev.slice(0, historyIdx + 1), fullUrl]);
     setHistoryIdx((prev) => prev + 1);
-    if (iframeRef.current) iframeRef.current.src = hermesApi.browserProxy(fullUrl);
+    if (iframeRef.current) iframeRef.current.src = openclawApi.browserProxy(fullUrl);
   };
 
   // Goal management
@@ -233,7 +233,7 @@ export function HermesTerminalModal({ onClose }: { onClose: () => void }) {
     setSubagents(updated);
     localStorage.setItem("hermes_subagents", JSON.stringify(updated));
     setNewSubagentTask("");
-    try { hermesApi.subagentSpawn(newSubagentTask.trim()).catch(() => {}); } catch {}
+    try { openclawApi.terminalExec(`echo "subagent: ${newSubagentTask.trim()}" >> /tmp/subagents.log`).catch(() => {}); } catch {}
     setTimeout(() => {
       setSubagents((prev) => {
         const u = prev.map((s) => s.id === id ? { ...s, status: "completed" } : s);
@@ -389,9 +389,9 @@ export function HermesTerminalModal({ onClose }: { onClose: () => void }) {
         return (
           <div className="flex flex-col h-full">
             <div className="flex items-center gap-1 mb-2">
-              <button onClick={() => { if (historyIdx > 0) { const i = historyIdx - 1; setHistoryIdx(i); setBrowserUrl(browserHistory[i]); setCurrentUrl(browserHistory[i]); if (iframeRef.current) iframeRef.current.src = hermesApi.browserProxy(browserHistory[i]); } }} disabled={historyIdx <= 0} className="btn-ghost p-1.5 disabled:opacity-30"><ArrowLeft className="w-4 h-4" /></button>
-              <button onClick={() => { if (historyIdx < browserHistory.length - 1) { const i = historyIdx + 1; setHistoryIdx(i); setBrowserUrl(browserHistory[i]); setCurrentUrl(browserHistory[i]); if (iframeRef.current) iframeRef.current.src = hermesApi.browserProxy(browserHistory[i]); } }} disabled={historyIdx >= browserHistory.length - 1} className="btn-ghost p-1.5 disabled:opacity-30"><ArrowRight className="w-4 h-4" /></button>
-              <button onClick={() => { if (currentUrl && iframeRef.current) iframeRef.current.src = hermesApi.browserProxy(currentUrl); }} className="btn-ghost p-1.5"><RotateCw className="w-4 h-4" /></button>
+              <button onClick={() => { if (historyIdx > 0) { const i = historyIdx - 1; setHistoryIdx(i); setBrowserUrl(browserHistory[i]); setCurrentUrl(browserHistory[i]); if (iframeRef.current) iframeRef.current.src = openclawApi.browserProxy(browserHistory[i]); } }} disabled={historyIdx <= 0} className="btn-ghost p-1.5 disabled:opacity-30"><ArrowLeft className="w-4 h-4" /></button>
+              <button onClick={() => { if (historyIdx < browserHistory.length - 1) { const i = historyIdx + 1; setHistoryIdx(i); setBrowserUrl(browserHistory[i]); setCurrentUrl(browserHistory[i]); if (iframeRef.current) iframeRef.current.src = openclawApi.browserProxy(browserHistory[i]); } }} disabled={historyIdx >= browserHistory.length - 1} className="btn-ghost p-1.5 disabled:opacity-30"><ArrowRight className="w-4 h-4" /></button>
+              <button onClick={() => { if (currentUrl && iframeRef.current) iframeRef.current.src = openclawApi.browserProxy(currentUrl); }} className="btn-ghost p-1.5"><RotateCw className="w-4 h-4" /></button>
               <input value={browserUrl} onChange={(e) => setBrowserUrl(e.target.value)} onKeyDown={(e) => e.key === "Enter" && navigateBrowser(browserUrl)} placeholder="Enter URL..." className="flex-1 text-sm" />
             </div>
             <div className="flex-1 rounded-lg overflow-hidden border border-border bg-white relative">
