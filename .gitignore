@@ -23,3 +23,10 @@ htmlcov/
 .venv/
 venv/
 ENV/
+
+# Local Netlify folder
+.netlify
+
+# Node
+node_modules/
+frontend/dist/

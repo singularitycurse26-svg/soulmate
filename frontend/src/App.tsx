@@ -12,7 +12,11 @@ import { EmailPage } from "@/components/pages/EmailPage";
 import { ContactsPage } from "@/components/pages/ContactsPage";
 import { SecurityPage } from "@/components/pages/SecurityPage";
 import { AIPage } from "@/components/pages/AIPage";
-import { PhonePage } from "@/components/pages/PlaceholderPages";
+import { PhonePage } from "@/components/pages/PhonePage";
+import { OpenClawPage } from "@/components/pages/OpenClawPage";
+import { HermesPage } from "@/components/pages/HermesPage";
+import { MarketplacePage } from "@/components/pages/MarketplacePage";
+import { DatingPage } from "@/components/pages/DatingPage";
 
 export default function App() {
   const {
@@ -43,6 +47,25 @@ export default function App() {
           }
         } catch {}
         useStore.getState().clearAuth();
+      }
+
+      // Remember me: auto-login from saved credentials
+      const rememberDevice = localStorage.getItem("remember_me_device");
+      const rememberEmail = localStorage.getItem("remember_me_email");
+      const rememberPassword = localStorage.getItem("remember_me_password");
+      if (rememberDevice === "true" && rememberEmail && rememberPassword) {
+        try {
+          const data = await authApi.login(rememberEmail, rememberPassword);
+          if (data.status === "ok") {
+            setAuth(data.session_token, rememberEmail);
+            if (walletKey && walletAddress) {
+              setView("app");
+            } else {
+              setView("create-wallet");
+            }
+            return;
+          }
+        } catch {}
       }
 
       if (walletKey && walletAddress) {
@@ -88,6 +111,10 @@ export default function App() {
           {activePage === "games" && <GamesPage />}
           {activePage === "wallet" && <WalletPage />}
           {activePage === "security" && <SecurityPage />}
+          {activePage === "openclaw" && <OpenClawPage />}
+          {activePage === "hermes" && <HermesPage />}
+          {activePage === "marketplace" && <MarketplacePage />}
+          {activePage === "dating" && <DatingPage />}
         </div>
       </main>
       <MobileNav />

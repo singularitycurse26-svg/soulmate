@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Coins, Flame, TrendingUp, TrendingDown, Trophy, Dice5, RotateCcw, Lock } from "lucide-react";
+import { Coins, Flame, TrendingUp, TrendingDown, Trophy, Dice5, RotateCcw, Lock, Bot, Square } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { CrapsGame } from "./CrapsGame";
+import { PachinkoGame } from "./PachinkoGame";
+import { BlackjackGame } from "./BlackjackGame";
+import { TexasHoldemGame } from "./TexasHoldemGame";
 
 const SUITS = ["♠", "♥", "♦", "♣"] as const;
 const RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"] as const;
@@ -12,9 +14,11 @@ RANKS.forEach((r, i) => (RANK_VALUES[r] = i + 2));
 
 type Card = { suit: string; rank: string; value: number };
 
+const NUM_DECKS = 4;
+
 function makeDeck(): Card[] {
   const deck: Card[] = [];
-  for (let d = 0; d < 2; d++) {
+  for (let d = 0; d < NUM_DECKS; d++) {
     for (const suit of SUITS) {
       for (const rank of RANKS) {
         deck.push({ suit, rank, value: RANK_VALUES[rank] });
@@ -103,7 +107,7 @@ function ParticleBurst({ type }: { type: "win" | "loss" }) {
 
 export function GamesPage() {
   const { showAlert } = useStore();
-  const [tab, setTab] = useState<"highlow" | "craps">("highlow");
+  const [tab, setTab] = useState<"highlow" | "pachinko" | "blackjack" | "holdem">("highlow");
 
   // High/Low game state
   const [coins, setCoins] = useState(1000);
@@ -113,12 +117,19 @@ export function GamesPage() {
   const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
   const [betAmount, setBetAmount] = useState(50);
-  const [result, setResult] = useState<"win" | "loss" | "push" | null>(null);
+  const [result, setResult] = useState<"win" | "loss" | "push" | "ace-bonus" | "king-wild" | null>(null);
   const [showParticles, setShowParticles] = useState(false);
   const [gameActive, setGameActive] = useState(false);
   const [cardIndex, setCardIndex] = useState(0);
   const [showEndModal, setShowEndModal] = useState(false);
   const [totalWon, setTotalWon] = useState(0);
+
+  // New rules state
+  const [aceBonusTurn, setAceBonusTurn] = useState(false);
+  const [kingAutoTurns, setKingAutoTurns] = useState(0);
+  const [autoPlaying, setAutoPlaying] = useState(false);
+  const [userAutoPlay, setUserAutoPlay] = useState(false);
+  const [specialMessage, setSpecialMessage] = useState<string | null>(null);
 
   const startGame = useCallback(() => {
     const newDeck = makeDeck();
@@ -131,19 +142,108 @@ export function GamesPage() {
     setCardIndex(1);
     setShowEndModal(false);
     setTotalWon(0);
+    setAceBonusTurn(false);
+    setKingAutoTurns(0);
+    setAutoPlaying(false);
+    setUserAutoPlay(false);
+    setSpecialMessage(null);
   }, []);
 
-  const placeBet = (direction: "higher" | "lower") => {
-    if (!gameActive || !nextCard || coins < betAmount) return;
+  const advanceCard = (idx: number, d: Card[]) => {
+    const nextIdx = idx + 1;
+    if (nextIdx >= d.length) {
+      setGameActive(false);
+      setShowEndModal(true);
+      return false;
+    }
+    setCurrentCard(d[nextIdx - 1] || d[idx]);
+    setNextCard(d[nextIdx]);
+    setCardIndex(nextIdx);
+    return true;
+  };
 
-    const won = direction === "higher" ? nextCard.value > currentCard!.value : nextCard.value < currentCard!.value;
-    const push = nextCard.value === currentCard!.value;
+  const placeBet = (direction: "higher" | "lower") => {
+    if (!gameActive || !nextCard || coins < betAmount || autoPlaying) return;
+
+    const nextVal = nextCard.value;
+
+    // King = wild card: 3 free auto turns
+    if (nextVal === 13) {
+      setResult("king-wild");
+      setSpecialMessage("\ud83d\ud51c King Wild Card! 3 free auto turns!");
+      setShowParticles(true);
+      setTimeout(() => setShowParticles(false), 800);
+      // Advance past the King, then start auto turns
+      setTimeout(() => {
+        const nextIdx = cardIndex + 1;
+        if (nextIdx >= deck.length) {
+          setGameActive(false);
+          setShowEndModal(true);
+          return;
+        }
+        setCurrentCard(deck[nextIdx]);
+        setNextCard(deck[nextIdx + 1] || null);
+        setCardIndex(nextIdx + 1);
+        setResult(null);
+        setKingAutoTurns(3);
+        setAutoPlaying(true);
+      }, 1500);
+      return;
+    }
+
+    // Ace = bonus turn: draw again, win = 2x
+    if (nextVal === 14) {
+      setResult("ace-bonus");
+      setSpecialMessage("\ud83c\udca1 Ace! Bonus turn \u2014 win for 2x payout!");
+      setShowParticles(true);
+      setTimeout(() => setShowParticles(false), 800);
+      setAceBonusTurn(true);
+      // Advance past the Ace for the bonus turn
+      setTimeout(() => {
+        const nextIdx = cardIndex + 1;
+        if (nextIdx >= deck.length) {
+          setGameActive(false);
+          setShowEndModal(true);
+          return;
+        }
+        setCurrentCard(deck[nextIdx]);
+        setNextCard(deck[nextIdx + 1] || null);
+        setCardIndex(nextIdx + 1);
+        setResult(null);
+      }, 1500);
+      return;
+    }
+
+    // 10, J, Q = push (don't matter for high/low, only 1-8 i.e. 2-9 count)
+    if (nextVal >= 10 && nextVal <= 12) {
+      setResult("push");
+      setSpecialMessage("Push \u2014 10/J/Q don't count for high/low");
+      setTimeout(() => {
+        setSpecialMessage(null);
+        const nextIdx = cardIndex + 1;
+        if (nextIdx >= deck.length) {
+          setGameActive(false);
+          setShowEndModal(true);
+          return;
+        }
+        setCurrentCard(nextCard);
+        setNextCard(deck[nextIdx]);
+        setCardIndex(nextIdx);
+        setResult(null);
+      }, 1200);
+      return;
+    }
+
+    // Normal high/low (values 2-9)
+    const won = direction === "higher" ? nextVal > currentCard!.value : nextVal < currentCard!.value;
+    const push = nextVal === currentCard!.value;
 
     if (push) {
       setResult("push");
     } else if (won) {
-      const multiplier = streak >= 10 ? 3 : streak >= 5 ? 2 : streak >= 3 ? 1.5 : 1;
-      const winnings = Math.floor(betAmount * multiplier);
+      const streakMult = streak >= 10 ? 3 : streak >= 5 ? 2 : streak >= 3 ? 1.5 : 1;
+      const aceMult = aceBonusTurn ? 2 : 1;
+      const winnings = Math.floor(betAmount * streakMult * aceMult);
       setCoins((c) => c + winnings);
       setTotalWon((w) => w + winnings);
       setStreak((s) => {
@@ -152,18 +252,27 @@ export function GamesPage() {
         return ns;
       });
       setResult("win");
+      if (aceBonusTurn) {
+        setSpecialMessage("\ud83c\udf89 Ace bonus win! 2x payout!");
+        setAceBonusTurn(false);
+      }
       setShowParticles(true);
       setTimeout(() => setShowParticles(false), 800);
     } else {
       setCoins((c) => c - betAmount);
       setStreak(0);
       setResult("loss");
+      if (aceBonusTurn) {
+        setSpecialMessage("Ace bonus turn lost");
+        setAceBonusTurn(false);
+      }
       setShowParticles(true);
       setTimeout(() => setShowParticles(false), 800);
     }
 
     // Advance to next card
     setTimeout(() => {
+      setSpecialMessage(null);
       const nextIdx = cardIndex + 1;
       if (nextIdx >= deck.length) {
         setGameActive(false);
@@ -176,6 +285,95 @@ export function GamesPage() {
       setResult(null);
     }, 1200);
   };
+
+  // King auto-play effect
+  useEffect(() => {
+    if (!autoPlaying || kingAutoTurns <= 0) return;
+    if (cardIndex >= deck.length - 1) {
+      setAutoPlaying(false);
+      setGameActive(false);
+      setShowEndModal(true);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      const leftCard = deck[cardIndex];
+      const rightCard = deck[cardIndex + 1];
+      if (!leftCard || !rightCard) {
+        setAutoPlaying(false);
+        setGameActive(false);
+        setShowEndModal(true);
+        return;
+      }
+
+      setCurrentCard(leftCard);
+      setNextCard(rightCard);
+      setResult(null);
+
+      // Auto-resolve: right card tries to beat left card
+      setTimeout(() => {
+        const won = rightCard.value > leftCard.value;
+        if (won) {
+          const winnings = betAmount;
+          setCoins((c) => c + winnings);
+          setTotalWon((w) => w + winnings);
+          setResult("win");
+          setShowParticles(true);
+          setTimeout(() => setShowParticles(false), 800);
+        } else {
+          setResult("loss");
+        }
+
+        const newIdx = cardIndex + 2;
+        setKingAutoTurns((k) => {
+          const remaining = k - 1;
+          if (remaining <= 0) {
+            setAutoPlaying(false);
+            setSpecialMessage(null);
+            // Return to normal play
+            setTimeout(() => {
+              if (newIdx >= deck.length) {
+                setGameActive(false);
+                setShowEndModal(true);
+                return;
+              }
+              setCurrentCard(deck[newIdx - 1]);
+              setNextCard(deck[newIdx] || null);
+              setCardIndex(newIdx);
+              setResult(null);
+            }, 1500);
+          } else {
+            setCardIndex(newIdx);
+          }
+          return remaining;
+        });
+      }, 1000);
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [autoPlaying, kingAutoTurns, cardIndex, deck, betAmount]);
+
+  // User auto-play effect: automatically pick higher/lower based on current card
+  useEffect(() => {
+    if (!userAutoPlay || !gameActive || autoPlaying || kingAutoTurns > 0) return;
+    if (!currentCard || !nextCard || result || coins < betAmount) return;
+
+    const timer = setTimeout(() => {
+      // Strategy: low cards (2-5) -> higher, high cards (6-9) -> lower
+      // 10/J/Q/K/A don't matter for high/low so just pick higher
+      const dir = currentCard.value <= 7 ? "higher" : "lower";
+      placeBet(dir);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [userAutoPlay, gameActive, autoPlaying, kingAutoTurns, currentCard, nextCard, result, coins, betAmount, cardIndex]);
+
+  // Stop user auto-play when deck ends
+  useEffect(() => {
+    if (!gameActive && userAutoPlay) {
+      setUserAutoPlay(false);
+    }
+  }, [gameActive, userAutoPlay]);
 
   const streakEmoji = streak >= 10 ? "🔥🔥🔥" : streak >= 5 ? "🔥🔥" : streak >= 3 ? "🔥" : "";
   const multiplier = streak >= 10 ? 3 : streak >= 5 ? 2 : streak >= 3 ? 1.5 : 1;
@@ -195,7 +393,7 @@ export function GamesPage() {
       </div>
 
       {/* Tab selector */}
-      <div className="flex gap-2 p-1 bg-bg-alt rounded-lg w-fit">
+      <div className="flex gap-2 p-1 bg-bg-alt rounded-lg w-fit flex-wrap">
         <button
           onClick={() => setTab("highlow")}
           className={cn("px-4 py-2 rounded-md text-sm font-medium transition-all", tab === "highlow" ? "bg-accent text-white" : "text-muted hover:text-white")}
@@ -203,10 +401,22 @@ export function GamesPage() {
           High / Low Card
         </button>
         <button
-          onClick={() => setTab("craps")}
-          className={cn("px-4 py-2 rounded-md text-sm font-medium transition-all", tab === "craps" ? "bg-accent text-white" : "text-muted hover:text-white")}
+          onClick={() => setTab("pachinko")}
+          className={cn("px-4 py-2 rounded-md text-sm font-medium transition-all", tab === "pachinko" ? "bg-accent text-white" : "text-muted hover:text-white")}
         >
-          Street Craps
+          Pachinko
+        </button>
+        <button
+          onClick={() => setTab("blackjack")}
+          className={cn("px-4 py-2 rounded-md text-sm font-medium transition-all", tab === "blackjack" ? "bg-accent text-white" : "text-muted hover:text-white")}
+        >
+          Blackjack
+        </button>
+        <button
+          onClick={() => setTab("holdem")}
+          className={cn("px-4 py-2 rounded-md text-sm font-medium transition-all", tab === "holdem" ? "bg-accent text-white" : "text-muted hover:text-white")}
+        >
+          Texas Hold'em
         </button>
       </div>
 
@@ -215,7 +425,7 @@ export function GamesPage() {
       {tab === "highlow" && (
         <div className="space-y-4">
           {/* Stats bar */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2 bg-bg-alt px-3 py-1.5 rounded-lg">
               <Flame className="w-4 h-4 text-warning" />
               <span className="text-sm font-medium">{streak} streak {streakEmoji}</span>
@@ -226,9 +436,35 @@ export function GamesPage() {
                 <span className="text-sm font-medium text-success">{multiplier}x multiplier</span>
               </div>
             )}
+            {aceBonusTurn && (
+              <div className="flex items-center gap-2 bg-accent/10 px-3 py-1.5 rounded-lg">
+                <span className="text-sm font-bold text-accent">\ud83c\udca1 Ace Bonus (2x)</span>
+              </div>
+            )}
+            {kingAutoTurns > 0 && (
+              <div className="flex items-center gap-2 bg-warning/10 px-3 py-1.5 rounded-lg">
+                <span className="text-sm font-bold text-warning">\ud83d\ud51c Wild: {kingAutoTurns} auto turns left</span>
+              </div>
+            )}
             <div className="flex-1" />
             <span className="text-xs text-muted">Best: {bestStreak}</span>
           </div>
+
+          {/* Special message banner */}
+          {specialMessage && (
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className={cn(
+                "text-center py-2 rounded-lg font-bold text-sm",
+                (result === "king-wild" || kingAutoTurns > 0) && "bg-warning/10 text-warning",
+                result === "ace-bonus" && "bg-accent/10 text-accent",
+                result === "win" && aceBonusTurn === false && "bg-success/10 text-success",
+              )}
+            >
+              {specialMessage}
+            </motion.div>
+          )}
 
           {/* Progress bar */}
           {gameActive && (
@@ -240,11 +476,11 @@ export function GamesPage() {
           {/* Card display */}
           <div className="flex items-center justify-center gap-8 py-8">
             <div className="text-center">
-              <p className="text-xs text-muted mb-2">Current</p>
+              <p className="text-xs text-muted mb-2">{autoPlaying ? "Left (High)" : "Current"}</p>
               <PlayingCard card={currentCard || undefined} faceDown={!currentCard} size="large" />
             </div>
             <div className="text-center">
-              <p className="text-xs text-muted mb-2">Next</p>
+              <p className="text-xs text-muted mb-2">{autoPlaying ? "Right (Beats it?)" : "Next"}</p>
               <PlayingCard card={nextCard || undefined} faceDown={!nextCard || result === null} size="large" />
             </div>
           </div>
@@ -264,9 +500,11 @@ export function GamesPage() {
                   result === "push" && "text-accent"
                 )}
               >
-                {result === "win" && `🎉 You won ${Math.floor(betAmount * multiplier)} coins!`}
+                {result === "win" && `🎉 You won ${Math.floor(betAmount * multiplier * (aceBonusTurn ? 1 : 1))} coins!`}
                 {result === "loss" && `😔 You lost ${betAmount} coins`}
-                {result === "push" && "🤝 Push — same card, bet returned"}
+                {result === "push" && "🤝 Push — bet returned"}
+                {result === "ace-bonus" && "🂡 Ace drawn! Bonus turn next..."}
+                {result === "king-wild" && "🜔 King Wild Card! 3 free auto turns!"}
               </motion.div>
             )}
           </AnimatePresence>
@@ -301,20 +539,48 @@ export function GamesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => placeBet("higher")}
-                  disabled={!!result || coins < betAmount}
-                  className="btn-primary flex items-center justify-center gap-2 py-4 text-lg"
+                  disabled={!!result || coins < betAmount || autoPlaying || userAutoPlay}
+                  className="btn-primary flex items-center justify-center gap-2 py-4 text-lg disabled:opacity-50"
                 >
                   <TrendingUp className="w-6 h-6" />
                   Higher
                 </button>
                 <button
                   onClick={() => placeBet("lower")}
-                  disabled={!!result || coins < betAmount}
-                  className="btn-secondary flex items-center justify-center gap-2 py-4 text-lg"
+                  disabled={!!result || coins < betAmount || autoPlaying || userAutoPlay}
+                  className="btn-secondary flex items-center justify-center gap-2 py-4 text-lg disabled:opacity-50"
                 >
                   <TrendingDown className="w-6 h-6" />
                   Lower
                 </button>
+              </div>
+
+              {/* Auto Play toggle */}
+              <button
+                onClick={() => setUserAutoPlay(!userAutoPlay)}
+                disabled={coins < betAmount}
+                className={cn(
+                  "w-full flex items-center justify-center gap-2 py-3 font-medium transition-all rounded-lg border-2 disabled:opacity-50",
+                  userAutoPlay
+                    ? "bg-accent/20 border-accent text-accent"
+                    : "bg-bg-alt border-border text-muted hover:text-white hover:border-accent/50"
+                )}
+              >
+                {userAutoPlay ? (
+                  <><Square className="w-5 h-5" /> Stop Auto Play</>
+                ) : (
+                  <><Bot className="w-5 h-5" /> Auto Play</>
+                )}
+              </button>
+
+              {/* Rules info */}
+              <div className="card text-xs text-muted">
+                <p className="font-medium text-white mb-1">Rules:</p>
+                <p>\u00b7 4 decks, play till all cards gone</p>
+                <p>\u00b7 Cards 2-9: high/low decides win/loss</p>
+                <p>\u00b7 10/J/Q: push (bet returned)</p>
+                <p>\u00b7 Ace: bonus turn \u2014 win for 2x payout</p>
+                <p>\u00b7 King: wild card \u2014 3 free auto turns (left=high, right beats it)</p>
               </div>
             </>
           )}
@@ -338,8 +604,8 @@ export function GamesPage() {
                 >
                   <Trophy className="w-12 h-12 text-warning mx-auto mb-3" />
                   <h3 className="text-xl font-bold mb-2">Deck Complete!</h3>
-                  <p className="text-muted text-sm mb-1">You won {totalWon} coins</p>
-                  <p className="text-muted text-sm mb-4">Best streak: {bestStreak}</p>
+                  <p className="text-muted text-sm mb-1">You won {totalWon} coins from {Math.round(cardIndex / 2)} turns</p>
+                  <p className="text-muted text-sm mb-4">Best streak: {bestStreak} \u00b7 {deck.length} cards played</p>
 
                   <div className="space-y-2">
                     <button onClick={() => setShowEndModal(false)} className="btn-primary w-full flex items-center justify-center gap-2">
@@ -362,8 +628,16 @@ export function GamesPage() {
         </div>
       )}
 
-      {tab === "craps" && (
-        <CrapsGame />
+      {tab === "pachinko" && (
+        <PachinkoGame />
+      )}
+
+      {tab === "blackjack" && (
+        <BlackjackGame />
+      )}
+
+      {tab === "holdem" && (
+        <TexasHoldemGame />
       )}
     </div>
   );

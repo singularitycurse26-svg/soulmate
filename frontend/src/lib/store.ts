@@ -10,7 +10,7 @@ type View =
   | "fingerprint-register"
   | "app";
 
-type AppPage =
+export type AppPage =
   | "dashboard"
   | "email"
   | "phone"
@@ -18,7 +18,11 @@ type AppPage =
   | "ai"
   | "games"
   | "wallet"
-  | "security";
+  | "security"
+  | "openclaw"
+  | "hermes"
+  | "marketplace"
+  | "dating";
 
 interface Alert {
   id: number;
@@ -54,6 +58,10 @@ interface AppState {
   // Loading
   loadingText: string;
   setLoading: (text: string) => void;
+
+  // Pending text (from contacts click-to-text)
+  pendingTextPhone: string;
+  setPendingTextPhone: (phone: string) => void;
 }
 
 let alertId = 0;
@@ -104,4 +112,7 @@ export const useStore = create<AppState>((set) => ({
 
   loadingText: "Loading...",
   setLoading: (text) => set({ loadingText: text }),
+
+  pendingTextPhone: "",
+  setPendingTextPhone: (phone) => set({ pendingTextPhone: phone }),
 }));

@@ -91,9 +91,7 @@ export function CrapsGame() {
 
     if (win) {
       setCoins((c) => c + payout);
-    } else if (newPhase === "lost" && phase !== "point") {
-      setCoins((c) => c - betAmount);
-    } else if (newPhase === "lost" && phase === "point") {
+    } else if (newPhase === "lost") {
       setCoins((c) => c - betAmount);
     }
 
@@ -111,6 +109,7 @@ export function CrapsGame() {
     setPoint(null);
     setLastRoll(null);
     setHistory([]);
+    setShowResult(false);
   };
 
   const rollDice = () => {
@@ -126,6 +125,7 @@ export function CrapsGame() {
     setLastRoll(null);
     setHistory([]);
     setShowResult(false);
+    setRolling(false);
   };
 
   return (
@@ -137,12 +137,20 @@ export function CrapsGame() {
           <span className="text-sm font-bold">{coins.toLocaleString()}</span>
         </div>
         {phase === "point" && (
-          <div className="flex items-center gap-2 bg-accent/10 px-3 py-1.5 rounded-lg">
-            <span className="text-sm font-medium text-accent">Point: {point}</span>
-          </div>
+          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex items-center gap-2 bg-accent/10 px-3 py-1.5 rounded-lg">
+            <TrendingUp className="w-4 h-4 text-accent" />
+            <span className="text-sm font-bold text-accent">Point: {point}</span>
+          </motion.div>
         )}
         <div className="flex-1" />
-        <span className="text-xs text-muted capitalize">{phase}</span>
+        {phase !== "idle" && (
+          <span className={cn(
+            "text-xs font-medium px-2 py-1 rounded capitalize",
+            phase === "won" && "bg-success/10 text-success",
+            phase === "lost" && "bg-danger/10 text-danger",
+            (phase === "comeout" || phase === "point") && "bg-accent/10 text-accent"
+          )}>{phase}</span>
+        )}
       </div>
 
       {/* 3D Dice */}
@@ -152,16 +160,16 @@ export function CrapsGame() {
       <AnimatePresence>
         {showResult && lastRoll && (
           <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
+            initial={{ scale: 0.5, opacity: 0, y: -10 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.5, opacity: 0, y: -10 }}
             className={cn(
-              "text-center py-3 rounded-lg font-bold",
+              "text-center py-3 rounded-lg font-bold text-lg",
               lastRoll.win ? "bg-success/10 text-success" : "bg-danger/10 text-danger"
             )}
           >
             {lastRoll.values[0]} + {lastRoll.values[1]} = {lastRoll.sum}
-            {lastRoll.win ? ` — Won ${lastRoll.payout} coins!` : " — Lost"}
+            {lastRoll.win ? ` — Won +${lastRoll.payout} coins!` : ` — Lost -${betAmount} coins`}
           </motion.div>
         )}
       </AnimatePresence>
@@ -197,8 +205,8 @@ export function CrapsGame() {
             </select>
           </div>
 
-          <button onClick={startGame} className="btn-primary w-full flex items-center justify-center gap-2 py-3">
-            <Dice5 className="w-5 h-5" /> Start Round
+          <button onClick={startGame} disabled={coins < betAmount} className="btn-primary w-full flex items-center justify-center gap-2 py-3 disabled:opacity-50 disabled:cursor-not-allowed">
+            <Dice5 className="w-5 h-5" /> {coins < betAmount ? "Not enough coins" : "Start Round"}
           </button>
         </div>
       ) : phase === "won" || phase === "lost" ? (
@@ -216,7 +224,7 @@ export function CrapsGame() {
               </p>
             )}
           </div>
-          <button onClick={reset} className="btn-primary w-full flex items-center justify-center gap-2">
+          <button onClick={reset} className="btn-primary w-full flex items-center justify-center gap-2 py-3">
             <RotateCcw className="w-4 h-4" /> Play Again
           </button>
         </div>
@@ -243,10 +251,12 @@ export function CrapsGame() {
           <button
             onClick={rollDice}
             disabled={rolling}
-            className="btn-primary w-full flex items-center justify-center gap-2 py-4 text-lg"
+            className="btn-primary w-full flex items-center justify-center gap-2 py-4 text-lg disabled:opacity-50"
           >
             {rolling ? (
               <><Dice5 className="w-6 h-6 animate-spin" /> Rolling...</>
+            ) : phase === "point" ? (
+              <><Dice5 className="w-6 h-6" /> Roll for {point}</>
             ) : (
               <><Dice5 className="w-6 h-6" /> Roll Dice</>
             )}
@@ -262,9 +272,9 @@ export function CrapsGame() {
 
       {/* Payout info */}
       <div className="card text-xs text-muted">
-        <p className="font-medium text-white mb-1">Payouts</p>
-        <div className="grid grid-cols-2 gap-1">
-          <span>Pass/Don't Pass: 1:1</span>
+        <p className="font-medium text-white mb-2">Payouts</p>
+        <div className="grid grid-cols-2 gap-1.5">
+          <span>Pass / Don't Pass: 1:1</span>
           <span>Any 7: 4:1</span>
           <span>Yo 11: 15:1</span>
           <span>Snake Eyes: 30:1</span>

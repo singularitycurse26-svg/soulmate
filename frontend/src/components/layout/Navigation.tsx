@@ -10,10 +10,16 @@ import {
   Wallet,
   Shield,
   LogOut,
+  Terminal,
+  Cpu,
+  ShoppingBag,
+  Heart,
 } from "lucide-react";
 
 const navItems: { page: AppPage; label: string; icon: any }[] = [
-  { page: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { page: "dashboard", label: "Soulmate Social", icon: LayoutDashboard },
+  { page: "marketplace", label: "Marketplace", icon: ShoppingBag },
+  { page: "dating", label: "Dating", icon: Heart },
   { page: "email", label: "Email", icon: Mail },
   { page: "phone", label: "Phone", icon: Phone },
   { page: "contacts", label: "Contacts", icon: Users },
@@ -21,6 +27,8 @@ const navItems: { page: AppPage; label: string; icon: any }[] = [
   { page: "games", label: "Games", icon: Gamepad2 },
   { page: "wallet", label: "Wallet", icon: Wallet },
   { page: "security", label: "Security", icon: Shield },
+  { page: "openclaw", label: "OpenClaw", icon: Terminal },
+  { page: "hermes", label: "Hermes Agent", icon: Cpu },
 ];
 
 export function Sidebar() {
@@ -94,13 +102,6 @@ export function MobileNav() {
           </button>
         );
       })}
-      <button
-        onClick={() => setActivePage("games")}
-        className={cn("nav-item w-16", activePage === "games" && "active")}
-      >
-        <Gamepad2 className="w-5 h-5" />
-        <span className="text-[10px]">Games</span>
-      </button>
       <button
         onClick={() => setActivePage("wallet")}
         className={cn("nav-item w-16", activePage === "wallet" && "active")}

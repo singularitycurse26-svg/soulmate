@@ -228,6 +228,175 @@ When someone pays you via PayPal and includes their BSC wallet address in the pa
 
 See [wallet/README.md](wallet/README.md) for full documentation.
 
+## Soulmate Web UI
+
+Soulmate includes a full-featured React + TypeScript web application with an Open WebUI-inspired dark theme.
+
+### Features
+
+- **Hermes Agent Chat** — Full chat interface with the autonomous AI agent, session management, markdown rendering, and tool execution
+- **JARVIS Voice Assistant** — Iron Man-style voice integration with wake word detection, push-to-talk, and animated waveform visualizer
+- **Soulmate Social** — Facebook-style social feed with posts, likes, comments, friends, DMs, stories, and notifications
+- **Marketplace** — Buy/sell listings with categories, search, saved items, Google Pay integration, and seller messaging
+- **Dating** — Tinder-style dating with swipe (like/pass/superlike), matches, messaging, and profile management
+- **Phone** — SMS texting, contacts, email, and crypto wallet (INC token) with send/receive/buy functionality
+- **Terminal** — Full terminal access to the VPS with tabbed interface for memory, skills, goals, cron, subagents, browser, and more
+
+### Web UI Tech Stack
+
+- React 18 + TypeScript + Vite
+- TailwindCSS with custom dark theme
+- Framer Motion animations
+- Zustand state management
+- Web Speech API for voice (STT/TTS)
+- Canvas-based waveform visualization
+
+### Build & Deploy
+
+```bash
+cd frontend
+npm install
+npm run build
+# Deploy to Netlify
+netlify deploy --prod --dir=dist
+```
+
+## JARVIS Voice Assistant
+
+Soulmate Web UI includes a JARVIS-like voice assistant layer built on top of the Hermes Agent.
+
+### Voice Features
+
+- **Wake Word Detection** — Say "Jarvis" to activate voice command mode (always-listening)
+- **Push-to-Talk** — Press and hold the mic button as a fallback
+- **Full-Duplex Conversation** — Interrupt the AI while it's speaking by saying the wake word
+- **Text-to-Speech** — AI responses are spoken aloud automatically
+- **Iron Man Waveform** — Animated arc reactor visualizer with frequency bars that react to audio
+- **Voice Settings** — Configure wake word, STT/TTS providers, voice selection, speech rate, volume, and mute
+
+### Swappable Provider Architecture
+
+The voice system is designed for easy provider swapping without UI changes:
+
+| Provider | STT | TTS | Status |
+|----------|-----|-----|--------|
+| Web Speech API | ✅ | ✅ | Default (browser-native) |
+| isair/Jarvis Backend | ✅ | ✅ | Connect to local Jarvis server |
+| Whisper | ✅ | — | Future |
+| Piper TTS | — | ✅ | Future |
+| Kokoro TTS | — | ✅ | Future |
+| OpenAI | ✅ | ✅ | Future |
+| ElevenLabs | — | ✅ | Future |
+
+### Jarvis Backend Integration
+
+Connect the [isair/Jarvis](https://github.com/isair/Jarvis) Python project as a dedicated voice processing backend:
+
+1. Start the Jarvis backend server locally
+2. Open JARVIS Voice Settings in the Web UI (more menu → JARVIS Voice)
+3. Set STT/TTS provider to "Jarvis Backend"
+4. Enter the backend URL (e.g., `http://localhost:8765`)
+
+The Hermes Agent remains the core reasoning engine — Jarvis handles voice I/O only.
+
+### Voice Files
+
+| File | Description |
+|------|-------------|
+| `frontend/src/lib/useJarvis.ts` | Core voice hook (wake word, STT/TTS, audio analysis) |
+| `frontend/src/components/hermes/JarvisWaveform.tsx` | Iron Man canvas visualizer |
+| `frontend/src/components/hermes/JarvisVoicePanel.tsx` | Settings panel |
+| `frontend/src/lib/api.ts` | `jarvisApi` endpoints for backend integration |
+
+## Soulmate Social
+
+A full social network layer with Facebook-style features:
+
+- **Posts** — Create posts with text and images, public/private privacy
+- **Feed** — Paginated social feed with posts from all users
+- **Interactions** — Like, comment, and delete posts
+- **Friends** — Send/accept/reject friend requests, unfriend
+- **Profiles** — Bio, avatar, cover photo, user post history
+- **Messages** — Direct messages with threaded conversations
+- **Stories** — 24-hour disappearing stories
+- **Notifications** — Real-time notification system
+- **Search** — Search for users by name
+
+### Social API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v1/social/posts` | POST | Create a post |
+| `/v1/social/feed` | GET | Get paginated feed |
+| `/v1/social/posts/{id}/like` | POST/DELETE | Like/unlike a post |
+| `/v1/social/posts/{id}/comments` | POST/GET | Add/get comments |
+| `/v1/social/friends/{id}` | POST/DELETE | Send request/unfriend |
+| `/v1/social/friends/{id}/accept` | POST | Accept friend request |
+| `/v1/social/profile/{id}` | GET | Get user profile |
+| `/v1/social/messages` | GET/POST | Get/send DMs |
+| `/v1/social/stories` | POST/GET | Create/get stories |
+| `/v1/social/notifications` | GET | Get notifications |
+
+## Marketplace
+
+A Craigslist-style marketplace with crypto payment support:
+
+- **Listings** — Create listings with title, description, price, images, category, condition, and location
+- **Browse** — Filter by category, price range, search terms, and sort order
+- **Buy** — Purchase listings with crypto or Google Pay
+- **Save** — Save listings for later
+- **Manage** — View your listings and purchases
+- **Message Seller** — Contact sellers directly
+
+### Marketplace API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v1/marketplace/listings` | POST/GET | Create/browse listings |
+| `/v1/marketplace/listings/{id}` | GET/PUT/DELETE | Get/edit/delete listing |
+| `/v1/marketplace/listings/{id}/buy` | POST | Buy a listing |
+| `/v1/marketplace/listings/{id}/save` | POST | Save a listing |
+| `/v1/marketplace/my-listings` | GET | Your listings |
+| `/v1/marketplace/my-purchases` | GET | Your purchases |
+| `/v1/marketplace/googlepay` | POST | Google Pay checkout |
+| `/v1/marketplace/categories` | GET | List categories |
+
+## Dating
+
+A Tinder-style dating feature with swipe mechanics:
+
+- **Profiles** — Create dating profile with bio, interests, age, gender, looking for, photos, and location
+- **Swipe** — Like, pass, or superlike suggested profiles
+- **Matches** — Mutual likes create matches with messaging
+- **Chat** — Send messages to matches
+- **Likes You** — See who liked you
+
+### Dating API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v1/dating/profile` | POST/GET/PUT | Create/get/update profile |
+| `/v1/dating/suggestions` | GET | Get suggested profiles |
+| `/v1/dating/like/{id}` | POST | Like a profile |
+| `/v1/dating/pass/{id}` | POST | Pass on a profile |
+| `/v1/dating/superlike/{id}` | POST | Superlike a profile |
+| `/v1/dating/matches` | GET | Get your matches |
+| `/v1/dating/matches/{id}/messages` | GET/POST | Get/send match messages |
+| `/v1/dating/likes-you` | GET | See who liked you |
+
+## Hermes Agent Integration
+
+The Web UI integrates with the Hermes Agent as the autonomous AI brain:
+
+- **LLM Proxy** — Supports backend, Ollama, OpenAI, Anthropic, Google, Groq, and OpenRouter
+- **Terminal Execution** — Full shell access via the Web UI terminal
+- **Cron Scheduler** — Schedule recurring AI tasks
+- **Subagent Spawning** — Delegate tasks to subagents
+- **Session Management** — Multiple chat sessions with persistence
+- **Virtual Browser** — Browse the web within the UI
+- **Memory Management** — View and manage AI memory
+- **Goals** — Set persistent goals for the AI to work toward
+
 ## Support the Project
 
 If Soulmate helps you, consider supporting development:

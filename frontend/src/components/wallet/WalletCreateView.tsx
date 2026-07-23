@@ -52,10 +52,14 @@ export function WalletCreateView() {
   };
 
   const importWallet = async (input: string) => {
+    const trimmed = input.trim();
+    if (!trimmed) {
+      showAlert("danger", "Please paste your 12-word mnemonic or private key above");
+      return;
+    }
     setBusy(true);
     try {
       let wallet: ethers.Wallet;
-      const trimmed = input.trim();
 
       if (trimmed.split(" ").length >= 12) {
         wallet = ethers.Wallet.fromPhrase(trimmed);
@@ -154,12 +158,12 @@ export function WalletCreateView() {
               </div>
 
               {/* Mnemonic display */}
-              <div className="bg-bg-alt rounded-xl p-4 mb-4 relative">
-                <div className="grid grid-cols-3 gap-2">
+              <div className="bg-bg-alt rounded-xl p-4 mb-4 relative" style={{ userSelect: "text" }}>
+                <div className="grid grid-cols-3 gap-2 select-text">
                   {mnemonic.split(" ").map((word, i) => (
                     <div key={i} className="flex items-center gap-1.5">
-                      <span className="text-xs text-muted w-5">{i + 1}.</span>
-                      <span className={cn("text-sm font-medium", !showMnemonic && "blur-sm select-none")}>
+                      <span className="text-xs text-muted w-5 select-text">{i + 1}.</span>
+                      <span className={cn("text-sm font-medium select-text", !showMnemonic && "blur-sm")} style={{ userSelect: "text" }}>
                         {word}
                       </span>
                     </div>
@@ -194,18 +198,18 @@ export function WalletCreateView() {
               {/* Address display */}
               <div className="bg-bg-alt rounded-lg p-3 mb-4">
                 <p className="text-xs text-muted mb-1">Your Wallet Address:</p>
-                <p className="font-mono text-sm break-all text-accent">{address}</p>
+                <p className="font-mono text-sm break-all text-accent select-text" style={{ userSelect: "text" }}>{address}</p>
               </div>
 
               {/* Private key (hidden by default) */}
-              <div className="bg-bg-alt rounded-lg p-3 mb-4">
+              <div className="bg-bg-alt rounded-lg p-3 mb-4" style={{ userSelect: "text" }}>
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs text-muted">Private Key (keep secret):</p>
                   <button onClick={() => setShowPrivKey(!showPrivKey)} className="text-muted hover:text-white">
                     {showPrivKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
-                <p className={cn("font-mono text-xs break-all", !showPrivKey && "blur-sm select-none")}>
+                <p className={cn("font-mono text-xs break-all select-text", !showPrivKey && "blur-sm")} style={{ userSelect: "text" }}>
                   {privateKey}
                 </p>
               </div>
@@ -290,13 +294,18 @@ function ImportWalletView({ onImport, onBack, busy }: { onImport: (input: string
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="abandon ability able about above absent absorb abstract absurd abuse access accident..."
-            className="w-full mb-3 h-28 font-mono text-sm"
+            placeholder="Paste your 12-word mnemonic or private key (0x...) here..."
+            className="w-full mb-2 h-28 font-mono text-sm"
+            style={{ userSelect: "text" }}
           />
+
+          <p className="text-xs text-muted mb-3 text-center">
+            Paste your saved 12-word phrase or private key above, then click Import.
+          </p>
 
           <button
             onClick={() => onImport(input)}
-            disabled={busy || !input.trim()}
+            disabled={busy}
             className="btn-primary w-full mb-3 flex items-center justify-center gap-2"
           >
             {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
