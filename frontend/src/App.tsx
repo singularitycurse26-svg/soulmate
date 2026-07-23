@@ -102,7 +102,7 @@ export default function App() {
       <AlertContainer />
       <Sidebar />
       <main className="md:ml-60 min-h-screen pb-20 md:pb-0">
-        <div className="max-w-2xl mx-auto p-4 md:p-8">
+        <div className="max-w-6xl mx-auto p-4 md:p-8">
           {activePage === "dashboard" && <DashboardPage />}
           {activePage === "email" && <EmailPage />}
           {activePage === "phone" && <PhonePage />}

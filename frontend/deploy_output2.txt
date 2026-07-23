@@ -1,0 +1,80 @@
+[96m[1m​[22m[39m
+[96m[1mNetlify Build                                                 [22m[39m
+[96m[1m────────────────────────────────────────────────────────────────[22m[39m
+[36m[1m​[22m[39m
+[36m[1m❯ Version[22m[39m
+  @netlify/build 35.15.0
+[36m[1m​[22m[39m
+[36m[1m❯ Flags[22m[39m
+  accountId: 6a6188410f9d6cc57c766f54
+  deployId: 6a62293307738e53a51e8262
+[36m[1m​[22m[39m
+[36m[1m❯ Current directory[22m[39m
+  C:\Users\hawpe\CascadeProjects\soulmate\frontend
+[36m[1m​[22m[39m
+[36m[1m❯ Config file[22m[39m
+  C:\Users\hawpe\CascadeProjects\soulmate\frontend\netlify.toml
+[36m[1m​[22m[39m
+[36m[1m❯ Context[22m[39m
+  production
+[96m[1m​[22m[39m
+[96m[1mbuild.command from netlify.toml                               [22m[39m
+[96m[1m────────────────────────────────────────────────────────────────[22m[39m
+​
+[36m$ npm run build[39m
+
+> soulmate-os@1.0.0 build
+> vite build
+
+[36mvite v5.4.21 [32mbuilding for production...[36m[39m
+transforming...
+[32m✓[39m 2094 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mindex.html                 [39m[1m[2m    0.90 kB[22m[1m[22m[2m │ gzip:   0.49 kB[22m
+[2mdist/[22m[35massets/index-Pbf0FvTL.css  [39m[1m[2m   42.36 kB[22m[1m[22m[2m │ gzip:   7.74 kB[22m
+[2mdist/[22m[36massets/index-B6sywqtE.js   [39m[1m[2m   52.00 kB[22m[1m[22m[2m │ gzip:  17.09 kB[22m
+[2mdist/[22m[36massets/index-Ds9fwksx.js   [39m[1m[33m1,050.86 kB[39m[22m[2m │ gzip: 320.60 kB[22m
+[33m
+(!) Some chunks are larger than 1000 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[32m✓ built in 26.16s[39m
+​
+[90m(build.command completed in 33.2s)[39m
+
+Deploying to Netlify
+────────────────────────────────────────────────────────────────
+
+[32mDeploy path: [39m       C:\Users\hawpe\CascadeProjects\soulmate\frontend\dist
+[32mConfiguration path: [39mC:\Users\hawpe\CascadeProjects\soulmate\frontend\netlify.toml
+
+[33m⠋[39m Uploading blobs to deploy store...
+
+[32m✔[39m Finished uploading blobs to deploy store
+[33m⠋[39m Hashing files...
+[33m⠋[39m Looking for a functions cache...
+[32m✔[39m No cached functions were found
+[32m✔[39m Finished hashing 
+[33m⠋[39m CDN diffing files...
+[32m✔[39m CDN requesting 4 files
+[33m⠋[39m Uploading 4 files
+[32m✔[39m Finished uploading 4 assets
+[33m⠋[39m Waiting for deploy to go live...
+[32m✔[39m Deploy is live!
+[96m[1m​[22m[39m
+[96m[1mNetlify Build Complete                                        [22m[39m
+[96m[1m────────────────────────────────────────────────────────────────[22m[39m
+​
+[90m(Netlify Build completed in 43.2s)[39m
+
+🚀 Deploy complete
+────────────────────────────────────────────────────────────────
+
+Production URL: <https://soulmate-hermes-agent.netlify.app>
+Unique deploy URL: <https://6a62293307738e53a51e8262--soulmate-hermes-agent.netlify.app>
+
+Build logs: <https://app.netlify.com/projects/soulmate-hermes-agent/deploys/6a62293307738e53a51e8262>
+Function logs: <https://app.netlify.com/projects/soulmate-hermes-agent/logs/functions>
+Edge function logs: <https://app.netlify.com/projects/soulmate-hermes-agent/logs/edge-functions>

@@ -38,6 +38,7 @@ export function EmailPage() {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [aiReplying, setAiReplying] = useState(false);
+  const [authError, setAuthError] = useState(false);
 
   const loadAccount = async () => {
     try {
@@ -48,6 +49,9 @@ export function EmailPage() {
         setInbox(inboxData.emails || []);
       }
     } catch (e: any) {
+      if (e.message?.includes("session") || e.message?.includes("401")) {
+        setAuthError(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -64,6 +68,9 @@ export function EmailPage() {
         showAlert("success", `Email account created: ${data.email_address}`);
       }
     } catch (e: any) {
+      if (e.message?.includes("session") || e.message?.includes("401")) {
+        setAuthError(true);
+      }
       showAlert("danger", e.message);
     } finally {
       setSettingUp(false);
@@ -137,6 +144,23 @@ export function EmailPage() {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: GMAIL_RED }} />
+      </div>
+    );
+  }
+
+  if (authError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: `${GMAIL_RED}15` }}>
+          <Mail className="w-8 h-8" style={{ color: GMAIL_RED }} />
+        </div>
+        <h3 className="text-xl font-bold mb-2" style={{ color: "#202124" }}>Login Required</h3>
+        <p className="text-sm max-w-sm mb-6" style={{ color: "#5F6368" }}>
+          You need to be logged in to use Soulmate Email. Please log in or create an account first.
+        </p>
+        <button onClick={() => useStore.getState().setView("login")} className="px-6 py-3 rounded-lg text-white font-medium flex items-center gap-2" style={{ background: GMAIL_RED }}>
+          <Mail className="w-5 h-5" /> Go to Login
+        </button>
       </div>
     );
   }

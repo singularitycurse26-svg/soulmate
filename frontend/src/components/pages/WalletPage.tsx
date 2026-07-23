@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useStore } from "@/lib/store";
+import { API_BASE } from "@/lib/api";
 import { cn, shortenAddress, copyToClipboard, formatBalance } from "@/lib/utils";
-import { Wallet as WalletIcon, Send, Download, QrCode, Copy, Tag, History, Coins, Search, ArrowUpRight, ArrowDownLeft, RefreshCw, DollarSign } from "lucide-react";
+import { Wallet as WalletIcon, Send, Download, QrCode, Copy, Tag, History, Coins, Search, ArrowUpRight, ArrowDownLeft, RefreshCw, DollarSign, Plus, KeyRound } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const BSC_RPC = "https://bsc-dataseed.binance.org";
@@ -44,13 +45,10 @@ interface TxRecord {
 
 type WalletView = "main" | "send" | "receive" | "tags" | "history" | "buy" | "add-funds";
 
-const getApiBase = () => {
-  const isDev = import.meta.env.DEV;
-  return isDev ? "" : "http://191.44.121.29:8546";
-};
+// Use the shared API_BASE from api.ts (https://191.44.121.29.sslip.io)
 
 export function WalletPage() {
-  const { walletAddress, walletKey, showAlert } = useStore();
+  const { walletAddress, walletKey, showAlert, setView: navigateView } = useStore();
   const [view, setView] = useState<WalletView>("main");
   const [balances, setBalances] = useState<Record<string, number>>({});
   const [usdValues, setUsdValues] = useState<Record<string, number>>({});
@@ -163,7 +161,7 @@ export function WalletPage() {
       setTxHistory(history);
 
       try {
-        const resp = await fetch(`${getApiBase()}/v1/tags/search?q=`, {
+        const resp = await fetch(`${API_BASE}/v1/tags/search?q=`, {
           headers: { "X-API-Token": "soulmate_wallet_2024" },
         });
         const data = await resp.json();
@@ -188,7 +186,7 @@ export function WalletPage() {
     if (!sendTo.startsWith("@") || sendTo.length < 2) { setTagResolveInfo(null); return; }
     const timer = setTimeout(async () => {
       try {
-        const resp = await fetch(`${getApiBase()}/v1/tags/${sendTo.substring(1)}`);
+        const resp = await fetch(`${API_BASE}/v1/tags/${sendTo.substring(1)}`);
         if (resp.ok) {
           const data = await resp.json();
           setTagResolveInfo(`${data.tag} → ${shortenAddress(data.address)}`);
@@ -202,7 +200,7 @@ export function WalletPage() {
     if (!tagSearch) { setTagSearchResults([]); return; }
     const timer = setTimeout(async () => {
       try {
-        const resp = await fetch(`${getApiBase()}/v1/tags/search?q=${encodeURIComponent(tagSearch)}`, {
+        const resp = await fetch(`${API_BASE}/v1/tags/search?q=${encodeURIComponent(tagSearch)}`, {
           headers: { "X-API-Token": "soulmate_wallet_2024" },
         });
         const data = await resp.json();
@@ -230,7 +228,7 @@ export function WalletPage() {
 
       if (sendTo.startsWith("@")) {
         try {
-          const resp = await fetch(`${getApiBase()}/v1/tags/${sendTo.substring(1)}`);
+          const resp = await fetch(`${API_BASE}/v1/tags/${sendTo.substring(1)}`);
           if (!resp.ok) { showAlert("danger", `Tag ${sendTo} not found`); return; }
           const data = await resp.json();
           recipientAddress = data.address;
@@ -278,7 +276,7 @@ export function WalletPage() {
     if (!tagInput.trim()) return showAlert("danger", "Enter a tag name");
     if (!walletAddress) return showAlert("danger", "Wallet not loaded");
     try {
-      const resp = await fetch(`${getApiBase()}/v1/tags/create`, {
+      const resp = await fetch(`${API_BASE}/v1/tags/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-API-Token": "soulmate_wallet_2024" },
         body: JSON.stringify({ tag: tagInput.trim(), address: walletAddress, owner_name: "" }),
@@ -288,7 +286,7 @@ export function WalletPage() {
       showAlert("success", `Tag @${tagInput.trim()} created!`);
       setTagInput("");
       try {
-        const resp2 = await fetch(`${getApiBase()}/v1/tags/search?q=`, { headers: { "X-API-Token": "soulmate_wallet_2024" } });
+        const resp2 = await fetch(`${API_BASE}/v1/tags/search?q=`, { headers: { "X-API-Token": "soulmate_wallet_2024" } });
         const data2 = await resp2.json();
         setUserTags((data2.tags || []).filter((t: any) => t.address?.toLowerCase() === walletAddress.toLowerCase()));
       } catch {}
@@ -301,9 +299,19 @@ export function WalletPage() {
   if (!walletAddress) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
-        <WalletIcon className="w-12 h-12 text-muted mb-3" />
-        <h3 className="text-lg font-bold mb-2">No Wallet Connected</h3>
-        <p className="text-muted text-sm mb-4">Create or import a wallet to get started.</p>
+        <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mb-4">
+          <WalletIcon className="w-8 h-8 text-accent" />
+        </div>
+        <h3 className="text-xl font-bold mb-2">No Wallet Connected</h3>
+        <p className="text-muted text-sm mb-6 max-w-sm">Create a new BSC wallet or import an existing one to send, receive, and manage your crypto.</p>
+        <div className="flex gap-3">
+          <button onClick={() => navigateView("create-wallet")} className="btn-primary flex items-center gap-2 px-6 py-3">
+            <Plus className="w-5 h-5" /> Create Wallet
+          </button>
+          <button onClick={() => navigateView("import-wallet")} className="btn-secondary flex items-center gap-2 px-6 py-3">
+            <KeyRound className="w-5 h-5" /> Import Wallet
+          </button>
+        </div>
       </div>
     );
   }
@@ -407,7 +415,7 @@ export function WalletPage() {
               if (amt < 1) return showAlert("danger", "Enter a valid amount");
               setProcessingPayment(true);
               try {
-                const resp = await fetch(`${getApiBase()}/v1/wallet/googlepay/deposit`, {
+                const resp = await fetch(`${API_BASE}/v1/wallet/googlepay/deposit`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json", "X-API-Token": "soulmate_wallet_2024", "X-Session-Token": localStorage.getItem("session_token") || "" },
                   body: JSON.stringify({ amount: amt, wallet_address: walletAddress }),
@@ -451,7 +459,7 @@ export function WalletPage() {
                       if (amt < 1) return showAlert("danger", "Enter a valid amount");
                       setProcessingPayment(true);
                       try {
-                        const resp = await fetch(`${getApiBase()}/v1/wallet/card/deposit`, {
+                        const resp = await fetch(`${API_BASE}/v1/wallet/card/deposit`, {
                           method: "POST",
                           headers: { "Content-Type": "application/json", "X-API-Token": "soulmate_wallet_2024", "X-Session-Token": localStorage.getItem("session_token") || "" },
                           body: JSON.stringify({ amount: amt, wallet_address: walletAddress, card_id: card.id }),
@@ -513,7 +521,7 @@ export function WalletPage() {
                   if (!cardNumber.trim() || !cardExpiry.trim() || !cardCvc.trim()) return showAlert("danger", "Fill in all card details");
                   setProcessingPayment(true);
                   try {
-                    const resp = await fetch(`${getApiBase()}/v1/wallet/card/deposit`, {
+                    const resp = await fetch(`${API_BASE}/v1/wallet/card/deposit`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json", "X-API-Token": "soulmate_wallet_2024", "X-Session-Token": localStorage.getItem("session_token") || "" },
                       body: JSON.stringify({ amount: amt, wallet_address: walletAddress, card_number: cardNumber.replace(/\s/g, ""), card_expiry: cardExpiry, card_cvc: cardCvc, save_card: saveCard }),
