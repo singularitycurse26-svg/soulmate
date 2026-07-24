@@ -1,0 +1,58 @@
+{
+  "nav": {
+    "dashboard": "Home",
+    "email": "Email",
+    "phone": "Phone",
+    "contacts": "Contacts",
+    "ai": "AI Assistant",
+    "games": "Games",
+    "wallet": "Wallet",
+    "security": "Security",
+    "openclaw": "OpenClaw",
+    "hermes": "Hermes",
+    "marketplace": "Marketplace",
+    "dating": "Dating",
+    "incentives": "Incentives",
+    "healing": "Healing"
+  },
+  "actions": {
+    "send": "Send",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "search": "Search",
+    "create": "Create",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "retry": "Retry"
+  },
+  "language": {
+    "title": "Language",
+    "selectLanguage": "Select Language",
+    "searchLanguage": "Search language...",
+    "autoDetect": "Auto-detect",
+    "autoTranslate": "Auto-translate messages",
+    "autoTranslateDesc": "Automatically translate incoming messages to your language",
+    "translationEnabled": "Translation enabled",
+    "translationDisabled": "Translation disabled"
+  },
+  "settings": {
+    "title": "Settings",
+    "preferences": "Preferences",
+    "account": "Account",
+    "security": "Security"
+  },
+  "common": {
+    "welcome": "Welcome",
+    "logout": "Log out",
+    "profile": "Profile",
+    "notifications": "Notifications",
+    "messages": "Messages",
+    "friends": "Friends",
+    "online": "Online",
+    "offline": "Offline"
+  }
+}

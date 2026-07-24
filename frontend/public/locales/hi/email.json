@@ -1,0 +1,20 @@
+{
+  "title": "ईमेल",
+  "inbox": "इनबॉक्स",
+  "compose": "लिखें",
+  "send": "भेजें",
+  "reply": "उत्तर दें",
+  "aiReply": "AI उत्तर",
+  "from": "प्रेषक",
+  "to": "प्राप्तकर्ता",
+  "subject": "विषय",
+  "body": "मुख्य भाग",
+  "translatedFrom": "से अनुवादित",
+  "showOriginal": "मूल दिखाएं",
+  "hideOriginal": "मूल छुपाएं",
+  "translating": "अनुवाद हो रहा है...",
+  "starred": "तारांकित",
+  "archive": "संग्रहित",
+  "trash": "कचरा",
+  "noEmails": "कोई ईमेल नहीं"
+}

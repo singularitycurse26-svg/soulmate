@@ -1,0 +1,20 @@
+{
+  "title": "邮件",
+  "inbox": "收件箱",
+  "compose": "撰写",
+  "send": "发送",
+  "reply": "回复",
+  "aiReply": "AI回复",
+  "from": "发件人",
+  "to": "收件人",
+  "subject": "主题",
+  "body": "正文",
+  "translatedFrom": "翻译自",
+  "showOriginal": "显示原文",
+  "hideOriginal": "隐藏原文",
+  "translating": "翻译中...",
+  "starred": "星标",
+  "archive": "归档",
+  "trash": "垃圾箱",
+  "noEmails": "没有邮件"
+}

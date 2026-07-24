@@ -1,0 +1,20 @@
+{
+  "title": "Correo",
+  "inbox": "Bandeja de Entrada",
+  "compose": "Redactar",
+  "send": "Enviar",
+  "reply": "Responder",
+  "aiReply": "Respuesta IA",
+  "from": "De",
+  "to": "Para",
+  "subject": "Asunto",
+  "body": "Cuerpo",
+  "translatedFrom": "Traducido de",
+  "showOriginal": "Mostrar original",
+  "hideOriginal": "Ocultar original",
+  "translating": "Traduciendo...",
+  "starred": "Destacados",
+  "archive": "Archivar",
+  "trash": "Papelera",
+  "noEmails": "Sin correos"
+}

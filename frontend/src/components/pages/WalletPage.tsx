@@ -809,6 +809,107 @@ export function WalletPage() {
           )}
         </div>
 
+        {/* Hong Kong On-Ramp */}
+        <div className="card">
+          <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+            <span className="text-lg">🇭🇰</span> Hong Kong On-Ramp
+          </h4>
+          <p className="text-xs text-muted mb-3">Buy USDT with HKD via local payment methods (FPS, AlipayHK, WeChat Pay HK, credit/debit card).</p>
+
+          <div className="space-y-3">
+            {/* Transak */}
+            <div className="bg-bg-alt rounded-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm" style={{ background: "#1A73E8" }}>T</div>
+                  <div>
+                    <p className="text-sm font-medium">Transak</p>
+                    <p className="text-xs text-muted">FPS, AlipayHK, Card • Instant</p>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const amt = parseFloat(fundingAmount) || 0;
+                  if (amt < 1) return showAlert("danger", "Enter a valid amount");
+                  const params = new URLSearchParams({
+                    apiKey: "TRANSAK_API_KEY",
+                    cryptoCurrency: "USDT",
+                    network: "bsc",
+                    walletAddress: walletAddress || "",
+                    fiatCurrency: "HKD",
+                    fiatAmount: (amt * 7.8).toFixed(0),
+                    country: "HK",
+                  });
+                  window.open(`https://global.transak.com/?${params.toString()}`, "_blank");
+                  showAlert("info", "Opening Transak — complete your purchase in the new tab");
+                }}
+                className="btn-primary w-full py-2.5 text-sm"
+              >
+                Buy via Transak
+              </button>
+            </div>
+
+            {/* MoonPay */}
+            <div className="bg-bg-alt rounded-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm" style={{ background: "#7B61FF" }}>M</div>
+                  <div>
+                    <p className="text-sm font-medium">MoonPay</p>
+                    <p className="text-xs text-muted">Card, Apple Pay, Google Pay • Instant</p>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const amt = parseFloat(fundingAmount) || 0;
+                  if (amt < 1) return showAlert("danger", "Enter a valid amount");
+                  const params = new URLSearchParams({
+                    apiKey: "pk_live_MoonPayKey",
+                    currencyCode: "USDT",
+                    baseCurrencyCode: "HKD",
+                    baseCurrencyAmount: (amt * 7.8).toFixed(0),
+                    walletAddress: walletAddress || "",
+                    chain: "bsc",
+                  });
+                  window.open(`https://buy.moonpay.com/?${params.toString()}`, "_blank");
+                  showAlert("info", "Opening MoonPay — complete your purchase in the new tab");
+                }}
+                className="btn-primary w-full py-2.5 text-sm"
+              >
+                Buy via MoonPay
+              </button>
+            </div>
+
+            {/* FPS Bank Transfer */}
+            <div className="bg-bg-alt rounded-lg p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm" style={{ background: "#003366" }}>F</div>
+                <div>
+                  <p className="text-sm font-medium">FPS Bank Transfer</p>
+                  <p className="text-xs text-muted">Faster Payment System • 1-2 business days</p>
+                </div>
+              </div>
+              <div className="text-xs text-muted space-y-1">
+                <p>1. Open your banking app and select FPS</p>
+                <p>2. Enter the Soulmate FPS ID: <span className="text-white font-mono">123456789</span></p>
+                <p>3. Transfer HKD — funds auto-convert to USDT</p>
+              </div>
+              <button
+                onClick={() => {
+                  const fpsId = "123456789";
+                  navigator.clipboard?.writeText(fpsId);
+                  showAlert("success", "FPS ID copied! Transfer HKD to receive USDT.");
+                }}
+                className="btn-secondary w-full py-2.5 text-sm mt-2"
+              >
+                Copy FPS ID
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="card text-xs text-muted">
           <p className="font-medium text-white mb-1">How it works:</p>
           <p>1. Enter the amount you want to add</p>

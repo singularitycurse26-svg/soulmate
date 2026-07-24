@@ -1,5 +1,6 @@
 import { useStore, type AppPage } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import {
   LayoutDashboard,
   Mail,
@@ -105,13 +106,16 @@ export function Sidebar() {
         )}
       </nav>
 
-      <button
-        onClick={handleLogout}
-        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted hover:text-danger hover:bg-danger/5 transition-all text-sm font-medium"
-      >
-        <LogOut className="w-5 h-5" />
-        Lock
-      </button>
+      <div className="flex items-center gap-2 px-1">
+        <LanguageSwitcher />
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 flex-1 px-3 py-2.5 rounded-lg text-muted hover:text-danger hover:bg-danger/5 transition-all text-sm font-medium"
+        >
+          <LogOut className="w-5 h-5" />
+          Lock
+        </button>
+      </div>
     </aside>
   );
 }
@@ -146,6 +150,7 @@ export function MobileNav() {
         <Wallet className="w-5 h-5" />
         <span className="text-[10px]">Wallet</span>
       </button>
+      <LanguageSwitcher />
     </nav>
   );
 }

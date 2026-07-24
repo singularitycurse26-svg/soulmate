@@ -1,0 +1,58 @@
+{
+  "nav": {
+    "dashboard": "Início",
+    "email": "Email",
+    "phone": "Telefone",
+    "contacts": "Contatos",
+    "ai": "Assistente IA",
+    "games": "Jogos",
+    "wallet": "Carteira",
+    "security": "Segurança",
+    "openclaw": "OpenClaw",
+    "hermes": "Hermes",
+    "marketplace": "Mercado",
+    "dating": "Encontros",
+    "incentives": "Incentivos",
+    "healing": "Cura"
+  },
+  "actions": {
+    "send": "Enviar",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "close": "Fechar",
+    "back": "Voltar",
+    "search": "Buscar",
+    "create": "Criar",
+    "confirm": "Confirmar",
+    "loading": "Carregando...",
+    "retry": "Tentar novamente"
+  },
+  "language": {
+    "title": "Idioma",
+    "selectLanguage": "Selecionar Idioma",
+    "searchLanguage": "Buscar idioma...",
+    "autoDetect": "Detecção automática",
+    "autoTranslate": "Traduzir mensagens automaticamente",
+    "autoTranslateDesc": "Traduzir automaticamente mensagens recebidas para seu idioma",
+    "translationEnabled": "Tradução ativada",
+    "translationDisabled": "Tradução desativada"
+  },
+  "settings": {
+    "title": "Configurações",
+    "preferences": "Preferências",
+    "account": "Conta",
+    "security": "Segurança"
+  },
+  "common": {
+    "welcome": "Bem-vindo",
+    "logout": "Sair",
+    "profile": "Perfil",
+    "notifications": "Notificações",
+    "messages": "Mensagens",
+    "friends": "Amigos",
+    "online": "Online",
+    "offline": "Offline"
+  }
+}

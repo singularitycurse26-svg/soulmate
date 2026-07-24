@@ -1,0 +1,20 @@
+{
+  "title": "Email",
+  "inbox": "Caixa de Entrada",
+  "compose": "Escrever",
+  "send": "Enviar",
+  "reply": "Responder",
+  "aiReply": "Resposta IA",
+  "from": "De",
+  "to": "Para",
+  "subject": "Assunto",
+  "body": "Corpo",
+  "translatedFrom": "Traduzido de",
+  "showOriginal": "Mostrar original",
+  "hideOriginal": "Ocultar original",
+  "translating": "Traduzindo...",
+  "starred": "Destacados",
+  "archive": "Arquivar",
+  "trash": "Lixeira",
+  "noEmails": "Sem emails"
+}

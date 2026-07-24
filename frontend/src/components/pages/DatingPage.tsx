@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useStore } from "@/lib/store";
 import { datingApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { TranslatedMessage } from "@/components/TranslatedMessage";
+import { useMessageTranslation, getLangFlag } from "@/hooks/useMessageTranslation";
 import {
   Heart, X, Star, Zap, RotateCcw, ChevronLeft, Send, Image as ImageIcon,
-  Settings, User, MessageCircle, Flame, Sparkles,
+  Settings, User, MessageCircle, Flame, Sparkles, Globe,
 } from "lucide-react";
 
 interface DatingProfile {
@@ -31,6 +33,7 @@ interface MatchMessage {
   sender_id: number;
   text: string;
   created_at: string;
+  source_lang?: string;
 }
 
 type DatingView = "swipe" | "matches" | "chat" | "profile" | "fb-dating" | "setup";
@@ -40,7 +43,7 @@ const TINDER_GRADIENT = "linear-gradient(135deg, #FD267D, #FF6036)";
 const FB_DATING_PINK = "#F35369";
 
 export function DatingPage() {
-  const { showAlert, authEmail } = useStore();
+  const { showAlert, authEmail, language, translationEnabled, setTranslationEnabled } = useStore();
   const [view, setView] = useState<DatingView>("swipe");
   const [mode, setMode] = useState<"tinder" | "fb">("tinder");
   const [profile, setProfile] = useState<any>(null);
@@ -176,8 +179,8 @@ export function DatingPage() {
   const handleSendMessage = async () => {
     if (!messageText.trim() || !activeMatch) return;
     try {
-      await datingApi.sendMatchMessage(activeMatch.id, messageText);
-      setMessages([...messages, { id: Date.now(), sender_id: 0, text: messageText, created_at: new Date().toISOString() }]);
+      await datingApi.sendMatchMessage(activeMatch.id, messageText, language);
+      setMessages([...messages, { id: Date.now(), sender_id: 0, text: messageText, created_at: new Date().toISOString(), source_lang: language }]);
       setMessageText("");
     } catch (e: any) {
       showAlert("danger", e.message);
@@ -306,6 +309,13 @@ export function DatingPage() {
             <p className="font-bold">{activeMatch.name}</p>
             <p className="text-xs text-gray-500">Active now</p>
           </div>
+          <button
+            onClick={() => setTranslationEnabled(!translationEnabled)}
+            className={cn("p-2 rounded-full transition-colors", translationEnabled ? "text-pink-500 bg-pink-50" : "text-gray-400 hover:bg-gray-100")}
+            title={translationEnabled ? "Auto-translate ON" : "Auto-translate OFF"}
+          >
+            <Globe className="w-5 h-5" />
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-2 max-w-2xl mx-auto w-full">
           {messages.length === 0 ? (
@@ -316,7 +326,11 @@ export function DatingPage() {
           ) : messages.map((msg) => (
             <div key={msg.id} className={cn("flex", msg.sender_id === 0 ? "justify-end" : "justify-start")}>
               <div className={cn("max-w-[75%] rounded-2xl px-4 py-2.5 text-sm", msg.sender_id === 0 ? "text-white rounded-br-md" : "bg-white text-gray-900 rounded-bl-md shadow-sm")} style={msg.sender_id === 0 ? { background: TINDER_GRADIENT } : {}}>
-                <p>{msg.text}</p>
+                {msg.sender_id === 0 ? (
+                  <p>{msg.text}</p>
+                ) : (
+                  <TranslatedMessage text={msg.text} sourceLang={msg.source_lang} isOwn={false} />
+                )}
                 <p className={cn("text-xs mt-1", msg.sender_id === 0 ? "text-white/70" : "text-gray-400")}>{msg.created_at?.slice(11, 16)}</p>
               </div>
             </div>

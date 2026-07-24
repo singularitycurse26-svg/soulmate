@@ -1,0 +1,23 @@
+{
+  "title": "電話",
+  "sms": "短訊",
+  "crypto": "加密貨幣",
+  "send": "發送",
+  "toNumber": "收件人",
+  "message": "訊息",
+  "carrier": "電訊商",
+  "method": "方式",
+  "conversation": "對話",
+  "typeMessage": "輸入訊息...",
+  "autoReply": "AI自動回覆",
+  "autoTranslate": "自動翻譯",
+  "showOriginal": "顯示原文",
+  "hideOriginal": "隱藏原文",
+  "translating": "翻譯中...",
+  "speaking": "使用語言",
+  "incBalance": "INC 餘額",
+  "textSent": "短訊已發送！",
+  "enterPhoneNumber": "輸入電話號碼",
+  "enterMessage": "輸入訊息",
+  "messageTooLong": "訊息過長（最多160字符）"
+}

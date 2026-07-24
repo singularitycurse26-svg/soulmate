@@ -1,0 +1,20 @@
+{
+  "title": "郵件",
+  "inbox": "收件箱",
+  "compose": "撰寫",
+  "send": "發送",
+  "reply": "回覆",
+  "aiReply": "AI回覆",
+  "from": "發件人",
+  "to": "收件人",
+  "subject": "主題",
+  "body": "正文",
+  "translatedFrom": "翻譯自",
+  "showOriginal": "顯示原文",
+  "hideOriginal": "隱藏原文",
+  "translating": "翻譯中...",
+  "starred": "星標",
+  "archive": "歸檔",
+  "trash": "垃圾箱",
+  "noEmails": "沒有郵件"
+}

@@ -1,0 +1,20 @@
+{
+  "title": "Email",
+  "inbox": "Inbox",
+  "compose": "Compose",
+  "send": "Send",
+  "reply": "Reply",
+  "aiReply": "AI Reply",
+  "from": "From",
+  "to": "To",
+  "subject": "Subject",
+  "body": "Body",
+  "translatedFrom": "Translated from",
+  "showOriginal": "Show original",
+  "hideOriginal": "Hide original",
+  "translating": "Translating...",
+  "starred": "Starred",
+  "archive": "Archive",
+  "trash": "Trash",
+  "noEmails": "No emails"
+}

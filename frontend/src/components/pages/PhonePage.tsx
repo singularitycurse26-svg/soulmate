@@ -4,6 +4,7 @@ import { useStore } from "@/lib/store";
 import { smsApi, aiApi } from "@/lib/api";
 import { cn, copyToClipboard, shortenAddress, formatBalance } from "@/lib/utils";
 import { WalkieTalkie } from "@/components/phone/WalkieTalkie";
+import { TranslatedMessage } from "@/components/TranslatedMessage";
 import {
   Phone,
   Send,
@@ -28,6 +29,7 @@ import {
   Lock,
   Settings,
   Edit3,
+  Globe,
   Hash,
   Bot,
 } from "lucide-react";
@@ -89,7 +91,7 @@ type PhoneTab = "texting" | "walkie" | "whatsapp" | "telegram" | "crypto";
 type PhoneView = "main" | "compose" | "conversation" | "subscribe" | "telegram" | "profile-setup" | "profile-settings";
 
 export function PhonePage() {
-  const { showAlert, walletAddress, walletKey, pendingTextPhone, setPendingTextPhone } = useStore();
+  const { showAlert, walletAddress, walletKey, pendingTextPhone, setPendingTextPhone, language, translationEnabled, setTranslationEnabled } = useStore();
   const [tab, setTab] = useState<PhoneTab>("texting");
   const [view, setView] = useState<PhoneView>("main");
   const [status, setStatus] = useState<SmsStatus | null>(null);
@@ -848,6 +850,13 @@ export function PhonePage() {
                       <h3 className="font-medium text-sm truncate">{formatPhone(activePhone)}</h3>
                       {aiReplying && <span className="flex items-center gap-1 text-xs text-blue-600"><Bot className="w-3 h-3" /> AI replying...</span>}
                     </div>
+                    <button
+                      onClick={() => setTranslationEnabled(!translationEnabled)}
+                      className={cn("p-2 rounded-full transition-colors", translationEnabled ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:bg-gray-100")}
+                      title={translationEnabled ? "Auto-translate ON" : "Auto-translate OFF"}
+                    >
+                      <Globe className="w-5 h-5" />
+                    </button>
                   </div>
 
                   {/* Messages */}
@@ -876,7 +885,11 @@ export function PhonePage() {
                               )}
                               style={msg.direction === "out" ? { background: "#1A73E8" } : {}}
                             >
-                              <p>{msg.body}</p>
+                              {msg.direction === "out" ? (
+                                <p>{msg.body}</p>
+                              ) : (
+                                <TranslatedMessage text={msg.body} isOwn={false} />
+                              )}
                               <div className={cn("flex items-center gap-1.5 mt-1", msg.direction === "out" ? "text-white/60" : "text-gray-400")}>
                                 <span>{msg.date?.slice(11, 16) || ""}</span>
                                 {isAiReply && (

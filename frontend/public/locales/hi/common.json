@@ -1,0 +1,58 @@
+{
+  "nav": {
+    "dashboard": "होम",
+    "email": "ईमेल",
+    "phone": "फोन",
+    "contacts": "संपर्क",
+    "ai": "AI सहायक",
+    "games": "गेम्स",
+    "wallet": "वॉलेट",
+    "security": "सुरक्षा",
+    "openclaw": "OpenClaw",
+    "hermes": "Hermes",
+    "marketplace": "बाज़ार",
+    "dating": "डेटिंग",
+    "incentives": "प्रोत्साहन",
+    "healing": "चिकित्सा"
+  },
+  "actions": {
+    "send": "भेजें",
+    "cancel": "रद्द करें",
+    "save": "सहेजें",
+    "delete": "हटाएं",
+    "edit": "संपादित करें",
+    "close": "बंद करें",
+    "back": "वापस",
+    "search": "खोजें",
+    "create": "बनाएं",
+    "confirm": "पुष्टि करें",
+    "loading": "लोड हो रहा है...",
+    "retry": "पुनः प्रयास करें"
+  },
+  "language": {
+    "title": "भाषा",
+    "selectLanguage": "भाषा चुनें",
+    "searchLanguage": "भाषा खोजें...",
+    "autoDetect": "स्वतः पहचान",
+    "autoTranslate": "संदेशों का स्वतः अनुवाद",
+    "autoTranslateDesc": "प्राप्त संदेशों का स्वतः आपकी भाषा में अनुवाद करें",
+    "translationEnabled": "अनुवाद सक्षम",
+    "translationDisabled": "अनुवाद अक्षम"
+  },
+  "settings": {
+    "title": "सेटिंग्स",
+    "preferences": "प्राथमिकताएं",
+    "account": "खाता",
+    "security": "सुरक्षा"
+  },
+  "common": {
+    "welcome": "स्वागत है",
+    "logout": "लॉग आउट",
+    "profile": "प्रोफ़ाइल",
+    "notifications": "सूचनाएं",
+    "messages": "संदेश",
+    "friends": "दोस्त",
+    "online": "ऑनलाइन",
+    "offline": "ऑफलाइन"
+  }
+}

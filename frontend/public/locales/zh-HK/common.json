@@ -1,0 +1,58 @@
+{
+  "nav": {
+    "dashboard": "首頁",
+    "email": "郵件",
+    "phone": "電話",
+    "contacts": "聯絡人",
+    "ai": "AI助手",
+    "games": "遊戲",
+    "wallet": "錢包",
+    "security": "安全",
+    "openclaw": "OpenClaw",
+    "hermes": "Hermes",
+    "marketplace": "市場",
+    "dating": "約會",
+    "incentives": "獎勵",
+    "healing": "療癒"
+  },
+  "actions": {
+    "send": "發送",
+    "cancel": "取消",
+    "save": "儲存",
+    "delete": "刪除",
+    "edit": "編輯",
+    "close": "關閉",
+    "back": "返回",
+    "search": "搜尋",
+    "create": "建立",
+    "confirm": "確認",
+    "loading": "載入中...",
+    "retry": "重試"
+  },
+  "language": {
+    "title": "語言",
+    "selectLanguage": "選擇語言",
+    "searchLanguage": "搜尋語言...",
+    "autoDetect": "自動偵測",
+    "autoTranslate": "自動翻譯訊息",
+    "autoTranslateDesc": "自動將收到的訊息翻譯為您的語言",
+    "translationEnabled": "翻譯已啟用",
+    "translationDisabled": "翻譯已停用"
+  },
+  "settings": {
+    "title": "設定",
+    "preferences": "偏好設定",
+    "account": "帳戶",
+    "security": "安全"
+  },
+  "common": {
+    "welcome": "歡迎",
+    "logout": "登出",
+    "profile": "個人檔案",
+    "notifications": "通知",
+    "messages": "訊息",
+    "friends": "好友",
+    "online": "在線",
+    "offline": "離線"
+  }
+}

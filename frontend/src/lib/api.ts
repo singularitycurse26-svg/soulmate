@@ -407,8 +407,8 @@ export const socialApi = {
   searchUsers: (q: string) => apiFetch(`/v1/social/search?q=${encodeURIComponent(q)}`),
   // DMs
   getDMs: () => apiFetch("/v1/social/messages"),
-  sendDM: (userId: number, text: string) =>
-    apiFetch("/v1/social/messages", { method: "POST", body: JSON.stringify({ user_id: userId, text }) }),
+  sendDM: (userId: number, text: string, sourceLang?: string) =>
+    apiFetch("/v1/social/messages", { method: "POST", body: JSON.stringify({ user_id: userId, text, source_lang: sourceLang }) }),
   getDMThread: (userId: number) => apiFetch(`/v1/social/messages/${userId}`),
   // Stories
   createStory: (imageUrl: string) =>
@@ -459,8 +459,8 @@ export const datingApi = {
   superLikeUser: (userId: number) => apiFetch(`/v1/dating/superlike/${userId}`, { method: "POST" }),
   getMatches: () => apiFetch("/v1/dating/matches"),
   getMatchMessages: (userId: number) => apiFetch(`/v1/dating/matches/${userId}/messages`),
-  sendMatchMessage: (userId: number, text: string) =>
-    apiFetch(`/v1/dating/matches/${userId}/messages`, { method: "POST", body: JSON.stringify({ text }) }),
+  sendMatchMessage: (userId: number, text: string, sourceLang?: string) =>
+    apiFetch(`/v1/dating/matches/${userId}/messages`, { method: "POST", body: JSON.stringify({ text, source_lang: sourceLang }) }),
   unmatch: (userId: number) => apiFetch(`/v1/dating/matches/${userId}`, { method: "DELETE" }),
   getLikesYou: () => apiFetch("/v1/dating/likes-you"),
 };
@@ -519,4 +519,17 @@ export const jarvisApi = {
     });
     return resp.blob();
   },
+};
+
+// Translation API
+export const translateApi = {
+  translate: (text: string, targetLang: string, sourceLang?: string) =>
+    apiFetch("/v1/translate", { method: "POST", body: JSON.stringify({ text, target_lang: targetLang, source_lang: sourceLang }) }),
+  translateBatch: (messages: { id: number; text: string; source_lang?: string }[], targetLang: string) =>
+    apiFetch("/v1/translate/batch", { method: "POST", body: JSON.stringify({ messages, target_lang: targetLang }) }),
+  getLanguages: () => apiFetch("/v1/translate/languages"),
+  setLanguage: (lang: string) =>
+    apiFetch("/v1/user/language", { method: "POST", body: JSON.stringify({ language: lang }) }),
+  getLanguage: () => apiFetch("/v1/user/language"),
+  getUserLanguage: (userId: number) => apiFetch(`/v1/user/language/${userId}`),
 };

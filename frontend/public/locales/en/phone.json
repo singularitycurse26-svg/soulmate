@@ -1,0 +1,23 @@
+{
+  "title": "Phone",
+  "sms": "SMS",
+  "crypto": "Crypto",
+  "send": "Send",
+  "toNumber": "To",
+  "message": "Message",
+  "carrier": "Carrier",
+  "method": "Method",
+  "conversation": "Conversation",
+  "typeMessage": "Type a message...",
+  "autoReply": "AI Auto-Reply",
+  "autoTranslate": "Auto-translate",
+  "showOriginal": "Show original",
+  "hideOriginal": "Hide original",
+  "translating": "Translating...",
+  "speaking": "Speaking",
+  "incBalance": "INC Balance",
+  "textSent": "Text sent!",
+  "enterPhoneNumber": "Enter a phone number",
+  "enterMessage": "Enter a message",
+  "messageTooLong": "Message too long (160 char max)"
+}

@@ -1,0 +1,23 @@
+{
+  "title": "Teléfono",
+  "sms": "SMS",
+  "crypto": "Cripto",
+  "send": "Enviar",
+  "toNumber": "Para",
+  "message": "Mensaje",
+  "carrier": "Operador",
+  "method": "Método",
+  "conversation": "Conversación",
+  "typeMessage": "Escribe un mensaje...",
+  "autoReply": "Respuesta Automática IA",
+  "autoTranslate": "Traducir automáticamente",
+  "showOriginal": "Mostrar original",
+  "hideOriginal": "Ocultar original",
+  "translating": "Traduciendo...",
+  "speaking": "Hablando",
+  "incBalance": "Saldo INC",
+  "textSent": "¡Texto enviado!",
+  "enterPhoneNumber": "Ingresa un número de teléfono",
+  "enterMessage": "Ingresa un mensaje",
+  "messageTooLong": "Mensaje demasiado largo (máx 160 caracteres)"
+}

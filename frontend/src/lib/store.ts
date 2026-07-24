@@ -66,6 +66,12 @@ interface AppState {
   // Pending text (from contacts click-to-text)
   pendingTextPhone: string;
   setPendingTextPhone: (phone: string) => void;
+
+  // Language & Translation
+  language: string;
+  setLanguage: (lang: string) => void;
+  translationEnabled: boolean;
+  setTranslationEnabled: (v: boolean) => void;
 }
 
 let alertId = 0;
@@ -125,4 +131,15 @@ export const useStore = create<AppState>((set) => ({
 
   pendingTextPhone: "",
   setPendingTextPhone: (phone) => set({ pendingTextPhone: phone }),
+
+  language: localStorage.getItem("language") || "en",
+  setLanguage: (lang) => {
+    localStorage.setItem("language", lang);
+    set({ language: lang });
+  },
+  translationEnabled: localStorage.getItem("translation_enabled") !== "false",
+  setTranslationEnabled: (v) => {
+    localStorage.setItem("translation_enabled", v ? "true" : "false");
+    set({ translationEnabled: v });
+  },
 }));

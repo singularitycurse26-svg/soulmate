@@ -1,0 +1,23 @@
+{
+  "title": "电话",
+  "sms": "短信",
+  "crypto": "加密货币",
+  "send": "发送",
+  "toNumber": "收件人",
+  "message": "消息",
+  "carrier": "运营商",
+  "method": "方式",
+  "conversation": "对话",
+  "typeMessage": "输入消息...",
+  "autoReply": "AI自动回复",
+  "autoTranslate": "自动翻译",
+  "showOriginal": "显示原文",
+  "hideOriginal": "隐藏原文",
+  "translating": "翻译中...",
+  "speaking": "使用语言",
+  "incBalance": "INC 余额",
+  "textSent": "短信已发送！",
+  "enterPhoneNumber": "输入电话号码",
+  "enterMessage": "输入消息",
+  "messageTooLong": "消息过长（最多160字符）"
+}

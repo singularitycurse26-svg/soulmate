@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { emailApi, aiApi } from "@/lib/api";
+import { emailApi, aiApi, translateApi } from "@/lib/api";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { TranslatedMessage } from "@/components/TranslatedMessage";
 import {
   Mail, Send, Inbox, PenSquare, X, Loader2, Bot, Star, Archive, Trash2,
-  Search, ChevronLeft, MoreVertical, Paperclip, Minus,
+  Search, ChevronLeft, MoreVertical, Paperclip, Minus, Globe,
 } from "lucide-react";
 
 interface EmailItem {
@@ -23,7 +24,7 @@ const GMAIL_RED = "#EA4335";
 const GMAIL_BLUE = "#1A73E8";
 
 export function EmailPage() {
-  const { showAlert } = useStore();
+  const { showAlert, language, translationEnabled, setTranslationEnabled } = useStore();
   const [emailAddress, setEmailAddress] = useState<string | null>(null);
   const [inbox, setInbox] = useState<EmailItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -250,9 +251,20 @@ export function EmailPage() {
                   <p className="text-xs text-gray-500">to {currentEmail.to}</p>
                 </div>
                 <span className="text-xs text-gray-500">{currentEmail.date}</span>
+                <button
+                  onClick={() => setTranslationEnabled(!translationEnabled)}
+                  className={cn("p-1.5 rounded-full transition-colors", translationEnabled ? "text-blue-600 bg-blue-50" : "text-gray-400 hover:bg-gray-100")}
+                  title={translationEnabled ? "Auto-translate ON" : "Auto-translate OFF"}
+                >
+                  <Globe className="w-4 h-4" />
+                </button>
               </div>
               <div className="whitespace-pre-wrap text-sm leading-relaxed border-t border-gray-200 pt-4">
-                {currentEmail.body || "(empty body)"}
+                {translationEnabled ? (
+                  <TranslatedEmailBody body={currentEmail.body || "(empty body)"} language={language} />
+                ) : (
+                  currentEmail.body || "(empty body)"
+                )}
               </div>
               <div className="flex gap-2 mt-6">
                 <button onClick={() => { setTo(currentEmail.from); setSubject("Re: " + (currentEmail.subject || "")); setBody(""); setShowCompose(true); }} className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium hover:bg-gray-100 flex items-center gap-2">
@@ -333,6 +345,68 @@ export function EmailPage() {
               <Send className="w-4 h-4" /> Send
             </button>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TranslatedEmailBody({ body, language }: { body: string; language: string }) {
+  const [translated, setTranslated] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showOriginal, setShowOriginal] = useState(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!body || body === "(empty body)") {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(false);
+    translateApi
+      .translate(body, language)
+      .then((result) => {
+        if (result.translated && result.translated !== body) {
+          setTranslated(result.translated);
+        } else {
+          setTranslated(null);
+        }
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, [body, language]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-gray-400">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        <span className="text-xs">Translating...</span>
+      </div>
+    );
+  }
+
+  if (error || !translated) {
+    return <span>{body}</span>;
+  }
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-2">
+        <span className="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+          <Globe className="w-3 h-3" /> Translated to {language}
+        </span>
+        <button
+          onClick={() => setShowOriginal(!showOriginal)}
+          className="text-[10px] text-gray-400 hover:text-gray-600"
+        >
+          {showOriginal ? "Hide original" : "Show original"}
+        </button>
+      </div>
+      <div>{translated}</div>
+      {showOriginal && (
+        <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-400 italic whitespace-pre-wrap">
+          {body}
         </div>
       )}
     </div>

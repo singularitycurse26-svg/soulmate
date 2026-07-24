@@ -1,0 +1,23 @@
+{
+  "title": "फोन",
+  "sms": "SMS",
+  "crypto": "क्रिप्टो",
+  "send": "भेजें",
+  "toNumber": "प्राप्तकर्ता",
+  "message": "संदेश",
+  "carrier": "कैरियर",
+  "method": "विधि",
+  "conversation": "वार्तालाप",
+  "typeMessage": "संदेश टाइप करें...",
+  "autoReply": "AI स्वतः उत्तर",
+  "autoTranslate": "स्वतः अनुवाद",
+  "showOriginal": "मूल दिखाएं",
+  "hideOriginal": "मूल छुपाएं",
+  "translating": "अनुवाद हो रहा है...",
+  "speaking": "बोल रहे हैं",
+  "incBalance": "INC शेष",
+  "textSent": "टेक्स्ट भेजा गया!",
+  "enterPhoneNumber": "फोन नंबर दर्ज करें",
+  "enterMessage": "संदेश दर्ज करें",
+  "messageTooLong": "संदेश बहुत लंबा है (अधिकतम 160 अक्षर)"
+}
