@@ -173,8 +173,14 @@ export function HermesPage() {
     }
   }, []);
 
-  // Load settings from localStorage
+  // Load settings from localStorage — force gemma4:e4b on every load
   useEffect(() => {
+    const SETTINGS_VER = "2";
+    const currentVer = localStorage.getItem("hermes_settings_ver");
+    if (currentVer !== SETTINGS_VER) {
+      localStorage.removeItem("hermes_settings");
+      localStorage.setItem("hermes_settings_ver", SETTINGS_VER);
+    }
     const saved = localStorage.getItem("hermes_settings");
     if (saved) {
       const s = JSON.parse(saved);
@@ -183,6 +189,9 @@ export function HermesPage() {
       setApiKey(s.apiKey || "");
       setOllamaUrl(s.ollamaUrl || "http://localhost:11434");
       setCustomUrl(s.customUrl || "");
+    } else {
+      setProvider("ollama");
+      setModel("gemma4:e4b");
     }
     const savedGoals = localStorage.getItem("hermes_goals");
     if (savedGoals) setGoals(JSON.parse(savedGoals));
