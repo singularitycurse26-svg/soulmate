@@ -14,6 +14,9 @@ import {
   Cpu,
   ShoppingBag,
   Heart,
+  Coins,
+  Crown,
+  Activity,
 } from "lucide-react";
 
 const navItems: { page: AppPage; label: string; icon: any }[] = [
@@ -29,10 +32,15 @@ const navItems: { page: AppPage; label: string; icon: any }[] = [
   { page: "security", label: "Security", icon: Shield },
   { page: "openclaw", label: "OpenClaw", icon: Terminal },
   { page: "hermes", label: "Hermes Agent", icon: Cpu },
+  { page: "incentives", label: "Incentives", icon: Coins },
+];
+
+const founderNavItems: { page: AppPage; label: string; icon: any }[] = [
+  { page: "healing", label: "Self-Healing", icon: Activity },
 ];
 
 export function Sidebar() {
-  const { activePage, setActivePage, clearWallet, clearAuth, setView } = useStore();
+  const { activePage, setActivePage, clearWallet, clearAuth, setView, isFounder, authEmail } = useStore();
 
   const handleLogout = () => {
     clearWallet();
@@ -45,6 +53,12 @@ export function Sidebar() {
       <div className="mb-8 px-2">
         <h1 className="text-xl font-bold text-gradient">Soulmate OS</h1>
         <p className="text-xs text-muted mt-1">Personal AI Comms</p>
+        {isFounder && (
+          <div className="flex items-center gap-1.5 mt-2 px-2 py-1 rounded-md bg-accent/10">
+            <Crown className="w-3.5 h-3.5 text-accent" />
+            <span className="text-xs text-accent font-medium">Founder Account</span>
+          </div>
+        )}
       </div>
 
       <nav className="flex-1 flex flex-col gap-1">
@@ -66,6 +80,29 @@ export function Sidebar() {
             </button>
           );
         })}
+        {isFounder && (
+          <>
+            <div className="h-px bg-border my-2" />
+            {founderNavItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.page}
+                  onClick={() => setActivePage(item.page)}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium",
+                    activePage === item.page
+                      ? "bg-accent/10 text-accent"
+                      : "text-muted hover:text-white hover:bg-bg-alt"
+                  )}
+                >
+                  <Icon className="w-5 h-5" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       <button

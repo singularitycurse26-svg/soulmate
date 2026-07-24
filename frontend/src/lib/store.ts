@@ -22,7 +22,9 @@ export type AppPage =
   | "openclaw"
   | "hermes"
   | "marketplace"
-  | "dating";
+  | "dating"
+  | "incentives"
+  | "healing";
 
 interface Alert {
   id: number;
@@ -35,7 +37,9 @@ interface AppState {
   sessionToken: string;
   authEmail: string;
   isAuthenticated: boolean;
+  isFounder: boolean;
   setAuth: (token: string, email: string) => void;
+  setFounder: (v: boolean) => void;
   clearAuth: () => void;
 
   // Wallet
@@ -70,15 +74,21 @@ export const useStore = create<AppState>((set) => ({
   sessionToken: localStorage.getItem("session_token") || "",
   authEmail: localStorage.getItem("auth_email") || "",
   isAuthenticated: false,
+  isFounder: localStorage.getItem("is_founder") === "true",
   setAuth: (token, email) => {
     localStorage.setItem("session_token", token);
     localStorage.setItem("auth_email", email);
     set({ sessionToken: token, authEmail: email, isAuthenticated: true });
   },
+  setFounder: (v) => {
+    localStorage.setItem("is_founder", v ? "true" : "false");
+    set({ isFounder: v });
+  },
   clearAuth: () => {
     localStorage.removeItem("session_token");
     localStorage.removeItem("auth_email");
-    set({ sessionToken: "", authEmail: "", isAuthenticated: false });
+    localStorage.removeItem("is_founder");
+    set({ sessionToken: "", authEmail: "", isAuthenticated: false, isFounder: false });
   },
 
   walletAddress: localStorage.getItem("wallet_address") || "",

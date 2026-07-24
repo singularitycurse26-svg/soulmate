@@ -1,0 +1,11 @@
+{
+  "vpsUrl": "https://191.44.121.29.sslip.io",
+  "pollIntervalMs": 10000,
+  "windsurfExe": "C:\\Users\\hawpe\\AppData\\Local\\Programs\\Devin\\Devin.exe",
+  "windsurfProcessName": "Devin",
+  "workspacePath": "C:\\Users\\hawpe\\CascadeProjects\\soulmate",
+  "pendingFixesPath": "C:\\Users\\hawpe\\CascadeProjects\\soulmate\\pending-fixes.json",
+  "injectScript": "C:\\Users\\hawpe\\CascadeProjects\\soulmate\\inject-message.ps1",
+  "telegramNotify": false,
+  "founderOnly": true
+}

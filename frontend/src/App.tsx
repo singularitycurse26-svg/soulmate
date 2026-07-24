@@ -17,6 +17,9 @@ import { OpenClawPage } from "@/components/pages/OpenClawPage";
 import { HermesPage } from "@/components/pages/HermesPage";
 import { MarketplacePage } from "@/components/pages/MarketplacePage";
 import { DatingPage } from "@/components/pages/DatingPage";
+import { IncentivesPage } from "@/components/pages/IncentivesPage";
+import { HealingPage } from "@/components/pages/HealingPage";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export default function App() {
   const {
@@ -115,6 +118,8 @@ export default function App() {
           {activePage === "hermes" && <HermesPage />}
           {activePage === "marketplace" && <MarketplacePage />}
           {activePage === "dating" && <DatingPage />}
+          {activePage === "incentives" && <ErrorBoundary><IncentivesPage /></ErrorBoundary>}
+          {activePage === "healing" && <HealingPage />}
         </div>
       </main>
       <MobileNav />

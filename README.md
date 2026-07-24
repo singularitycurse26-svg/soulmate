@@ -389,6 +389,7 @@ A Tinder-style dating feature with swipe mechanics:
 The Web UI integrates with the Hermes Agent as the autonomous AI brain:
 
 - **LLM Proxy** — Supports backend, Ollama, OpenAI, Anthropic, Google, Groq, and OpenRouter
+- **LLM Auto-Switcher** — Automatically falls back from Gemini → Groq → OpenRouter → Ollama (Gemma 4B) when a provider is rate-limited or fails. 60-second cooldown on rate-limited providers
 - **Terminal Execution** — Full shell access via the Web UI terminal
 - **Cron Scheduler** — Schedule recurring AI tasks
 - **Subagent Spawning** — Delegate tasks to subagents
@@ -396,6 +397,59 @@ The Web UI integrates with the Hermes Agent as the autonomous AI brain:
 - **Virtual Browser** — Browse the web within the UI
 - **Memory Management** — View and manage AI memory
 - **Goals** — Set persistent goals for the AI to work toward
+
+### LLM Auto-Switcher API
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v1/ai/auto-llm` | POST | Auto-switching LLM call (tries Gemini → Groq → OpenRouter → Ollama) |
+| `/v1/ai/auto-llm-status` | GET | Check provider availability and rate-limit status |
+
+## Self-Healing System
+
+Soulmate includes an autonomous self-healing pipeline that detects, reports, and fixes errors without manual intervention:
+
+### How It Works
+
+1. **Error Capture** — Frontend captures JS crashes, unhandled promise rejections, and API failures via `ErrorBoundary` and `errorCapture.ts`
+2. **Error Reporting** — Errors are batched and sent to the VPS via `POST /v1/auto-heal/report`
+3. **Message Bouncer** — A local Node.js script (`bouncer.js`) polls the VPS every 10 seconds for new errors
+4. **Auto-Injection** — When errors are found, the bouncer writes `pending-fixes.json` and injects an auto-fix message into Windsurf Cascade via PowerShell UI automation
+5. **Auto-Fix Workflow** — Cascade reads `pending-fixes.json`, fixes all errors, deploys, and deletes the file — all in Turbo Mode (no "Allow" clicks needed)
+
+### Healing API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v1/auto-heal/report` | POST | Receive error batch from frontend |
+| `/v1/auto-heal/pending` | GET | Bouncer polls for new errors |
+| `/v1/auto-heal/ack` | POST | Bouncer acknowledges errors as received |
+| `/v1/auto-heal/log` | GET | View healing history |
+
+### Bouncer Setup
+
+```bash
+# Run the bouncer locally (polls VPS for errors)
+node bouncer.js
+```
+
+Or set up as a Windows startup task:
+
+```powershell
+schtasks /create /tn "SoulmateBouncer" /tr "node C:\path\to\soulmate\bouncer.js" /sc onlogon /rl highest
+```
+
+### Self-Healing Files
+
+| File | Description |
+|------|-------------|
+| `frontend/src/lib/errorCapture.ts` | Frontend error capture + batching + VPS reporting |
+| `frontend/src/components/ErrorBoundary.tsx` | React error boundary for render crashes |
+| `frontend/src/components/pages/HealingPage.tsx` | Healing dashboard (founder-only) |
+| `bouncer.js` | Local bouncer script (polls VPS, injects into Windsurf) |
+| `inject-message.ps1` | PowerShell UI automation for Windsurf injection |
+| `bouncer-config.json` | Bouncer configuration |
+| `.windsurf/workflows/auto-fix.md` | Auto-fix workflow with Turbo Mode (EAGER execution) |
 
 ## Support the Project
 

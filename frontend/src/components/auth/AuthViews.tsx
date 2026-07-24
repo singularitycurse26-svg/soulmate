@@ -6,7 +6,7 @@ import { Fingerprint, Mail, Lock, ArrowRight, ArrowLeft, Loader2, CheckCircle, E
 import { cn } from "@/lib/utils";
 
 export function AuthViews() {
-  const { view, setView, setAuth, showAlert, setLoading, loadingText } = useStore();
+  const { view, setView, setAuth, setFounder, showAlert, setLoading, loadingText } = useStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
@@ -61,6 +61,13 @@ export function AuthViews() {
       const data = await authApi.login(email.toLowerCase(), password);
       if (data.status === "ok") {
         setAuth(data.session_token, email.toLowerCase());
+        if (data.is_founder) {
+          setFounder(true);
+          showAlert("success", "Welcome back, Founder! All features unlocked.");
+        } else {
+          setFounder(false);
+          showAlert("success", "Welcome back!");
+        }
         saveAccountToVault(email.toLowerCase(), data.session_token, {
           last_login: new Date().toISOString(),
         });
@@ -73,7 +80,6 @@ export function AuthViews() {
           localStorage.removeItem("remember_me_password");
           localStorage.removeItem("remember_me_device");
         }
-        showAlert("success", "Welcome back!");
         setView("app");
       } else {
         showAlert("danger", data.detail || "Login failed");

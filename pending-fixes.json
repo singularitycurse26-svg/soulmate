@@ -1,0 +1,11 @@
+[
+  {
+    "id": "14919617-bb0",
+    "type": "PROMISE_REJECTION",
+    "message": "Invalid session",
+    "stack": "Error: Invalid session\n    at fe (https://soulmate-hermes-agent.netlify.app/assets/index-pKbIZLXv.js:56:3486)",
+    "page": "/",
+    "timestamp": "2026-07-24T07:06:28.670Z",
+    "severity": "high"
+  }
+]

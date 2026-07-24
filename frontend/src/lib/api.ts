@@ -335,6 +335,16 @@ export const hermesApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify({ provider, model, messages, api_key: apiKey }),
     }).then((r) => r.json()),
+  autoLlm: (messages: any[], preferredProvider?: string) =>
+    fetch(`${API_URL}/v1/ai/auto-llm`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ messages, preferred_provider: preferredProvider }),
+    }).then((r) => r.json()),
+  autoLlmStatus: () =>
+    fetch(`${API_URL}/v1/ai/auto-llm-status`, {
+      headers: getAuthHeaders(),
+    }).then((r) => r.json()),
   browserProxy: (url: string) =>
     `${API_URL}/v1/browser/proxy?url=${encodeURIComponent(url)}`,
   browseUrl: (url: string) =>

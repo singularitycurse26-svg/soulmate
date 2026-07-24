@@ -33,43 +33,43 @@ class ProviderBackend(str, Enum):
 class ModelConfig:
     """Model role → model name mapping for the 5-model bus."""
 
-    fast: str = "qwen2.5:3b"
-    base: str = "qwen2.5:14b"
-    judge: str = "qwen2.5:14b"
-    code: str = "qwen2.5-coder:14b"
-    style: str = "qwen2.5:7b"
+    fast: str = "gemma4:e4b"
+    base: str = "gemma4:e4b"
+    judge: str = "gemma4:e4b"
+    code: str = "gemma4:e4b"
+    style: str = "gemma4:e4b"
 
     @staticmethod
     def minimal() -> "ModelConfig":
         """Single model for all roles — low RAM (8GB)."""
         return ModelConfig(
-            fast="llama3.1:8b",
-            base="llama3.1:8b",
-            judge="llama3.1:8b",
-            code="llama3.1:8b",
-            style="llama3.1:8b",
+            fast="gemma4:e4b",
+            base="gemma4:e4b",
+            judge="gemma4:e4b",
+            code="gemma4:e4b",
+            style="gemma4:e4b",
         )
 
     @staticmethod
     def standard() -> "ModelConfig":
         """Standard tier — 16GB RAM."""
         return ModelConfig(
-            fast="qwen2.5:3b",
-            base="qwen2.5:14b",
-            judge="qwen2.5:14b",
-            code="qwen2.5-coder:14b",
-            style="qwen2.5:7b",
+            fast="gemma4:e4b",
+            base="gemma4:e4b",
+            judge="gemma4:e4b",
+            code="gemma4:e4b",
+            style="gemma4:e4b",
         )
 
     @staticmethod
     def full() -> "ModelConfig":
         """High-end tier — 32GB+ RAM."""
         return ModelConfig(
-            fast="qwen2.5:7b",
-            base="qwen2.5:32b",
-            judge="qwen2.5:32b",
-            code="qwen2.5-coder:32b",
-            style="qwen2.5:14b",
+            fast="gemma4:e4b",
+            base="gemma4:e4b",
+            judge="gemma4:e4b",
+            code="gemma4:e4b",
+            style="gemma4:e4b",
         )
 
     def get(self, role: str) -> str:

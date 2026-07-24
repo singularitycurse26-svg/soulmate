@@ -37,17 +37,17 @@ export function JarvisWaveform({ frequencyData, audioLevel, isListening, isSpeak
       const active = isListening || isSpeaking;
       const level = active ? Math.max(audioLevel, 0.05) : 0;
 
-      // Color based on state
+      // Color based on state — warm-ink palette
       let primary: string, glow: string;
       if (isSpeaking) {
-        primary = "#f59e0b";
-        glow = "rgba(245, 158, 11, 0.4)";
+        primary = "#FFA726";
+        glow = "rgba(255, 167, 38, 0.4)";
       } else if (isListening) {
-        primary = "#06b6d4";
-        glow = "rgba(6, 182, 212, 0.4)";
+        primary = "#C6AC8F";
+        glow = "rgba(198, 172, 143, 0.4)";
       } else {
-        primary = "#3b82f6";
-        glow = "rgba(59, 130, 246, 0.2)";
+        primary = "#C6AC8F";
+        glow = "rgba(198, 172, 143, 0.2)";
       }
 
       // Outer glow ring

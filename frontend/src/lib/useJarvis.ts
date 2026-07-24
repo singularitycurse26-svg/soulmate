@@ -13,6 +13,8 @@ export interface JarvisSettings {
   volume: number;
   muted: boolean;
   jarvisBackendUrl: string;
+  preferredMicDeviceId: string;
+  autoDetectMic: boolean;
 }
 
 const DEFAULT_SETTINGS: JarvisSettings = {
@@ -25,6 +27,8 @@ const DEFAULT_SETTINGS: JarvisSettings = {
   volume: 1.0,
   muted: false,
   jarvisBackendUrl: "http://localhost:8765",
+  preferredMicDeviceId: "",
+  autoDetectMic: true,
 };
 
 function loadSettings(): JarvisSettings {
@@ -55,6 +59,8 @@ export function useJarvis(onCommand: (text: string) => void) {
   const [audioLevel, setAudioLevel] = useState(0);
   const [frequencyData, setFrequencyData] = useState<Uint8Array>(new Uint8Array(64));
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [availableMics, setAvailableMics] = useState<MediaDeviceInfo[]>([]);
+  const [selectedMicLabel, setSelectedMicLabel] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [isSupported] = useState(() => SpeechRecognition !== null && typeof window !== "undefined" && "speechSynthesis" in window);
 
@@ -92,12 +98,72 @@ export function useJarvis(onCommand: (text: string) => void) {
     return () => { window.speechSynthesis.onvoiceschanged = null; };
   }, [isSupported]);
 
+  // Enumerate audio input devices and auto-detect earbuds/Bluetooth mic
+  const enumerateMics = useCallback(async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const mics = devices.filter((d) => d.kind === "audioinput");
+      setAvailableMics(mics);
+
+      if (settingsRef.current.autoDetectMic) {
+        const earbudKeywords = ["skullcandy", "earbud", "airpod", "bluetooth", "bt", "headphone", "headset", "anc", "wireless"];
+        const detected = mics.find((m) => {
+          const label = (m.label || "").toLowerCase();
+          return earbudKeywords.some((kw) => label.includes(kw));
+        });
+
+        if (detected) {
+          setSettings((s) => ({ ...s, preferredMicDeviceId: detected.deviceId }));
+          setSelectedMicLabel(detected.label || "Earbuds");
+          console.log("[Jarvis] Auto-detected earbud mic:", detected.label);
+        } else if (mics.length > 0 && !settingsRef.current.preferredMicDeviceId) {
+          setSelectedMicLabel(mics[0]?.label || "Default Microphone");
+        }
+      }
+      return mics;
+    } catch (e) {
+      console.warn("[Jarvis] Failed to enumerate mics:", e);
+      return [];
+    }
+  }, []);
+
+  // Listen for device changes (e.g. earbuds connected/disconnected)
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.enumerateDevices) return;
+    enumerateMics();
+    const handler = () => enumerateMics();
+    navigator.mediaDevices.addEventListener("devicechange", handler);
+    return () => { navigator.mediaDevices.removeEventListener("devicechange", handler); };
+  }, [enumerateMics]);
+
   // Audio analysis for waveform
   const startAudioAnalysis = useCallback(async () => {
     try {
       if (micStreamRef.current) return;
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      const audioConstraints: MediaTrackConstraints = {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      };
+
+      const preferredId = settingsRef.current.preferredMicDeviceId;
+      if (preferredId) {
+        audioConstraints.deviceId = { exact: preferredId };
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: audioConstraints,
+      });
       micStreamRef.current = stream;
+
+      // Update selected mic label from the actual track
+      const track = stream.getAudioTracks()[0];
+      if (track) {
+        setSelectedMicLabel(track.label || "Microphone");
+        console.log("[Jarvis] Using mic:", track.label);
+      }
+
       const ctx = new AudioContext();
       audioContextRef.current = ctx;
       const source = ctx.createMediaStreamSource(stream);
@@ -351,6 +417,8 @@ export function useJarvis(onCommand: (text: string) => void) {
     audioLevel,
     frequencyData,
     availableVoices,
+    availableMics,
+    selectedMicLabel,
     error,
     enable,
     disable,

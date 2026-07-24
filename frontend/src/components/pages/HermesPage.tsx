@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { aiApi, emailApi, smsApi, walletApi, contactsApi, openclawApi } from "@/lib/api";
+import { aiApi, emailApi, smsApi, walletApi, contactsApi, openclawApi, hermesApi } from "@/lib/api";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import {
-  Brain, Loader2, Sparkles, Trash2, Eye, EyeOff, X,
+  Brain, Loader2, Sparkles, Trash2, X,
   Terminal, Settings, Globe, ArrowLeft, ArrowRight, RotateCw,
   Bot, Zap, Mail, Phone, Wallet, Users, CheckCircle2, Server,
   Cloud, Cpu, Plus, Target, Clock, Layers,
-  Search, Paperclip, ChevronDown, MessageSquare, MoreVertical,
-  Pencil, ArrowUp, PanelRightClose, PanelRightOpen,
+  Search, Paperclip, ChevronDown, MessageSquare,
+  Pencil, ArrowUp,
   Mic, MicOff, AudioLines, Square,
 } from "lucide-react";
 import { HermesTerminalModal } from "@/components/hermes/HermesTerminalModal";
@@ -17,16 +17,30 @@ import { JarvisWaveform } from "@/components/hermes/JarvisWaveform";
 import { JarvisVoicePanel } from "@/components/hermes/JarvisVoicePanel";
 import { useJarvis } from "@/lib/useJarvis";
 
-// Open WebUI dark theme colors
+// Hermes WebUI — calm developer console palette (from DESIGN.md)
 const OUI = {
-  bg: "#0d0d0d",
-  sidebar: "#171717",
-  input: "#1f1f1f",
-  border: "#262626",
-  hover: "#262626",
-  text: "#e5e5e5",
-  muted: "#737373",
-  userBubble: "#2563eb",
+  bg: "#0A0908",
+  surface: "#22333B",
+  sidebar: "#1A2530",
+  input: "#0F1A22",
+  border: "rgba(255,255,255,0.08)",
+  borderStrong: "rgba(255,255,255,0.14)",
+  hover: "rgba(255,255,255,0.04)",
+  text: "#EAE0D5",
+  muted: "#C6AC8F",
+  accent: "#C6AC8F",
+  accentBg: "rgba(198,172,143,0.08)",
+  accentBgStrong: "rgba(198,172,143,0.15)",
+  codeBg: "#1A1A2E",
+  error: "#EF5350",
+  success: "#4CAF50",
+  warning: "#FFA726",
+};
+
+const FONT = {
+  serif: 'Georgia, "Times New Roman", serif',
+  sans: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+  mono: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
 };
 
 interface ChatMessage {
@@ -65,13 +79,14 @@ interface Subagent {
 }
 
 const LLM_PROVIDERS = [
+  { id: "auto", label: "Auto-Switch (Gemini→Groq→OpenRouter→Gemma)", icon: Zap, models: ["auto"] },
   { id: "backend", label: "Soulmate Backend (Gemini)", icon: Server, models: ["gemini-flash-latest", "gemini-1.5-flash", "gemini-1.5-pro"] },
   { id: "openai", label: "OpenAI", icon: Cloud, models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"] },
   { id: "anthropic", label: "Anthropic", icon: Cpu, models: ["claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022", "claude-3-opus-20240229"] },
   { id: "google", label: "Google Gemini", icon: Cloud, models: ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash-exp"] },
   { id: "groq", label: "Groq", icon: Zap, models: ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"] },
   { id: "openrouter", label: "OpenRouter", icon: Cloud, models: ["auto"] },
-  { id: "ollama", label: "Ollama (Local)", icon: Server, models: [] },
+  { id: "ollama", label: "Ollama (Local)", icon: Server, models: ["gemma4:e4b", "gemma4:2b", "llama3.1:8b", "qwen2.5:14b"] },
   { id: "custom", label: "Custom Endpoint", icon: Terminal, models: [] },
 ];
 
@@ -139,8 +154,9 @@ export function HermesPage() {
   const [showSidebar, setShowSidebar] = useState(true);
   const [sidebarSearch, setSidebarSearch] = useState("");
   const [showModelDropdown, setShowModelDropdown] = useState(false);
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showVoicePanel, setShowVoicePanel] = useState(false);
+  const [activeRail, setActiveRail] = useState("chat");
+  const [expandedTools, setExpandedTools] = useState<Set<number>>(new Set());
 
   // JARVIS voice assistant
   const jarvis = useJarvis((text: string) => {
@@ -387,7 +403,12 @@ export function HermesPage() {
       let responseText = "";
       let modelUsed = provider;
 
-      if (provider === "backend") {
+      if (provider === "auto") {
+        const data = await hermesApi.autoLlm(chatMessages);
+        if (data.error) throw new Error(data.error);
+        responseText = data.response || "";
+        modelUsed = `${data.provider}/${data.model}`;
+      } else if (provider === "backend") {
         const data = await openclawApi.llmProxy("backend", model || "gemini-flash-latest", chatMessages, apiKey);
         if (data.error) throw new Error(data.error);
         responseText = data.response || "";
@@ -406,7 +427,14 @@ export function HermesPage() {
         const toolResults = tools.map((t) => `[TOOL_RESULT: ${t.tool} → ${JSON.stringify(t.result).slice(0, 500)}]`).join("\n");
         try {
           let followUp = "";
-          if (provider === "backend") {
+          if (provider === "auto") {
+            const data2 = await hermesApi.autoLlm([
+              ...chatMessages,
+              { role: "assistant", content: responseText },
+              { role: "user", content: `Tool results:\n${toolResults}\n\nRespond naturally about what happened.` },
+            ]);
+            followUp = data2.response || "";
+          } else if (provider === "backend") {
             const data2 = await openclawApi.llmProxy("backend", model || "gemini-flash-latest", [
               ...chatMessages,
               { role: "assistant", content: responseText },
@@ -664,11 +692,43 @@ export function HermesPage() {
     s.title.toLowerCase().includes(sidebarSearch.toLowerCase())
   );
 
+  const groupedSessions = () => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const yesterday = today - 86400000;
+    const groups: { label: string; sessions: ChatSession[] }[] = [
+      { label: "Today", sessions: [] },
+      { label: "Yesterday", sessions: [] },
+      { label: "Earlier", sessions: [] },
+    ];
+    for (const s of filteredSessions) {
+      if (s.createdAt >= today) groups[0].sessions.push(s);
+      else if (s.createdAt >= yesterday) groups[1].sessions.push(s);
+      else groups[2].sessions.push(s);
+    }
+    return groups.filter((g) => g.sessions.length > 0);
+  };
+
+  const toggleToolExpansion = (index: number) => {
+    setExpandedTools((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
+  const formatTime = (date?: string) => {
+    if (!date) return "";
+    const d = new Date(date);
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
   const ModelBadge = ({ model }: { model: string }) => {
     if (!model) return null;
     return (
-      <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded" style={{ color: OUI.muted, background: "rgba(115,115,115,0.1)" }}>
-        <Cpu className="w-3 h-3" /> {model}
+      <span style={{ fontSize: "11px", color: OUI.muted, fontFamily: FONT.mono }}>
+        {model}
       </span>
     );
   };
@@ -681,12 +741,13 @@ export function HermesPage() {
     else if (tool.result?.contacts) detail = `${tool.result.contacts?.length || 0} contacts`;
     else if (tool.result?.emails) detail = `${tool.result.emails?.length || 0} emails`;
     else if (tool.result?.balance) detail = `${tool.result.balance}`;
-    else if (tool.result?.stdout) detail = tool.result.stdout.slice(0, 60);
+    else if (tool.result?.stdout) detail = tool.result.stdout.slice(0, 80);
     else if (tool.result?.error) detail = `error: ${tool.result.error}`;
+    else if (tool.result?.content) detail = tool.result.content.slice(0, 80);
     return (
-      <div className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-md mt-1" style={{ color: OUI.userBubble, background: "rgba(37,99,235,0.1)" }}>
-        <Icon className="w-3 h-3" />
-        <span className="font-medium capitalize">{label}</span>
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: "rgba(255,255,255,0.03)", borderLeft: `2px solid ${OUI.accentBgStrong}`, fontFamily: FONT.mono, fontSize: "12px" }}>
+        <Icon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: OUI.muted }} />
+        <span style={{ color: OUI.text }}>{label}</span>
         {detail && <span style={{ color: OUI.muted }}>{detail}</span>}
       </div>
     );
@@ -694,7 +755,48 @@ export function HermesPage() {
 
   return (
     <div className="flex h-[calc(100vh-8rem)] md:h-[calc(100vh-4rem)] overflow-hidden" style={{ background: OUI.bg, color: OUI.text }}>
-      {/* === LEFT SIDEBAR === */}
+      {/* === ICON RAIL (48px) === */}
+      <div className="flex-shrink-0 flex flex-col items-center py-3 gap-1" style={{ width: 48, background: OUI.surface, borderRight: `1px solid ${OUI.border}` }}>
+        {[
+          { id: "chat", icon: MessageSquare, label: "Chat", action: () => { setActiveRail("chat"); setShowSidebar(true); } },
+          { id: "goals", icon: Target, label: "Goals", action: () => { setShowGoals(true); setActiveRail("goals"); } },
+          { id: "cron", icon: Clock, label: "Cron", action: () => { setShowCron(true); setActiveRail("cron"); } },
+          { id: "subagents", icon: Layers, label: "Subagents", action: () => { setShowSubagents(true); setActiveRail("subagents"); } },
+          { id: "memory", icon: Brain, label: "Memory", action: () => { setShowMemory(!showMemory); if (!showMemory) loadMemories(); setActiveRail("memory"); } },
+          { id: "browser", icon: Globe, label: "Browser", action: () => { setShowBrowser(!showBrowser); setActiveRail("browser"); } },
+          { id: "terminal", icon: Terminal, label: "Terminal", action: () => setShowTerminal(true) },
+          { id: "settings", icon: Settings, label: "Settings", action: () => { setShowSettings(true); setActiveRail("settings"); } },
+        ].map((item) => (
+          <button
+            key={item.id}
+            onClick={item.action}
+            className="flex items-center justify-center rounded-lg transition-colors"
+            style={{ width: 36, height: 36, color: activeRail === item.id ? OUI.accent : OUI.muted, background: activeRail === item.id ? OUI.accentBg : "transparent" }}
+            title={item.label}
+          >
+            <item.icon className="w-5 h-5" />
+          </button>
+        ))}
+        <div className="flex-1" />
+        <button
+          onClick={() => jarvis.settings.enabled ? jarvis.disable() : jarvis.enable()}
+          className="flex items-center justify-center rounded-lg transition-colors"
+          style={{ width: 36, height: 36, color: jarvis.settings.enabled ? OUI.accent : OUI.muted }}
+          title={jarvis.settings.enabled ? "JARVIS Active — Click to disable" : "Enable JARVIS Voice"}
+        >
+          {jarvis.settings.enabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+        </button>
+        <button
+          onClick={() => setShowVoicePanel(true)}
+          className="flex items-center justify-center rounded-lg transition-colors"
+          style={{ width: 36, height: 36, color: OUI.muted }}
+          title="JARVIS Voice Settings"
+        >
+          <AudioLines className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* === SESSION SIDEBAR (260px) === */}
       <AnimatePresence>
         {showSidebar && (
           <motion.div
@@ -706,32 +808,34 @@ export function HermesPage() {
             style={{ background: OUI.sidebar, borderRight: `1px solid ${OUI.border}` }}
           >
             <div className="p-3">
-              <button onClick={createNewSession} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors" style={{ background: OUI.hover, color: OUI.text }}>
-                <Pencil className="w-4 h-4" /> New Chat
+              <button onClick={createNewSession} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors" style={{ background: OUI.hover, color: OUI.text, border: `1px solid ${OUI.border}`, fontFamily: FONT.sans }}>
+                <Pencil className="w-4 h-4" style={{ color: OUI.muted }} /> New Chat
               </button>
             </div>
             <div className="px-3 pb-2">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: OUI.muted }} />
-                <input value={sidebarSearch} onChange={(e) => setSidebarSearch(e.target.value)} placeholder="Search" className="w-full pl-9 pr-3 py-2 text-sm rounded-lg outline-none" style={{ background: OUI.input, color: OUI.text, border: `1px solid ${OUI.border}` }} />
+                <input value={sidebarSearch} onChange={(e) => setSidebarSearch(e.target.value)} placeholder="Filter conversations..." className="w-full pl-9 pr-3 py-2 text-sm rounded-lg outline-none" style={{ background: OUI.input, color: OUI.text, border: `1px solid ${OUI.border}`, fontFamily: FONT.sans }} />
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto px-2 pb-2">
+            <div className="flex-1 overflow-y-auto px-2 pb-2" style={{ scrollbarWidth: "thin" }}>
               {filteredSessions.length === 0 ? (
-                <p className="text-xs text-center py-8" style={{ color: OUI.muted }}>No conversations yet</p>
+                <p className="text-xs text-center py-8" style={{ color: OUI.muted, fontFamily: FONT.sans }}>No conversations yet</p>
               ) : (
-                filteredSessions.map((s) => (
-                  <div key={s.id} onClick={() => switchSession(s.id)} className="group flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-sm mb-0.5" style={{ background: activeSessionId === s.id ? OUI.hover : "transparent", color: activeSessionId === s.id ? OUI.text : OUI.muted }}>
-                    <MessageSquare className="w-4 h-4 flex-shrink-0" />
-                    <span className="flex-1 truncate">{s.title}</span>
-                    <button onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }} className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" style={{ color: OUI.muted }}><Trash2 className="w-3.5 h-3.5" /></button>
+                groupedSessions().map((group) => (
+                  <div key={group.label} className="mb-2">
+                    <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: OUI.muted, fontFamily: FONT.sans }}>{group.label}</div>
+                    {group.sessions.map((s) => (
+                      <div key={s.id} onClick={() => switchSession(s.id)} className="group relative flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-sm mb-0.5" style={{ background: activeSessionId === s.id ? OUI.hover : "transparent", color: activeSessionId === s.id ? OUI.text : OUI.muted, fontFamily: FONT.sans }}>
+                        {activeSessionId === s.id && <div className="absolute left-1 top-3 bottom-3 w-0.5 rounded-full" style={{ background: OUI.accent }} />}
+                        <MessageSquare className="w-4 h-4 flex-shrink-0" />
+                        <span className="flex-1 truncate">{s.title}</span>
+                        <button onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }} className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" style={{ color: OUI.muted }}><Trash2 className="w-3.5 h-3.5" /></button>
+                      </div>
+                    ))}
                   </div>
                 ))
               )}
-            </div>
-            <div className="border-t p-3 space-y-1" style={{ borderColor: OUI.border }}>
-              <button onClick={() => setShowSettings(!showSettings)} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm" style={{ color: OUI.muted }}><Settings className="w-4 h-4" /> Settings</button>
-              <button onClick={() => setShowTerminal(true)} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm" style={{ color: OUI.muted }}><Terminal className="w-4 h-4" /> Terminal</button>
             </div>
           </motion.div>
         )}
@@ -774,7 +878,7 @@ export function HermesPage() {
                     <input value={customUrl} onChange={(e) => setCustomUrl(e.target.value)} placeholder="http://localhost:8080/v1" className="w-full text-sm rounded-lg px-3 py-2 outline-none" style={{ background: OUI.input, color: OUI.text, border: `1px solid ${OUI.border}` }} />
                   </div>
                 )}
-                <button onClick={() => { saveSettings(provider, model, apiKey, ollamaUrl, customUrl); showAlert("success", "Settings saved"); setShowSettings(false); }} className="w-full py-2.5 rounded-lg text-sm font-medium text-white" style={{ background: OUI.userBubble }}>Save Settings</button>
+                <button onClick={() => { saveSettings(provider, model, apiKey, ollamaUrl, customUrl); showAlert("success", "Settings saved"); setShowSettings(false); }} className="w-full py-2.5 rounded-lg text-sm font-medium text-white" style={{ background: OUI.accent }}>Save Settings</button>
               </div>
             </motion.div>
           </motion.div>
@@ -793,7 +897,7 @@ export function HermesPage() {
               <div className="flex gap-2">
                 <input value={newCronSchedule} onChange={(e) => setNewCronSchedule(e.target.value)} placeholder="Schedule (e.g. '0 9 * * *')" className="flex-1 text-sm rounded-lg px-3 py-2 outline-none" style={{ background: OUI.input, color: OUI.text, border: `1px solid ${OUI.border}` }} />
                 <input value={newCronDesc} onChange={(e) => setNewCronDesc(e.target.value)} placeholder="What to do..." className="flex-1 text-sm rounded-lg px-3 py-2 outline-none" style={{ background: OUI.input, color: OUI.text, border: `1px solid ${OUI.border}` }} />
-                <button onClick={addCronJob} className="px-3 py-2 rounded-lg text-white" style={{ background: OUI.userBubble }}><Plus className="w-4 h-4" /></button>
+                <button onClick={addCronJob} className="px-3 py-2 rounded-lg text-white" style={{ background: OUI.accent }}><Plus className="w-4 h-4" /></button>
               </div>
               {cronJobs.length === 0 ? (
                 <p className="text-xs text-center py-3" style={{ color: OUI.muted }}>No scheduled tasks</p>
@@ -825,7 +929,7 @@ export function HermesPage() {
               </div>
               <div className="flex gap-2">
                 <input value={newSubagentTask} onChange={(e) => setNewSubagentTask(e.target.value)} onKeyDown={(e) => e.key === "Enter" && spawnSubagent()} placeholder="Spawn a subagent for a task..." className="flex-1 text-sm rounded-lg px-3 py-2 outline-none" style={{ background: OUI.input, color: OUI.text, border: `1px solid ${OUI.border}` }} />
-                <button onClick={spawnSubagent} className="px-3 py-2 rounded-lg text-white" style={{ background: OUI.userBubble }}><Plus className="w-4 h-4" /></button>
+                <button onClick={spawnSubagent} className="px-3 py-2 rounded-lg text-white" style={{ background: OUI.accent }}><Plus className="w-4 h-4" /></button>
               </div>
               {subagents.length === 0 ? (
                 <p className="text-xs text-center py-3" style={{ color: OUI.muted }}>No subagents</p>
@@ -862,7 +966,7 @@ export function HermesPage() {
                   <option value="medium">Medium</option>
                   <option value="low">Low</option>
                 </select>
-                <button onClick={addGoal} className="px-3 py-2 rounded-lg text-white" style={{ background: OUI.userBubble }}><Plus className="w-4 h-4" /></button>
+                <button onClick={addGoal} className="px-3 py-2 rounded-lg text-white" style={{ background: OUI.accent }}><Plus className="w-4 h-4" /></button>
               </div>
               {goals.length === 0 ? (
                 <p className="text-xs text-center py-3" style={{ color: OUI.muted }}>No goals yet</p>
@@ -887,83 +991,20 @@ export function HermesPage() {
 
       {/* === MAIN CONTENT AREA === */}
       <div className="flex-1 flex flex-col min-w-0 h-full">
-        {/* Navbar */}
-        <div className="flex items-center justify-between px-3 py-2.5" style={{ borderBottom: `1px solid ${OUI.border}` }}>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setShowSidebar(!showSidebar)} className="p-2 rounded-lg" style={{ color: OUI.muted }}>
-              {showSidebar ? <PanelRightClose className="w-5 h-5" /> : <PanelRightOpen className="w-5 h-5" />}
-            </button>
-            <div className="relative">
-              <button onClick={() => setShowModelDropdown(!showModelDropdown)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm" style={{ color: OUI.text }}>
-                <span className="font-medium">{provider === "backend" ? "Backend AI" : provider.charAt(0).toUpperCase() + provider.slice(1)}</span>
-                {model && <span style={{ color: OUI.muted }}>· {model}</span>}
-                <ChevronDown className="w-4 h-4" style={{ color: OUI.muted }} />
-              </button>
-              {showModelDropdown && (
-                <div className="absolute top-full left-0 mt-1 w-56 rounded-lg shadow-xl py-1 z-30" style={{ background: OUI.sidebar, border: `1px solid ${OUI.border}` }}>
-                  {LLM_PROVIDERS.map((p) => (
-                    <button key={p.id} onClick={() => { setProvider(p.id); setModel(""); setShowModelDropdown(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-white/5" style={{ color: provider === p.id ? OUI.text : OUI.muted }}>{p.label}</button>
-                  ))}
-                  {availableModels.length > 0 && (
-                    <div className="border-t py-1" style={{ borderColor: OUI.border }}>
-                      {availableModels.map((m) => (
-                        <button key={m} onClick={() => { setModel(m); setShowModelDropdown(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-white/5" style={{ color: model === m ? OUI.text : OUI.muted }}>{m}</button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
-            {/* JARVIS voice toggle */}
-            <button
-              onClick={() => jarvis.settings.enabled ? jarvis.disable() : jarvis.enable()}
-              className="p-2 rounded-lg flex items-center gap-1.5"
-              style={{ color: jarvis.settings.enabled ? "#06b6d4" : OUI.muted }}
-              title={jarvis.settings.enabled ? "JARVIS Active — Click to disable" : "Enable JARVIS Voice"}
-            >
-              {jarvis.settings.enabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-              {jarvis.settings.enabled && (jarvis.isListening || jarvis.isSpeaking) && (
-                <span className="text-xs font-medium" style={{ color: jarvis.isSpeaking ? "#f59e0b" : "#06b6d4" }}>
-                  {jarvis.isSpeaking ? "Speaking" : "Listening"}
-                </span>
-              )}
-            </button>
-            <div className="relative">
-              <button onClick={() => setShowMoreMenu(!showMoreMenu)} className="p-2 rounded-lg" style={{ color: OUI.muted }}><MoreVertical className="w-5 h-5" /></button>
-              {showMoreMenu && (
-                <div className="absolute top-full right-0 mt-1 w-48 rounded-lg shadow-xl py-1 z-30" style={{ background: OUI.sidebar, border: `1px solid ${OUI.border}` }}>
-                  <button onClick={() => { setShowGoals(true); setShowMoreMenu(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-white/5" style={{ color: OUI.text }}><Target className="w-4 h-4" /> Goals</button>
-                  <button onClick={() => { setShowCron(true); setShowMoreMenu(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-white/5" style={{ color: OUI.text }}><Clock className="w-4 h-4" /> Cron</button>
-                  <button onClick={() => { setShowSubagents(true); setShowMoreMenu(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-white/5" style={{ color: OUI.text }}><Layers className="w-4 h-4" /> Subagents</button>
-                  <div className="border-t my-1" style={{ borderColor: OUI.border }} />
-                  <button onClick={() => { setShowBrowser(!showBrowser); setShowMoreMenu(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-white/5" style={{ color: OUI.text }}><Globe className="w-4 h-4" /> Browser</button>
-                  <button onClick={() => { setShowMemory(!showMemory); if (!showMemory) loadMemories(); setShowMoreMenu(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-white/5" style={{ color: OUI.text }}>{showMemory ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />} Memory</button>
-                  <button onClick={() => { setShowTerminal(true); setShowMoreMenu(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-white/5" style={{ color: OUI.text }}><Terminal className="w-4 h-4" /> Terminal</button>
-                  <div className="border-t my-1" style={{ borderColor: OUI.border }} />
-                  <button onClick={() => { setShowVoicePanel(true); setShowMoreMenu(false); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-white/5" style={{ color: OUI.text }}><AudioLines className="w-4 h-4" /> JARVIS Voice</button>
-                </div>
-              )}
-            </div>
-            <button onClick={createNewSession} className="p-2 rounded-lg" style={{ color: OUI.muted }}><Pencil className="w-5 h-5" /></button>
-          </div>
-        </div>
-
         {/* Chat + panels */}
         <div className="flex flex-1 min-h-0">
           <div className="flex-1 flex flex-col min-w-0">
             <div ref={scrollRef} className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full px-4">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: `${OUI.userBubble}20` }}>
-                    <Cpu className="w-8 h-8" style={{ color: OUI.userBubble }} />
+                  <div className="w-14 h-14 rounded-xl flex items-center justify-center mb-4" style={{ background: OUI.accentBg }}>
+                    <Bot className="w-7 h-7" style={{ color: OUI.accent }} />
                   </div>
-                  <h3 className="text-xl font-semibold mb-1" style={{ color: OUI.text }}>Hermes Agent</h3>
-                  <p className="text-sm mb-8 text-center max-w-md" style={{ color: OUI.muted }}>Autonomous AI with no limitations. Controls your entire Soulmate OS.</p>
+                  <h3 className="text-xl font-semibold mb-1" style={{ color: OUI.text, fontFamily: FONT.sans }}>Hermes Agent</h3>
+                  <p className="text-sm mb-8 text-center max-w-md" style={{ color: OUI.muted, fontFamily: FONT.sans }}>Autonomous AI with no limitations. Controls your entire Soulmate OS.</p>
                   <div className="grid grid-cols-2 gap-3 max-w-lg w-full">
                     {[{ icon: Wallet, label: "Check my wallet balance" }, { icon: Users, label: "List my contacts" }, { icon: Terminal, label: "Run 'ls -la' on the server" }, { icon: Globe, label: "Browse to google.com" }].map((s, i) => (
-                      <button key={i} onClick={() => handleSend(s.label)} className="flex items-center gap-3 p-3 rounded-xl text-sm text-left" style={{ background: OUI.input, color: OUI.text, border: `1px solid ${OUI.border}` }}>
+                      <button key={i} onClick={() => handleSend(s.label)} className="flex items-center gap-3 p-3 rounded-lg text-sm text-left transition-colors" style={{ background: "transparent", color: OUI.muted, border: `1px solid ${OUI.border}`, fontFamily: FONT.sans }}>
                         <s.icon className="w-4 h-4 flex-shrink-0" style={{ color: OUI.muted }} />
                         <span className="line-clamp-2">{s.label}</span>
                       </button>
@@ -971,25 +1012,41 @@ export function HermesPage() {
                   </div>
                 </div>
               ) : (
-                <div className="max-w-3xl mx-auto px-4 py-4 space-y-4">
+                <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
                   <AnimatePresence>
                     {messages.map((msg, i) => (
-                      <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={cn("flex gap-3", msg.role === "user" ? "justify-end" : "justify-start")}>
+                      <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={cn("flex flex-col", msg.role === "user" ? "items-end" : "items-start")}>
                         {msg.role === "assistant" && (
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: OUI.userBubble }}>
-                            <Bot className="w-4 h-4 text-white" />
+                          <div className="flex items-center gap-2 mb-1.5" style={{ fontFamily: FONT.sans }}>
+                            <Bot className="w-3.5 h-3.5" style={{ color: OUI.muted }} />
+                            <span style={{ fontSize: "12px", fontWeight: 600, color: OUI.muted }}>Hermes</span>
+                            {msg.model && msg.model !== "error" && <span style={{ fontSize: "11px", color: OUI.muted, fontFamily: FONT.mono }}>· {msg.model}</span>}
+                            {msg.date && <span style={{ fontSize: "11px", color: OUI.muted }}>· {formatTime(msg.date)}</span>}
                           </div>
                         )}
-                        <div className="max-w-[75%]">
+                        <div className={cn("max-w-[80%]", msg.role === "user" ? "" : "w-full")}>
                           {msg.role === "user" ? (
-                            <div className="rounded-3xl rounded-br-md px-4 py-2.5 text-sm whitespace-pre-wrap" style={{ background: OUI.userBubble, color: "#fff" }}>{msg.content}</div>
+                            <div className="rounded-2xl rounded-br-md px-4 py-2.5 text-sm whitespace-pre-wrap" style={{ background: OUI.accentBg, border: `1px solid ${OUI.accentBgStrong}`, color: OUI.text, fontFamily: FONT.sans, fontSize: "14px" }}>{msg.content}</div>
                           ) : (
-                            <div className="space-y-1.5">
-                              <div className="text-sm whitespace-pre-wrap" style={{ color: OUI.text }}>{msg.content}</div>
+                            <div className="space-y-2">
+                              <div className="text-sm whitespace-pre-wrap" style={{ color: OUI.text, fontFamily: FONT.serif, fontSize: "14px", lineHeight: 1.75 }}>{msg.content}</div>
                               {msg.tools_used && msg.tools_used.length > 0 && (
-                                <div className="space-y-1">{msg.tools_used.map((tool, j) => <ToolBadge key={j} tool={tool} />)}</div>
+                                <div className="mt-2">
+                                  <button
+                                    onClick={() => toggleToolExpansion(i)}
+                                    className="flex items-center gap-1.5 text-xs px-2 py-1 rounded-md transition-colors"
+                                    style={{ color: OUI.muted, fontFamily: FONT.sans, background: "rgba(255,255,255,0.03)" }}
+                                  >
+                                    <ChevronDown className={cn("w-3 h-3 transition-transform", expandedTools.has(i) && "rotate-90")} />
+                                    <span>Activity: {msg.tools_used.length} tool{msg.tools_used.length > 1 ? "s" : ""}</span>
+                                  </button>
+                                  {expandedTools.has(i) && (
+                                    <div className="mt-1.5 space-y-1 ml-2">
+                                      {msg.tools_used.map((tool, j) => <ToolBadge key={j} tool={tool} />)}
+                                    </div>
+                                  )}
+                                </div>
                               )}
-                              {msg.model && <ModelBadge model={msg.model} />}
                             </div>
                           )}
                         </div>
@@ -997,14 +1054,15 @@ export function HermesPage() {
                     ))}
                   </AnimatePresence>
                   {loading && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3 justify-start">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: OUI.userBubble }}>
-                        <Bot className="w-4 h-4 text-white" />
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-start">
+                      <div className="flex items-center gap-2 mb-1.5" style={{ fontFamily: FONT.sans }}>
+                        <Bot className="w-3.5 h-3.5" style={{ color: OUI.muted }} />
+                        <span style={{ fontSize: "12px", fontWeight: 600, color: OUI.muted }}>Hermes</span>
                       </div>
-                      <div className="flex items-center gap-1 py-2.5">
-                        <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: OUI.muted, animationDelay: "0ms" }} />
-                        <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: OUI.muted, animationDelay: "150ms" }} />
-                        <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: OUI.muted, animationDelay: "300ms" }} />
+                      <div className="flex items-center gap-1 py-2">
+                        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: OUI.muted, animationDelay: "0ms" }} />
+                        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: OUI.muted, animationDelay: "200ms" }} />
+                        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: OUI.muted, animationDelay: "400ms" }} />
                       </div>
                     </motion.div>
                   )}
@@ -1012,47 +1070,77 @@ export function HermesPage() {
               )}
             </div>
 
-            {/* Input */}
+            {/* Composer footer */}
             <div className="px-4 pb-4 pt-2">
               <div className="max-w-3xl mx-auto">
-                <div className="flex items-end gap-2 rounded-3xl px-4 py-3" style={{ background: OUI.input, border: `1px solid ${OUI.border}` }}>
-                  <button className="p-1.5 rounded-lg flex-shrink-0" style={{ color: OUI.muted }}><Paperclip className="w-5 h-5" /></button>
-                  {/* Push-to-talk mic button */}
+                <div className="flex items-end gap-2 rounded-2xl px-3 py-2.5" style={{ background: OUI.surface, border: `1px solid ${OUI.borderStrong}`, borderRadius: 14 }}>
+                  {/* Model selector chip */}
+                  <div className="relative flex-shrink-0">
+                    <button onClick={() => setShowModelDropdown(!showModelDropdown)} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs transition-colors" style={{ color: OUI.muted, fontFamily: FONT.sans, background: "transparent" }}>
+                      <span>{provider === "backend" ? "Backend" : provider.charAt(0).toUpperCase() + provider.slice(1)}</span>
+                      {model && <span style={{ color: OUI.muted, fontFamily: FONT.mono, fontSize: "10px" }}>{model}</span>}
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                    {showModelDropdown && (
+                      <div className="absolute bottom-full left-0 mb-1 w-56 rounded-lg py-1 z-30" style={{ background: OUI.surface, border: `1px solid ${OUI.borderStrong}`, borderRadius: 8 }}>
+                        {LLM_PROVIDERS.map((p) => (
+                          <button key={p.id} onClick={() => { setProvider(p.id); setModel(""); setShowModelDropdown(false); }} className="w-full text-left px-3 py-2 text-xs transition-colors" style={{ color: provider === p.id ? OUI.text : OUI.muted, fontFamily: FONT.sans }}>{p.label}</button>
+                        ))}
+                        {availableModels.length > 0 && (
+                          <div className="border-t py-1" style={{ borderColor: OUI.border }}>
+                            {availableModels.map((m) => (
+                              <button key={m} onClick={() => { setModel(m); setShowModelDropdown(false); }} className="w-full text-left px-3 py-2 text-xs transition-colors" style={{ color: model === m ? OUI.text : OUI.muted, fontFamily: FONT.mono }}>{m}</button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="w-px h-5 flex-shrink-0" style={{ background: OUI.border }} />
+                  {/* Attach */}
+                  <button className="p-1.5 rounded-lg flex-shrink-0 transition-colors" style={{ color: OUI.muted }}><Paperclip className="w-4 h-4" /></button>
+                  {/* Push-to-talk mic */}
                   <button
                     onMouseDown={() => jarvis.pushToTalkStart()}
                     onMouseUp={() => jarvis.pushToTalkStop()}
                     onTouchStart={() => jarvis.pushToTalkStart()}
                     onTouchEnd={() => jarvis.pushToTalkStop()}
-                    className="p-1.5 rounded-lg flex-shrink-0"
-                    style={{ color: jarvis.isListening && !jarvis.settings.enabled ? "#06b6d4" : OUI.muted }}
+                    className="p-1.5 rounded-lg flex-shrink-0 transition-colors"
+                    style={{ color: jarvis.isListening && !jarvis.settings.enabled ? OUI.accent : OUI.muted }}
                     title="Push to talk"
                   >
-                    <Mic className="w-5 h-5" />
+                    <Mic className="w-4 h-4" />
                   </button>
-                  <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={jarvis.interimTranscript || "Message Hermes..."} rows={1} disabled={loading} className="flex-1 bg-transparent outline-none resize-none text-sm py-1.5 max-h-48" style={{ color: OUI.text }} />
+                  <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={jarvis.interimTranscript || "Message Hermes..."} rows={1} disabled={loading} className="flex-1 bg-transparent outline-none resize-none text-sm py-1.5 max-h-48" style={{ color: OUI.text, fontFamily: FONT.sans, fontSize: "14px" }} />
                   {jarvis.isSpeaking && (
-                    <button onClick={() => jarvis.stopSpeaking()} className="p-1.5 rounded-lg flex-shrink-0" style={{ color: "#f59e0b" }} title="Stop speaking">
+                    <button onClick={() => jarvis.stopSpeaking()} className="p-1.5 rounded-lg flex-shrink-0 transition-colors" style={{ color: OUI.warning }} title="Stop speaking">
                       <Square className="w-4 h-4" />
                     </button>
                   )}
-                  <button onClick={() => handleSend()} disabled={loading || !input.trim()} className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 disabled:opacity-30" style={{ background: input.trim() ? OUI.userBubble : OUI.border }}>
-                    <ArrowUp className="w-5 h-5 text-white" />
-                  </button>
+                  {loading ? (
+                    <button onClick={() => setLoading(false)} className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors" style={{ background: OUI.muted }} title="Stop">
+                      <Square className="w-3.5 h-3.5 text-white" />
+                    </button>
+                  ) : (
+                    <button onClick={() => handleSend()} disabled={!input.trim()} className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 disabled:opacity-30 transition-colors" style={{ background: input.trim() ? OUI.accent : OUI.border }}>
+                      <ArrowUp className="w-4 h-4" style={{ color: input.trim() ? OUI.bg : OUI.muted }} />
+                    </button>
+                  )}
                 </div>
-                <p className="text-xs text-center mt-2" style={{ color: OUI.muted }}>{jarvis.settings.enabled ? `JARVIS listening for "${jarvis.settings.wakeWord}"` : "Hermes Agent — autonomous AI with full system control"}</p>
+                <p className="text-xs text-center mt-2" style={{ color: OUI.muted, fontFamily: FONT.sans }}>{jarvis.settings.enabled ? `JARVIS listening for "${jarvis.settings.wakeWord}"` : "Hermes Agent — autonomous AI with full system control"}</p>
               </div>
             </div>
           </div>
 
           {/* Browser panel */}
           {showBrowser && (
-            <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 400, opacity: 1 }} exit={{ width: 0, opacity: 0 }} className="flex-shrink-0 flex flex-col h-full overflow-hidden" style={{ borderLeft: `1px solid ${OUI.border}` }}>
+            <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 400, opacity: 1 }} exit={{ width: 0, opacity: 0 }} className="flex-shrink-0 flex flex-col h-full overflow-hidden" style={{ borderLeft: `1px solid ${OUI.border}`, background: OUI.bg }}>
               <div className="flex items-center gap-1 p-2" style={{ borderBottom: `1px solid ${OUI.border}` }}>
-                <button onClick={goBack} disabled={historyIndex <= 0} className="p-1.5 rounded-lg disabled:opacity-30" style={{ color: OUI.muted }}><ArrowLeft className="w-4 h-4" /></button>
-                <button onClick={goForward} disabled={historyIndex >= browserHistory.length - 1} className="p-1.5 rounded-lg disabled:opacity-30" style={{ color: OUI.muted }}><ArrowRight className="w-4 h-4" /></button>
-                <button onClick={refreshBrowser} className="p-1.5 rounded-lg" style={{ color: OUI.muted }}><RotateCw className="w-4 h-4" /></button>
-                <input value={browserUrl} onChange={(e) => setBrowserUrl(e.target.value)} onKeyDown={(e) => e.key === "Enter" && navigateBrowser(browserUrl)} placeholder="Enter URL..." className="flex-1 text-sm rounded-lg px-3 py-1.5 outline-none" style={{ background: OUI.input, color: OUI.text, border: `1px solid ${OUI.border}` }} />
-                <button onClick={() => setShowBrowser(false)} className="p-1.5 rounded-lg" style={{ color: OUI.muted }}><X className="w-4 h-4" /></button>
+                <button onClick={goBack} disabled={historyIndex <= 0} className="p-1.5 rounded-lg disabled:opacity-30 transition-colors" style={{ color: OUI.muted }}><ArrowLeft className="w-4 h-4" /></button>
+                <button onClick={goForward} disabled={historyIndex >= browserHistory.length - 1} className="p-1.5 rounded-lg disabled:opacity-30 transition-colors" style={{ color: OUI.muted }}><ArrowRight className="w-4 h-4" /></button>
+                <button onClick={refreshBrowser} className="p-1.5 rounded-lg transition-colors" style={{ color: OUI.muted }}><RotateCw className="w-4 h-4" /></button>
+                <input value={browserUrl} onChange={(e) => setBrowserUrl(e.target.value)} onKeyDown={(e) => e.key === "Enter" && navigateBrowser(browserUrl)} placeholder="Enter URL..." className="flex-1 text-sm rounded-lg px-3 py-1.5 outline-none" style={{ background: OUI.input, color: OUI.text, border: `1px solid ${OUI.border}`, fontFamily: FONT.sans }} />
+                <button onClick={() => setShowBrowser(false)} className="p-1.5 rounded-lg transition-colors" style={{ color: OUI.muted }}><X className="w-4 h-4" /></button>
               </div>
               <div className="flex-1 relative bg-white">
                 {currentUrl ? (
@@ -1061,12 +1149,12 @@ export function HermesPage() {
                   <div className="flex items-center justify-center h-full" style={{ background: OUI.bg }}>
                     <div className="text-center">
                       <Globe className="w-12 h-12 mx-auto mb-2 opacity-30" style={{ color: OUI.muted }} />
-                      <p className="text-sm" style={{ color: OUI.muted }}>Enter a URL to browse</p>
+                      <p className="text-sm" style={{ color: OUI.muted, fontFamily: FONT.sans }}>Enter a URL to browse</p>
                     </div>
                   </div>
                 )}
                 {browserLoading && (
-                  <div className="absolute top-2 right-2 rounded-full px-2 py-1 text-xs flex items-center gap-1" style={{ background: OUI.sidebar, color: OUI.muted }}>
+                  <div className="absolute top-2 right-2 rounded-full px-2 py-1 text-xs flex items-center gap-1" style={{ background: OUI.surface, color: OUI.muted, fontFamily: FONT.sans }}>
                     <Loader2 className="w-3 h-3 animate-spin" /> Loading...
                   </div>
                 )}
@@ -1078,24 +1166,24 @@ export function HermesPage() {
           {showMemory && (
             <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 300, opacity: 1 }} exit={{ width: 0, opacity: 0 }} className="flex-shrink-0 flex flex-col h-full overflow-hidden" style={{ borderLeft: `1px solid ${OUI.border}`, background: OUI.sidebar }}>
               <div className="flex items-center justify-between p-3" style={{ borderBottom: `1px solid ${OUI.border}` }}>
-                <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: OUI.text }}><Brain className="w-4 h-4" /> Memories</h3>
+                <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: OUI.text, fontFamily: FONT.sans }}><Brain className="w-4 h-4" style={{ color: OUI.muted }} /> Memories</h3>
                 <div className="flex gap-1">
-                  <button onClick={() => aiApi.consolidateMemories().then(() => { loadMemories(); showAlert("info", "Consolidated"); })} className="p-1 rounded" style={{ color: OUI.muted }} title="Consolidate"><Sparkles className="w-3.5 h-3.5" /></button>
-                  <button onClick={handleClearMemories} className="p-1 rounded" style={{ color: OUI.muted }} title="Clear all"><Trash2 className="w-3.5 h-3.5" /></button>
-                  <button onClick={() => setShowMemory(false)} className="p-1 rounded" style={{ color: OUI.muted }}><X className="w-4 h-4" /></button>
+                  <button onClick={() => aiApi.consolidateMemories().then(() => { loadMemories(); showAlert("info", "Consolidated"); })} className="p-1 rounded transition-colors" style={{ color: OUI.muted }} title="Consolidate"><Sparkles className="w-3.5 h-3.5" /></button>
+                  <button onClick={handleClearMemories} className="p-1 rounded transition-colors" style={{ color: OUI.muted }} title="Clear all"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => setShowMemory(false)} className="p-1 rounded transition-colors" style={{ color: OUI.muted }}><X className="w-4 h-4" /></button>
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto p-2 space-y-2" style={{ scrollbarWidth: "thin" }}>
                 {memories.length === 0 ? (
-                  <p className="text-xs text-center py-8" style={{ color: OUI.muted }}>No memories yet. Start chatting!</p>
+                  <p className="text-xs text-center py-8" style={{ color: OUI.muted, fontFamily: FONT.sans }}>No memories yet. Start chatting!</p>
                 ) : (
                   memories.map((m) => (
-                    <div key={m.id} className="group p-2.5 rounded-lg text-xs" style={{ background: OUI.input }}>
+                    <div key={m.id} className="group p-2.5 rounded-lg text-xs" style={{ background: OUI.input, border: `1px solid ${OUI.border}` }}>
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium mb-1" style={{ color: m.type === "conversation" ? "#60a5fa" : m.type === "email_conversation" ? "#22d3ee" : m.type === "fact" ? "#22c55e" : m.type === "preference" ? "#c084fc" : OUI.muted, background: m.type === "conversation" ? "rgba(96,165,250,0.1)" : m.type === "email_conversation" ? "rgba(34,211,238,0.1)" : m.type === "fact" ? "rgba(34,197,94,0.1)" : m.type === "preference" ? "rgba(192,132,252,0.1)" : "rgba(115,115,115,0.1)" }}>{m.type}</span>
-                          <p className="line-clamp-3 mt-1" style={{ color: OUI.muted }}>{m.content}</p>
-                          <div className="flex items-center gap-2 mt-1 text-[10px]" style={{ color: OUI.muted }}><span>{(m.importance * 100).toFixed(0)}%</span><span>·</span><span>{m.access_count}x</span></div>
+                          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium mb-1" style={{ color: OUI.muted, background: OUI.accentBg, fontFamily: FONT.mono }}>{m.type}</span>
+                          <p className="line-clamp-3 mt-1" style={{ color: OUI.muted, fontFamily: FONT.sans }}>{m.content}</p>
+                          <div className="flex items-center gap-2 mt-1 text-[10px]" style={{ color: OUI.muted, fontFamily: FONT.mono }}><span>{(m.importance * 100).toFixed(0)}%</span><span>·</span><span>{m.access_count}x</span></div>
                         </div>
                         <button onClick={() => handleDeleteMemory(m.id)} className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: OUI.muted }}><Trash2 className="w-3 h-3" /></button>
                       </div>
@@ -1114,6 +1202,8 @@ export function HermesPage() {
           <JarvisVoicePanel
             settings={jarvis.settings}
             availableVoices={jarvis.availableVoices}
+            availableMics={jarvis.availableMics}
+            selectedMicLabel={jarvis.selectedMicLabel}
             isSupported={jarvis.isSupported}
             error={jarvis.error}
             onUpdate={jarvis.updateSettings}
@@ -1140,7 +1230,7 @@ export function HermesPage() {
                 isSpeaking={jarvis.isSpeaking}
                 size={100}
               />
-              <div className="absolute bottom-[-20px] text-xs font-medium whitespace-nowrap" style={{ color: jarvis.isSpeaking ? "#f59e0b" : "#06b6d4" }}>
+              <div className="absolute bottom-[-20px] text-xs font-medium whitespace-nowrap" style={{ color: jarvis.isSpeaking ? OUI.warning : OUI.accent, fontFamily: FONT.sans }}>
                 {jarvis.isSpeaking ? "Speaking..." : `Listening for "${jarvis.settings.wakeWord}"...`}
               </div>
             </div>
