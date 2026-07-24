@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ethers } from "ethers";
 import { useStore } from "@/lib/store";
+import { useTranslation } from "react-i18next";
 import { smsApi, aiApi } from "@/lib/api";
 import { cn, copyToClipboard, shortenAddress, formatBalance } from "@/lib/utils";
 import { WalkieTalkie } from "@/components/phone/WalkieTalkie";
@@ -92,6 +93,7 @@ type PhoneView = "main" | "compose" | "conversation" | "subscribe" | "telegram" 
 
 export function PhonePage() {
   const { showAlert, walletAddress, walletKey, pendingTextPhone, setPendingTextPhone, language, translationEnabled, setTranslationEnabled } = useStore();
+  const { t } = useTranslation();
   const [tab, setTab] = useState<PhoneTab>("texting");
   const [view, setView] = useState<PhoneView>("main");
   const [status, setStatus] = useState<SmsStatus | null>(null);
@@ -282,9 +284,9 @@ export function PhonePage() {
   };
 
   const handleSend = async () => {
-    if (!toNumber.trim()) return showAlert("danger", "Enter a phone number");
-    if (!messageBody.trim()) return showAlert("danger", "Enter a message");
-    if (messageBody.length > 160) return showAlert("danger", "Message too long (160 char max)");
+    if (!toNumber.trim()) return showAlert("danger", t("phone:enterPhoneNumber"));
+    if (!messageBody.trim()) return showAlert("danger", t("phone:enterMessage"));
+    if (messageBody.length > 160) return showAlert("danger", t("phone:messageTooLong"));
     setSending(true);
     try {
       await smsApi.send(toNumber, messageBody, carrier, method);
@@ -774,7 +776,7 @@ export function PhonePage() {
                           </select>
                         )}
                         <div className="flex gap-2">
-                          <textarea value={messageBody} onChange={(e) => setMessageBody(e.target.value)} placeholder="Type a message..." className="flex-1 p-3 border border-gray-300 rounded-lg text-sm h-10 resize-none" maxLength={160} style={{ userSelect: "text" }} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && toNumber.trim() && messageBody.trim()) { e.preventDefault(); handleSend(); } }} />
+                          <textarea value={messageBody} onChange={(e) => setMessageBody(e.target.value)} placeholder={t("phone:typeMessage")} className="flex-1 p-3 border border-gray-300 rounded-lg text-sm h-10 resize-none" maxLength={160} style={{ userSelect: "text" }} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && toNumber.trim() && messageBody.trim()) { e.preventDefault(); handleSend(); } }} />
                           <span className="text-xs text-gray-400 self-center">{messageBody.length}/160</span>
                           <button onClick={() => setMethod(method === "email" ? "telegram" : "email")} className="p-2 text-gray-400 hover:text-blue-600 rounded-lg" title={method === "email" ? "Switch to Telegram" : "Switch to Email-SMS"}>
                             {method === "email" ? <Mail className="w-5 h-5" /> : <MessageCircle className="w-5 h-5" />}
@@ -862,7 +864,7 @@ export function PhonePage() {
                   {/* Messages */}
                   <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2" style={{ background: "#F3F4F6" }}>
                     {messages.length === 0 ? (
-                      <p className="text-gray-400 text-sm text-center py-8">No messages yet. Send the first text below!</p>
+                      <p className="text-gray-400 text-sm text-center py-8">{t("phone:typeMessage")}</p>
                     ) : messages.map((msg, i) => {
                       const prevMsg = messages[i - 1];
                       const showDate = !prevMsg || (msg.date?.slice(0, 10) !== prevMsg.date?.slice(0, 10));

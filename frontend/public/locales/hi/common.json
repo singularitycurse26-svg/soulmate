@@ -37,7 +37,9 @@
     "autoTranslate": "संदेशों का स्वतः अनुवाद",
     "autoTranslateDesc": "प्राप्त संदेशों का स्वतः आपकी भाषा में अनुवाद करें",
     "translationEnabled": "अनुवाद सक्षम",
-    "translationDisabled": "अनुवाद अक्षम"
+    "translationDisabled": "अनुवाद अक्षम",
+    "showOriginal": "मूल दिखाएं",
+    "hideOriginal": "मूल छुपाएं"
   },
   "settings": {
     "title": "सेटिंग्स",

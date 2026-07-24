@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useStore } from "@/lib/store";
+import { useTranslation } from "react-i18next";
 import { datingApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { TranslatedMessage } from "@/components/TranslatedMessage";
@@ -44,6 +45,7 @@ const FB_DATING_PINK = "#F35369";
 
 export function DatingPage() {
   const { showAlert, authEmail, language, translationEnabled, setTranslationEnabled } = useStore();
+  const { t } = useTranslation();
   const [view, setView] = useState<DatingView>("swipe");
   const [mode, setMode] = useState<"tinder" | "fb">("tinder");
   const [profile, setProfile] = useState<any>(null);
@@ -321,7 +323,7 @@ export function DatingPage() {
           {messages.length === 0 ? (
             <div className="text-center py-12">
               <Sparkles className="w-10 h-10 text-pink-400 mx-auto mb-2" />
-              <p className="text-gray-500 text-sm">You matched! Say hello 👋</p>
+              <p className="text-gray-500 text-sm">{t("dating:sendMessage")} 👋</p>
             </div>
           ) : messages.map((msg) => (
             <div key={msg.id} className={cn("flex", msg.sender_id === 0 ? "justify-end" : "justify-start")}>
@@ -339,7 +341,7 @@ export function DatingPage() {
         <div className="sticky bottom-0 bg-white border-t border-gray-200 p-3">
           <div className="flex items-center gap-2 max-w-2xl mx-auto">
             <button className="p-2 rounded-full hover:bg-gray-100"><ImageIcon className="w-5 h-5 text-gray-500" /></button>
-            <input value={messageText} onChange={(e) => setMessageText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleSendMessage(); }} placeholder="Type a message..." className="flex-1 p-3 rounded-full bg-gray-100 outline-none text-sm" />
+            <input value={messageText} onChange={(e) => setMessageText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleSendMessage(); }} placeholder={t("dating:typeMessage")} className="flex-1 p-3 rounded-full bg-gray-100 outline-none text-sm" />
             <button onClick={handleSendMessage} disabled={!messageText.trim()} className="w-10 h-10 rounded-full flex items-center justify-center text-white disabled:opacity-40" style={{ background: TINDER_GRADIENT }}>
               <Send className="w-5 h-5" />
             </button>
@@ -357,7 +359,7 @@ export function DatingPage() {
           <button onClick={() => setView("swipe")} className="p-2 rounded-full hover:bg-gray-100">
             <ChevronLeft className="w-6 h-6" />
           </button>
-          <h2 className="font-bold text-lg">Matches</h2>
+          <h2 className="font-bold text-lg">{t("dating:matches")}</h2>
         </div>
         <div className="max-w-2xl mx-auto p-4">
           {matches.length === 0 ? (

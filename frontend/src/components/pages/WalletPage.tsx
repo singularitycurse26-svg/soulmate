@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useStore } from "@/lib/store";
+import { useTranslation } from "react-i18next";
 import { API_BASE } from "@/lib/api";
 import { cn, shortenAddress, copyToClipboard, formatBalance } from "@/lib/utils";
 import { Wallet as WalletIcon, Send, Download, QrCode, Copy, Tag, History, Coins, Search, ArrowUpRight, ArrowDownLeft, RefreshCw, DollarSign, Plus, KeyRound, Crown, Activity, Zap, TrendingUp, ExternalLink, Rocket, Layers, Droplet } from "lucide-react";
@@ -53,6 +54,7 @@ type WalletView = "main" | "send" | "receive" | "tags" | "history" | "buy" | "ad
 
 export function WalletPage() {
   const { walletAddress, walletKey, showAlert, setView: navigateView, isFounder } = useStore();
+  const { t } = useTranslation();
   const [view, setView] = useState<WalletView>("main");
   const [balances, setBalances] = useState<Record<string, number>>({});
   const [usdValues, setUsdValues] = useState<Record<string, number>>({});
@@ -642,12 +644,12 @@ export function WalletPage() {
       </div>)}
 
       {view === "add-funds" && (<div className="space-y-4">
-        <div className="flex items-center gap-3"><button onClick={() => setView("main")} className="text-muted hover:text-white text-sm">← Back</button><h3 className="text-lg font-semibold">Add Funds</h3></div>
+        <div className="flex items-center gap-3"><button onClick={() => setView("main")} className="text-muted hover:text-white text-sm">← {t("common:actions.back")}</button><h3 className="text-lg font-semibold">{t("wallet:addFunds")}</h3></div>
 
         <div className="card space-y-3">
-          <div><label className="label">Amount (USD)</label><input type="number" value={fundingAmount} onChange={(e) => setFundingAmount(e.target.value)} className="w-full" step="1" min="1" /></div>
+          <div><label className="label">{t("wallet:buyAmount")}</label><input type="number" value={fundingAmount} onChange={(e) => setFundingAmount(e.target.value)} className="w-full" step="1" min="1" /></div>
           <div className="bg-accent/10 rounded-lg p-3 text-xs">
-            <p className="font-medium text-accent mb-1">Auto-converts to USDT</p>
+            <p className="font-medium text-accent mb-1">{t("wallet:autoConvertsToUSDT")}</p>
             <p className="text-muted">${(parseFloat(fundingAmount) || 0).toFixed(2)} USD → {(parseFloat(fundingAmount) || 0).toFixed(2)} USDT in your wallet</p>
           </div>
         </div>
@@ -684,7 +686,7 @@ export function WalletPage() {
             disabled={processingPayment}
             className="btn-primary w-full py-3 flex items-center justify-center gap-2"
           >
-            {processingPayment ? "Processing..." : <>Pay ${(parseFloat(fundingAmount) || 0).toFixed(2)} with Google Pay</>}
+            {processingPayment ? t("wallet:processing") : <>Pay ${(parseFloat(fundingAmount) || 0).toFixed(2)} {t("wallet:payWithGooglePay")}</>}
           </button>
         </div>
 
@@ -693,7 +695,7 @@ export function WalletPage() {
           <div className="card">
             <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
               <div className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: "#00C2A8" }}>C</div>
-              Saved Cards
+              {t("wallet:savedCards")}
             </h4>
             <div className="space-y-2">
               {savedCards.map((card) => (
@@ -751,18 +753,18 @@ export function WalletPage() {
         <div className="card">
           <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
             <div className="w-6 h-6 rounded flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: "#00C2A8" }}>C</div>
-            Current Card
+            {t("wallet:currentCard")}
           </h4>
           {showNewCardForm ? (
             <div className="space-y-3">
-              <div><label className="label">Card Number</label><input value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} placeholder="1234 5678 9012 3456" className="w-full" maxLength={19} /></div>
+              <div><label className="label">{t("wallet:cardNumber")}</label><input value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} placeholder="1234 5678 9012 3456" className="w-full" maxLength={19} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="label">Expiry</label><input value={cardExpiry} onChange={(e) => setCardExpiry(e.target.value)} placeholder="MM/YY" className="w-full" maxLength={5} /></div>
-                <div><label className="label">CVC</label><input value={cardCvc} onChange={(e) => setCardCvc(e.target.value)} placeholder="123" className="w-full" maxLength={4} type="password" /></div>
+                <div><label className="label">{t("wallet:expiry")}</label><input value={cardExpiry} onChange={(e) => setCardExpiry(e.target.value)} placeholder="MM/YY" className="w-full" maxLength={5} /></div>
+                <div><label className="label">{t("wallet:cvc")}</label><input value={cardCvc} onChange={(e) => setCardCvc(e.target.value)} placeholder="123" className="w-full" maxLength={4} type="password" /></div>
               </div>
               <label className="flex items-center gap-2 text-xs text-muted cursor-pointer">
                 <input type="checkbox" checked={saveCard} onChange={(e) => setSaveCard(e.target.checked)} className="rounded" />
-                Save card for future use (Wallet & Phone)
+                {t("wallet:saveCard")}
               </label>
               <button
                 onClick={async () => {
@@ -798,13 +800,13 @@ export function WalletPage() {
                 disabled={processingPayment}
                 className="btn-primary w-full py-3 flex items-center justify-center gap-2"
               >
-                {processingPayment ? "Processing..." : <>Pay ${(parseFloat(fundingAmount) || 0).toFixed(2)} with Current Card</>}
+                {processingPayment ? t("wallet:processing") : <>Pay ${(parseFloat(fundingAmount) || 0).toFixed(2)} {t("wallet:currentCard")}</>}
               </button>
               <button onClick={() => setShowNewCardForm(false)} className="text-muted text-xs hover:text-white w-full text-center">Cancel</button>
             </div>
           ) : (
             <button onClick={() => setShowNewCardForm(true)} className="btn-secondary w-full py-3 text-sm flex items-center justify-center gap-2">
-              + Add New Card
+              + {t("wallet:addNewCard")}
             </button>
           )}
         </div>
@@ -911,7 +913,7 @@ export function WalletPage() {
         </div>
 
         <div className="card text-xs text-muted">
-          <p className="font-medium text-white mb-1">How it works:</p>
+          <p className="font-medium text-white mb-1">{t("wallet:receiveCrypto")}</p>
           <p>1. Enter the amount you want to add</p>
           <p>2. Pay with Google Pay or your Current debit card</p>
           <p>3. Funds auto-convert to USDT stablecoin in your wallet</p>

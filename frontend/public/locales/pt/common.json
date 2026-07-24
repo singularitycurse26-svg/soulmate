@@ -37,7 +37,9 @@
     "autoTranslate": "Traduzir mensagens automaticamente",
     "autoTranslateDesc": "Traduzir automaticamente mensagens recebidas para seu idioma",
     "translationEnabled": "Tradução ativada",
-    "translationDisabled": "Tradução desativada"
+    "translationDisabled": "Tradução desativada",
+    "showOriginal": "Mostrar original",
+    "hideOriginal": "Ocultar original"
   },
   "settings": {
     "title": "Configurações",

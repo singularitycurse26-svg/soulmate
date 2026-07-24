@@ -37,7 +37,9 @@
     "autoTranslate": "自动翻译消息",
     "autoTranslateDesc": "自动将收到的消息翻译为您的语言",
     "translationEnabled": "翻译已启用",
-    "translationDisabled": "翻译已禁用"
+    "translationDisabled": "翻译已禁用",
+    "showOriginal": "显示原文",
+    "hideOriginal": "隐藏原文"
   },
   "settings": {
     "title": "设置",

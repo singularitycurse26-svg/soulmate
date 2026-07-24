@@ -37,7 +37,9 @@
     "autoTranslate": "Auto-translate messages",
     "autoTranslateDesc": "Automatically translate incoming messages to your language",
     "translationEnabled": "Translation enabled",
-    "translationDisabled": "Translation disabled"
+    "translationDisabled": "Translation disabled",
+    "showOriginal": "Show original",
+    "hideOriginal": "Hide original"
   },
   "settings": {
     "title": "Settings",

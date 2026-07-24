@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { useMessageTranslation, getLangFlag } from "../hooks/useMessageTranslation";
 
@@ -12,6 +13,7 @@ interface TranslatedMessageProps {
 
 export function TranslatedMessage({ text, sourceLang, targetLang, isOwn, className }: TranslatedMessageProps) {
   const { translateMessage, language, translationEnabled } = useMessageTranslation();
+  const { t } = useTranslation();
   const [translated, setTranslated] = useState<string>(text);
   const [isTranslated, setIsTranslated] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -57,9 +59,9 @@ export function TranslatedMessage({ text, sourceLang, targetLang, isOwn, classNa
           className="text-[10px] text-white/30 hover:text-white/60 flex items-center gap-0.5 transition-colors"
         >
           {showOriginal ? (
-            <>Hide original <ChevronUp className="w-2.5 h-2.5" /></>
+            <>{t("common:language.hideOriginal")} <ChevronUp className="w-2.5 h-2.5" /></>
           ) : (
-            <>Show original <ChevronDown className="w-2.5 h-2.5" /></>
+            <>{t("common:language.showOriginal")} <ChevronDown className="w-2.5 h-2.5" /></>
           )}
         </button>
       </div>

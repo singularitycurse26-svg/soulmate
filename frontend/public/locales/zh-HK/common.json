@@ -37,7 +37,9 @@
     "autoTranslate": "自動翻譯訊息",
     "autoTranslateDesc": "自動將收到的訊息翻譯為您的語言",
     "translationEnabled": "翻譯已啟用",
-    "translationDisabled": "翻譯已停用"
+    "translationDisabled": "翻譯已停用",
+    "showOriginal": "顯示原文",
+    "hideOriginal": "隱藏原文"
   },
   "settings": {
     "title": "設定",

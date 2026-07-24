@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { emailApi, aiApi, translateApi } from "@/lib/api";
 import { useStore } from "@/lib/store";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { TranslatedMessage } from "@/components/TranslatedMessage";
 import {
@@ -25,6 +26,7 @@ const GMAIL_BLUE = "#1A73E8";
 
 export function EmailPage() {
   const { showAlert, language, translationEnabled, setTranslationEnabled } = useStore();
+  const { t } = useTranslation();
   const [emailAddress, setEmailAddress] = useState<string | null>(null);
   const [inbox, setInbox] = useState<EmailItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -239,7 +241,7 @@ export function EmailPage() {
           {view === "read" && currentEmail ? (
             <div className="p-6 max-w-3xl">
               <button onClick={() => setView("inbox")} className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-4">
-                <ChevronLeft className="w-5 h-5" /> Back to Inbox
+                <ChevronLeft className="w-5 h-5" /> {t("common:actions.back")} {t("email:inbox")}
               </button>
               <h1 className="text-2xl font-bold mb-4">{currentEmail.subject || "(no subject)"}</h1>
               <div className="flex items-center gap-3 mb-6">
@@ -268,11 +270,11 @@ export function EmailPage() {
               </div>
               <div className="flex gap-2 mt-6">
                 <button onClick={() => { setTo(currentEmail.from); setSubject("Re: " + (currentEmail.subject || "")); setBody(""); setShowCompose(true); }} className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium hover:bg-gray-100 flex items-center gap-2">
-                  <PenSquare className="w-4 h-4" /> Reply
+                  <PenSquare className="w-4 h-4" /> {t("email:reply")}
                 </button>
                 <button onClick={handleAIReply} disabled={aiReplying} className="px-4 py-2 rounded-lg text-white text-sm font-medium flex items-center gap-2" style={{ background: GMAIL_BLUE }}>
                   {aiReplying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4" />}
-                  {aiReplying ? "AI thinking..." : "AI Reply"}
+                  {aiReplying ? t("email:translating") : t("email:aiReply")}
                 </button>
               </div>
             </div>
@@ -342,7 +344,7 @@ export function EmailPage() {
               <button className="p-2 hover:bg-gray-100 rounded"><Paperclip className="w-4 h-4 text-gray-600" /></button>
             </div>
             <button onClick={handleSend} className="px-6 py-2 rounded-lg text-white text-sm font-medium flex items-center gap-2" style={{ background: GMAIL_BLUE }}>
-              <Send className="w-4 h-4" /> Send
+              <Send className="w-4 h-4" /> {t("email:send")}
             </button>
           </div>
         </div>

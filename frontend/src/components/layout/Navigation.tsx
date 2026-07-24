@@ -1,4 +1,5 @@
 import { useStore, type AppPage } from "@/lib/store";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import {
@@ -20,28 +21,29 @@ import {
   Activity,
 } from "lucide-react";
 
-const navItems: { page: AppPage; label: string; icon: any }[] = [
-  { page: "dashboard", label: "Soulmate Social", icon: LayoutDashboard },
-  { page: "marketplace", label: "Marketplace", icon: ShoppingBag },
-  { page: "dating", label: "Dating", icon: Heart },
-  { page: "email", label: "Email", icon: Mail },
-  { page: "phone", label: "Phone", icon: Phone },
-  { page: "contacts", label: "Contacts", icon: Users },
-  { page: "ai", label: "AI", icon: Bot },
-  { page: "games", label: "Games", icon: Gamepad2 },
-  { page: "wallet", label: "Wallet", icon: Wallet },
-  { page: "security", label: "Security", icon: Shield },
-  { page: "openclaw", label: "OpenClaw", icon: Terminal },
-  { page: "hermes", label: "Hermes Agent", icon: Cpu },
-  { page: "incentives", label: "Incentives", icon: Coins },
+const navItems: { page: AppPage; labelKey: string; icon: any }[] = [
+  { page: "dashboard", labelKey: "common:nav.dashboard", icon: LayoutDashboard },
+  { page: "marketplace", labelKey: "common:nav.marketplace", icon: ShoppingBag },
+  { page: "dating", labelKey: "common:nav.dating", icon: Heart },
+  { page: "email", labelKey: "common:nav.email", icon: Mail },
+  { page: "phone", labelKey: "common:nav.phone", icon: Phone },
+  { page: "contacts", labelKey: "common:nav.contacts", icon: Users },
+  { page: "ai", labelKey: "common:nav.ai", icon: Bot },
+  { page: "games", labelKey: "common:nav.games", icon: Gamepad2 },
+  { page: "wallet", labelKey: "common:nav.wallet", icon: Wallet },
+  { page: "security", labelKey: "common:nav.security", icon: Shield },
+  { page: "openclaw", labelKey: "common:nav.openclaw", icon: Terminal },
+  { page: "hermes", labelKey: "common:nav.hermes", icon: Cpu },
+  { page: "incentives", labelKey: "common:nav.incentives", icon: Coins },
 ];
 
-const founderNavItems: { page: AppPage; label: string; icon: any }[] = [
-  { page: "healing", label: "Self-Healing", icon: Activity },
+const founderNavItems: { page: AppPage; labelKey: string; icon: any }[] = [
+  { page: "healing", labelKey: "common:nav.healing", icon: Activity },
 ];
 
 export function Sidebar() {
   const { activePage, setActivePage, clearWallet, clearAuth, setView, isFounder, authEmail } = useStore();
+  const { t } = useTranslation();
 
   const handleLogout = () => {
     clearWallet();
@@ -77,7 +79,7 @@ export function Sidebar() {
               )}
             >
               <Icon className="w-5 h-5" />
-              {item.label}
+              {t(item.labelKey)}
             </button>
           );
         })}
@@ -98,7 +100,7 @@ export function Sidebar() {
                   )}
                 >
                   <Icon className="w-5 h-5" />
-                  {item.label}
+                  {t(item.labelKey)}
                 </button>
               );
             })}
@@ -113,7 +115,7 @@ export function Sidebar() {
           className="flex items-center gap-2 flex-1 px-3 py-2.5 rounded-lg text-muted hover:text-danger hover:bg-danger/5 transition-all text-sm font-medium"
         >
           <LogOut className="w-5 h-5" />
-          Lock
+          {t("common:common.logout")}
         </button>
       </div>
     </aside>
@@ -122,6 +124,7 @@ export function Sidebar() {
 
 export function MobileNav() {
   const { activePage, setActivePage } = useStore();
+  const { t } = useTranslation();
 
   const mobileItems = navItems.slice(0, 5);
 
@@ -139,7 +142,7 @@ export function MobileNav() {
             )}
           >
             <Icon className="w-5 h-5" />
-            <span className="text-[10px]">{item.label}</span>
+            <span className="text-[10px]">{t(item.labelKey)}</span>
           </button>
         );
       })}
@@ -148,7 +151,7 @@ export function MobileNav() {
         className={cn("nav-item w-16", activePage === "wallet" && "active")}
       >
         <Wallet className="w-5 h-5" />
-        <span className="text-[10px]">Wallet</span>
+        <span className="text-[10px]">{t("common:nav.wallet")}</span>
       </button>
       <LanguageSwitcher />
     </nav>
