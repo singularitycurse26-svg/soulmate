@@ -329,11 +329,11 @@ export const openclawApi = {
 
 // Hermes Agent API
 export const hermesApi = {
-  llmProxy: (provider: string, model: string, messages: any[], apiKey?: string) =>
+  llmProxy: (provider: string, model: string, messages: any[], apiKey?: string, ollamaUrl?: string) =>
     fetch(`${API_URL}/v1/ai/hermes-llm`, {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify({ provider, model, messages, api_key: apiKey }),
+      body: JSON.stringify({ provider, model, messages, api_key: apiKey, ollama_url: ollamaUrl }),
     }).then((r) => r.json()),
   autoLlm: (messages: any[], preferredProvider?: string) =>
     fetch(`${API_URL}/v1/ai/auto-llm`, {

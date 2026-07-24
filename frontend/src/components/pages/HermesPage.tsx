@@ -122,8 +122,8 @@ export function HermesPage() {
   const [newGoalPriority, setNewGoalPriority] = useState<"high" | "medium" | "low">("medium");
 
   // LLM settings
-  const [provider, setProvider] = useState("backend");
-  const [model, setModel] = useState("gemini-flash-latest");
+  const [provider, setProvider] = useState("ollama");
+  const [model, setModel] = useState("gemma4:e4b");
   const [apiKey, setApiKey] = useState("");
   const [ollamaUrl, setOllamaUrl] = useState("http://localhost:11434");
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
@@ -178,8 +178,8 @@ export function HermesPage() {
     const saved = localStorage.getItem("hermes_settings");
     if (saved) {
       const s = JSON.parse(saved);
-      setProvider(s.provider || "backend");
-      setModel(s.model || "gemini");
+      setProvider(s.provider || "ollama");
+      setModel(s.model || "gemma4:e4b");
       setApiKey(s.apiKey || "");
       setOllamaUrl(s.ollamaUrl || "http://localhost:11434");
       setCustomUrl(s.customUrl || "");
@@ -413,6 +413,11 @@ export function HermesPage() {
         if (data.error) throw new Error(data.error);
         responseText = data.response || "";
         modelUsed = data.model || "backend";
+      } else if (provider === "ollama") {
+        const data = await hermesApi.llmProxy("ollama", model || "gemma4:e4b", chatMessages, apiKey, ollamaUrl);
+        if (data.error) throw new Error(data.error);
+        responseText = data.response || "";
+        modelUsed = data.model || `ollama/${model}`;
       } else {
         const data = await openclawApi.llmProxy(provider, model, chatMessages, apiKey);
         if (data.error) throw new Error(data.error);
@@ -440,6 +445,13 @@ export function HermesPage() {
               { role: "assistant", content: responseText },
               { role: "user", content: `Tool results:\n${toolResults}\n\nRespond naturally about what happened.` },
             ], apiKey);
+            followUp = data2.response || "";
+          } else if (provider === "ollama") {
+            const data2 = await hermesApi.llmProxy("ollama", model || "gemma4:e4b", [
+              ...chatMessages,
+              { role: "assistant", content: responseText },
+              { role: "user", content: `Tool results:\n${toolResults}\n\nRespond naturally about what happened.` },
+            ], apiKey, ollamaUrl);
             followUp = data2.response || "";
           } else {
             const data2 = await openclawApi.llmProxy(provider, model, [
