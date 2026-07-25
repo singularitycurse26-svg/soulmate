@@ -1,0 +1,48 @@
+# INC-LLM-v1 Configuration
+
+hardware_tier: minimal  # minimal | standard | full
+provider_backend: ollama
+
+ollama:
+  host: 127.0.0.1
+  port: 11434
+  timeout_s: 300
+  keep_alive_s: 300
+  num_predict: 128
+  num_ctx: 2048
+  temperature: 0.7
+
+memory:
+  context_window_tokens: 2048
+  sacred_zone_ratio: 0.35
+  compression_threshold: 0.75
+  episodic_retention_days: 365
+  episodic_top_k: 3
+  semantic_top_k: 5
+  semantic_threshold: 0.70
+  graph_traversal_depth: 3
+  graph_link_decay_halflife_days: 60
+
+universal_link:
+  enabled: true
+  sync_interval_s: 300
+  instance_name: "inc-llm-v1"
+  learn_from_peers: true
+  share_learnings: true
+  max_peers: 50
+
+payment:
+  enabled: true
+  price_monthly: 15.0
+  trial_hours: 24
+  accept_inc: true
+  accept_card: true
+  accept_cashapp: true
+  accept_stablecoins: true
+  cashapp_handle: "$incLLM"
+
+auth:
+  password_grants_free_access: true
+  session_token_expiry_s: 2592000  # 30 days
+
+log_level: INFO
