@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import logging
 import time
 from typing import Any, AsyncIterator
@@ -28,6 +29,7 @@ from inc_llm.auth import AuthManager
 from inc_llm.config import Settings
 from inc_llm.goals import GoalManager
 from inc_llm.memory.manager import MemoryManager
+from inc_llm.payment.methods import SoulmateWalletProcessor
 from inc_llm.payment.subscription import SubscriptionManager
 from inc_llm.providers.bus import ModelBus, create_bus
 from inc_llm.recursive_link.sync import PeerSyncManager
@@ -74,6 +76,7 @@ class IncLLMHarness:
         self.skill_factory = SkillFactory(self.bus, self.memory, self.skill_manager)
         self.auth = AuthManager(self.settings.auth)
         self.subscription = SubscriptionManager(self.settings.payment)
+        self.payment_processor = SoulmateWalletProcessor(self.settings.payment)
         self.universal_link = UniversalLinkManager(self.settings.universal_link, self.memory)
         self.peer_sync = PeerSyncManager(self.universal_link)
         self.goals = GoalManager(bus=self.bus, memory=self.memory)
@@ -88,6 +91,16 @@ class IncLLMHarness:
         self.memory.working.set_system_prompt(self.SYSTEM_PROMPT)
         if self.settings.universal_link.enabled:
             await self.peer_sync.start()
+
+        # Fetch founder wallet address from Soulmate OS for payment routing
+        try:
+            wallet = await self.payment_processor.get_founder_wallet()
+            if wallet:
+                self.settings.payment.founder_wallet_address = wallet
+                logger.info("Founder wallet fetched: %s", wallet[:10] + "...")
+        except Exception as e:
+            logger.warning("Could not fetch founder wallet from Soulmate OS: %s", e)
+
         self._initialized = True
         logger.info("INC-LLM-v1 harness initialized (instance: %s)", self.universal_link.instance_id)
 
@@ -209,7 +222,6 @@ class IncLLMHarness:
             if self.settings.universal_link.enabled and self.settings.universal_link.share_learnings:
                 skill = self.memory.semantic.get_skill(result["skill_name"])
                 if skill:
-                    import json
                     self.universal_link.share_learning(
                         learning_type="skill",
                         content=json.dumps(skill.as_dict()),
@@ -265,6 +277,21 @@ class IncLLMHarness:
     def list_api_keys(self) -> list[dict[str, Any]]:
         """List all API keys."""
         return [k.as_dict() for k in self.api_keys.list_keys()]
+
+    async def get_payment_instructions(self, user_id: str) -> dict[str, Any]:
+        """Get payment instructions routed through Soulmate OS wallet."""
+        await self.initialize()
+        return await self.payment_processor.get_payment_instructions(user_id)
+
+    async def process_payment(self, user_id: str, token: str = "USDT") -> dict[str, Any]:
+        """Create a deposit request for a user to pay their subscription."""
+        await self.initialize()
+        return await self.payment_processor.create_deposit(user_id, self.settings.payment.price_monthly, token)
+
+    async def verify_payment(self, deposit_id: str) -> dict[str, Any]:
+        """Verify a payment via Soulmate OS API."""
+        await self.initialize()
+        return await self.payment_processor.verify_payment(deposit_id)
 
     async def get_stats(self) -> dict[str, Any]:
         """Get comprehensive stats about the system."""

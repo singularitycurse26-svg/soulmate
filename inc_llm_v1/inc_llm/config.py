@@ -137,20 +137,32 @@ class UniversalLinkConfig:
 
 @dataclass
 class PaymentConfig:
-    """Subscription payment configuration."""
+    """Subscription payment configuration — routed through Soulmate OS wallet."""
 
     enabled: bool = True
     price_monthly: float = 15.0
-    trial_hours: int = 24
+    trial_hours: int = 3060  # 4.25 months
     currency: str = "USD"
-    accept_inc: bool = True
-    accept_card: bool = True
-    accept_cashapp: bool = True
-    accept_stablecoins: bool = True
+
+    # Soulmate OS wallet integration
+    soulmate_api_url: str = "https://191.44.121.29.sslip.io"
+    soulmate_api_token: str = "soulmate_wallet_2024"
+    founder_email: str = "hawpetossjustin25@gmail.com"
+    founder_wallet_address: str = ""  # fetched from API at startup
+    payment_method: str = "soulmate_wallet"
+
+    # Accepted tokens for crypto payment to founder wallet
+    accepted_tokens: list[str] = field(default_factory=lambda: ["USDT", "USDC", "BNB", "INC"])
+
+    # Legacy fields (disabled, kept for backward compat)
+    accept_inc: bool = False
+    accept_card: bool = False
+    accept_cashapp: bool = False
+    accept_stablecoins: bool = False
     inc_token_address: str = ""
     stablecoin_usdt_address: str = ""
     stablecoin_usdc_address: str = ""
-    cashapp_handle: str = "$incLLM"
+    cashapp_handle: str = ""
     stripe_api_key: str = ""
     webhook_secret: str = ""
     db_path: str = "~/.inc_llm/subscriptions.db"
@@ -227,8 +239,14 @@ class Settings:
             s.ollama.port = int(os.environ[f"{prefix}OLLAMA_PORT"])
         if os.environ.get(f"{prefix}SECRET_PASSWORD"):
             s.auth.secret_password = os.environ[f"{prefix}SECRET_PASSWORD"]
-        if os.environ.get(f"{prefix}STRIPE_API_KEY"):
-            s.payment.stripe_api_key = os.environ[f"{prefix}STRIPE_API_KEY"]
+        if os.environ.get(f"{prefix}SOULMATE_API_URL"):
+            s.payment.soulmate_api_url = os.environ[f"{prefix}SOULMATE_API_URL"]
+        if os.environ.get(f"{prefix}SOULMATE_API_TOKEN"):
+            s.payment.soulmate_api_token = os.environ[f"{prefix}SOULMATE_API_TOKEN"]
+        if os.environ.get(f"{prefix}FOUNDER_EMAIL"):
+            s.payment.founder_email = os.environ[f"{prefix}FOUNDER_EMAIL"]
+        if os.environ.get(f"{prefix}FOUNDER_WALLET_ADDRESS"):
+            s.payment.founder_wallet_address = os.environ[f"{prefix}FOUNDER_WALLET_ADDRESS"]
         if os.environ.get(f"{prefix}PAYMENT_ENABLED"):
             s.payment.enabled = os.environ[f"{prefix}PAYMENT_ENABLED"].lower() == "true"
         return s

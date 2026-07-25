@@ -34,12 +34,18 @@ universal_link:
 payment:
   enabled: true
   price_monthly: 15.0
-  trial_hours: 24
-  accept_inc: true
-  accept_card: true
-  accept_cashapp: true
-  accept_stablecoins: true
-  cashapp_handle: "$incLLM"
+  trial_hours: 3060  # 4.25 months
+  # All payments routed through Soulmate OS wallet to founder's account
+  soulmate_api_url: "https://191.44.121.29.sslip.io"
+  soulmate_api_token: "soulmate_wallet_2024"
+  founder_email: "hawpetossjustin25@gmail.com"
+  founder_wallet_address: ""  # fetched from API at runtime
+  payment_method: "soulmate_wallet"
+  accepted_tokens:
+    - USDT
+    - USDC
+    - BNB
+    - INC
 
 auth:
   password_grants_free_access: true

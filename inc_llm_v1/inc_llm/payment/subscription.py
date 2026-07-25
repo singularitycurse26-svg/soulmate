@@ -139,53 +139,44 @@ class SubscriptionManager:
         return self.get_status(user_id)
 
     def get_payment_instructions(self, user_id: str) -> dict[str, Any]:
-        """Get payment instructions for a user."""
-        instructions = {
+        """Get payment instructions for a user.
+
+        All payments are routed through the Soulmate OS wallet system to the
+        founder's wallet (hawpetossjustin25@gmail.com). Users can send crypto
+        (USDT, USDC, BNB, INC) directly to the founder wallet on BSC, or pay
+        via the Soulmate OS wallet UI (Google Pay / card).
+        """
+        return {
             "amount": self.config.price_monthly,
             "currency": self.config.currency,
             "period": "monthly",
-            "methods": [],
+            "founder_wallet": self.config.founder_wallet_address or "Fetch from Soulmate OS at runtime",
+            "accepted_tokens": self.config.accepted_tokens,
+            "network": "BSC (Binance Smart Chain)",
+            "soulmate_wallet_url": f"{self.config.soulmate_api_url.rstrip('/')}/#/wallet",
+            "instructions": (
+                f"Send ${self.config.price_monthly} worth of "
+                f"{', '.join(self.config.accepted_tokens)} to the founder wallet on BSC. "
+                f"Or pay via Soulmate OS wallet at {self.config.soulmate_api_url.rstrip('/')}/#/wallet "
+                f"(Google Pay / card supported). Payments are credited to "
+                f"{self.config.founder_email}'s wallet on Soulmate OS."
+            ),
         }
-        if self.config.accept_inc:
-            instructions["methods"].append({
-                "method": "inc",
-                "label": "Pay with INC Token",
-                "address": self.config.inc_token_address,
-                "instructions": f"Send {self.config.price_monthly} INC to the token contract address.",
-            })
-        if self.config.accept_card:
-            instructions["methods"].append({
-                "method": "card",
-                "label": "Pay with Credit/Debit Card",
-                "instructions": "Enter your card details securely via Stripe.",
-            })
-        if self.config.accept_cashapp:
-            instructions["methods"].append({
-                "method": "cashapp",
-                "label": "Pay with Cash App",
-                "handle": self.config.cashapp_handle,
-                "instructions": f"Send ${self.config.price_monthly} to {self.config.cashapp_handle} on Cash App.",
-            })
-        if self.config.accept_stablecoins:
-            instructions["methods"].append({
-                "method": "usdt",
-                "label": "Pay with USDT",
-                "address": self.config.stablecoin_usdt_address,
-                "instructions": f"Send {self.config.price_monthly} USDT to the address.",
-            })
-            instructions["methods"].append({
-                "method": "usdc",
-                "label": "Pay with USDC",
-                "address": self.config.stablecoin_usdc_address,
-                "instructions": f"Send {self.config.price_monthly} USDC to the address.",
-            })
-        return instructions
 
-    def confirm_payment(self, user_id: str, method: str, tx_hash: str, amount: float = 0) -> dict[str, Any]:
-        """Confirm a payment and activate subscription."""
+    def confirm_payment(self, user_id: str, method: str, tx_hash: str = "", amount: float = 0,
+                        deposit_id: str = "") -> dict[str, Any]:
+        """Confirm a payment and activate subscription.
+
+        Args:
+            user_id: The user paying
+            method: Payment method (e.g. 'soulmate_wallet', 'USDT', 'USDC', 'BNB', 'INC')
+            tx_hash: Transaction hash (for crypto payments)
+            amount: Payment amount (defaults to price_monthly)
+            deposit_id: Deposit ID from Soulmate OS (for verification)
+        """
         if amount == 0:
             amount = self.config.price_monthly
-        return self.activate_subscription(user_id, method, amount, tx_hash=tx_hash)
+        return self.activate_subscription(user_id, method, amount, tx_hash=tx_hash or deposit_id)
 
     def get_stats(self) -> dict[str, int]:
         with sqlite3.connect(str(self.db_path)) as conn:

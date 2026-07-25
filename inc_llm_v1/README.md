@@ -14,7 +14,7 @@ A self-improving LLM harness with universal recursive linking, persistent memory
 - **OpenAI-Compatible API**: Any LLM (Fable 5, GLM 5.2, Mythos, GPT-4, Claude, etc.) can connect to INC-LLM-v1 and use its memory, skills, and goal system for free locally
 - **API Key System**: Create scoped API keys for larger models to connect and run off INC-LLM's memory-enhanced reasoning
 - **Expert Coding**: Sophisticated system prompt for production-quality code generation and engaging conversations
-- **Subscription System**: $15/month with 24h free trial. Accepts INC token, credit/debit cards, Cash App, and stablecoins (USDT/USDC)
+- **Subscription System**: $15/month with 4.25-month free trial. All payments routed through Soulmate OS wallet system to founder's account (crypto: USDT, USDC, BNB, INC on BSC)
 - **Secret Password**: Owner gets free access by typing the secret password
 
 ## Architecture
@@ -80,12 +80,14 @@ The API will be available at `http://localhost:8547`.
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/v1/auth/password` | Authenticate with secret password |
-| POST | `/v1/auth/register` | Register a new user (starts 24h trial) |
+| POST | `/v1/auth/register` | Register a new user (starts 4.25-month trial) |
 | POST | `/v1/chat` | Chat with INC-LLM |
 | POST | `/v1/chat/stream` | Stream chat response |
 | GET | `/v1/subscription/status` | Check subscription status |
-| GET | `/v1/subscription/pay` | Get payment instructions |
-| POST | `/v1/subscription/confirm` | Confirm a payment |
+| GET | `/v1/subscription/pay` | Get payment instructions (Soulmate OS wallet) |
+| POST | `/v1/subscription/deposit` | Create deposit request to founder wallet |
+| POST | `/v1/subscription/verify` | Verify payment via Soulmate OS API |
+| POST | `/v1/subscription/confirm` | Confirm a payment and activate subscription |
 | POST | `/v1/learn` | Trigger skill learning |
 | POST | `/v1/goals/create` | Create a long-term goal |
 | POST | `/v1/goals/plan` | Generate execution plan for a goal |
@@ -111,7 +113,8 @@ Edit `config.yaml` or use environment variables with `INC_LLM_` prefix:
 export INC_LLM_HARDWARE_TIER=minimal
 export INC_LLM_OLLAMA_HOST=127.0.0.1
 export INC_LLM_SECRET_PASSWORD=your_password
-export INC_LLM_STRIPE_API_KEY=sk_...
+export INC_LLM_SOULMATE_API_URL=https://191.44.121.29.sslip.io
+export INC_LLM_FOUNDER_EMAIL=hawpetossjustin25@gmail.com
 ```
 
 ## Hardware Tiers
@@ -206,4 +209,4 @@ This creates a self-improving network where every user's interactions make all i
 
 ## License
 
-Commercial. $15/month subscription required after 24h trial.
+Commercial. $15/month subscription required after 4.25-month free trial. Payments routed through Soulmate OS wallet system.

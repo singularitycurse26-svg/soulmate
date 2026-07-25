@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import logging
+import logging.config
 import time
 from typing import Any
 
@@ -33,6 +34,12 @@ from inc_llm.harness import IncLLMHarness
 from inc_llm.openai_compat import setup_openai_compat
 
 logger = logging.getLogger(__name__)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 app = FastAPI(title="INC-LLM-v1", version="1.0.0")
 app.add_middleware(
@@ -62,10 +69,12 @@ class RegisterRequest(BaseModel):
 
 
 class PaymentConfirmRequest(BaseModel):
-    method: str
+    method: str = "soulmate_wallet"
     tx_hash: str = ""
     amount: float = 0
     currency: str = "USD"
+    deposit_id: str = ""
+    token: str = "USDT"
 
 
 class GoalRequest(BaseModel):
@@ -163,7 +172,25 @@ async def subscription_pay(authorization: str = Header("")):
     user_info = _get_user(authorization)
     if user_info is None:
         raise HTTPException(401, "Invalid or missing token")
-    return harness.subscription.get_payment_instructions(user_info["user_id"])
+    return await harness.get_payment_instructions(user_info["user_id"])
+
+
+@app.post("/v1/subscription/deposit")
+async def subscription_deposit(authorization: str = Header(""), token: str = "USDT"):
+    """Create a deposit request routed to the founder's Soulmate OS wallet."""
+    user_info = _get_user(authorization)
+    if user_info is None:
+        raise HTTPException(401, "Invalid or missing token")
+    return await harness.process_payment(user_info["user_id"], token)
+
+
+@app.post("/v1/subscription/verify")
+async def subscription_verify(deposit_id: str, authorization: str = Header("")):
+    """Verify a payment status via Soulmate OS API."""
+    user_info = _get_user(authorization)
+    if user_info is None:
+        raise HTTPException(401, "Invalid or missing token")
+    return await harness.verify_payment(deposit_id)
 
 
 @app.post("/v1/subscription/confirm")
@@ -172,7 +199,7 @@ async def subscription_confirm(req: PaymentConfirmRequest, authorization: str = 
     if user_info is None:
         raise HTTPException(401, "Invalid or missing token")
     return harness.subscription.confirm_payment(
-        user_info["user_id"], req.method, req.tx_hash, req.amount,
+        user_info["user_id"], req.method, req.tx_hash, req.amount, req.deposit_id,
     )
 
 
