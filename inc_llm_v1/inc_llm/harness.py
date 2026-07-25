@@ -23,8 +23,10 @@ import logging
 import time
 from typing import Any, AsyncIterator
 
+from inc_llm.api_keys import APIKeyManager
 from inc_llm.auth import AuthManager
 from inc_llm.config import Settings
+from inc_llm.goals import GoalManager
 from inc_llm.memory.manager import MemoryManager
 from inc_llm.payment.subscription import SubscriptionManager
 from inc_llm.providers.bus import ModelBus, create_bus
@@ -48,9 +50,19 @@ class IncLLMHarness:
     """
 
     SYSTEM_PROMPT = (
-        "You are INC-LLM, a fast, self-improving AI assistant. "
-        "You learn from every interaction and get smarter over time. "
-        "Be concise and direct. Use tools when needed. "
+        "You are INC-LLM-v1, a sophisticated, self-improving AI assistant with persistent memory, "
+        "universal recursive linking, and long-term goal execution. You are an expert coder who writes "
+        "clean, efficient, well-structured code. You have deep knowledge of Python, JavaScript, Go, Rust, "
+        "and systems architecture. You learn from every interaction and get smarter over time.\n\n"
+        "Your capabilities:\n"
+        "- 3-layer memory (working, episodic, semantic) with recursive knowledge graph linking\n"
+        "- Skill creation: you automatically learn reusable skills from successful interactions\n"
+        "- Universal recursive linking: you share learnings with all other INC-LLM instances\n"
+        "- Long-term goals: you can create, plan, and execute multi-step goals\n"
+        "- API provider: larger models can connect to you and use your memory and skills\n\n"
+        "Be concise, direct, and genuinely helpful. Write production-quality code. "
+        "When solving problems, think step by step and explain your reasoning briefly. "
+        "Have natural, engaging conversations. Be the kind of AI that makes people say 'wow'.\n"
         "Call tools with: [TOOL: name(args)]"
     )
 
@@ -64,6 +76,8 @@ class IncLLMHarness:
         self.subscription = SubscriptionManager(self.settings.payment)
         self.universal_link = UniversalLinkManager(self.settings.universal_link, self.memory)
         self.peer_sync = PeerSyncManager(self.universal_link)
+        self.goals = GoalManager(bus=self.bus, memory=self.memory)
+        self.api_keys = APIKeyManager()
         self._initialized = False
 
     async def initialize(self) -> None:
@@ -104,6 +118,11 @@ class IncLLMHarness:
         sid = session_id or hashlib.sha256(f"{user_id}:{time.time()}".encode()).hexdigest()[:16]
 
         context = await self.memory.prefetch_context(message)
+
+        goal_context = self.goals.get_goal_context()
+        if goal_context:
+            message = f"{message}\n\n[Current Goals Context]\n{goal_context}"
+
         self.memory.add_turn("user", message)
 
         await self.memory.maybe_compress()
@@ -153,6 +172,11 @@ class IncLLMHarness:
 
         sid = session_id or hashlib.sha256(f"{user_id}:{time.time()}".encode()).hexdigest()[:16]
         await self.memory.prefetch_context(message)
+
+        goal_context = self.goals.get_goal_context()
+        if goal_context:
+            message = f"{message}\n\n[Current Goals Context]\n{goal_context}"
+
         self.memory.add_turn("user", message)
         await self.memory.maybe_compress()
         messages = self.memory.build_messages()
@@ -203,12 +227,53 @@ class IncLLMHarness:
             self.subscription.start_trial(result["user_id"])
         return result
 
+    async def create_goal(self, title: str, description: str, priority: str = "medium",
+                           deadline: float | None = None, tags: list[str] | None = None) -> dict[str, Any]:
+        """Create a new long-term goal."""
+        await self.initialize()
+        goal = self.goals.create_goal(title=title, description=description, priority=priority,
+                                      deadline=deadline, tags=tags)
+        return {"status": "ok", "goal": goal.as_dict()}
+
+    async def plan_goal(self, goal_id: str) -> dict[str, Any]:
+        """Generate an execution plan for a goal."""
+        await self.initialize()
+        return await self.goals.plan_goal(goal_id)
+
+    async def execute_goal_step(self, goal_id: str, context: str = "") -> dict[str, Any]:
+        """Execute the next step of a goal."""
+        await self.initialize()
+        return await self.goals.execute_next_step(goal_id, context)
+
+    async def execute_goal(self, goal_id: str, context: str = "") -> dict[str, Any]:
+        """Execute all remaining steps of a goal."""
+        await self.initialize()
+        return await self.goals.execute_goal(goal_id, context)
+
+    def list_goals(self, status: str | None = None) -> list[dict[str, Any]]:
+        """List goals, optionally filtered by status."""
+        return [g.as_dict() for g in self.goals.list_goals(status=status)]
+
+    def create_api_key(self, name: str, scopes: list[str] | None = None,
+                       connected_model: str = "", rate_limit: int = 60) -> dict[str, Any]:
+        """Create an API key for a larger model to connect."""
+        key = self.api_keys.create_key(name=name, scopes=scopes or ["chat"],
+                                       connected_model=connected_model, rate_limit=rate_limit)
+        return {"status": "ok", "key": key.key, "name": key.name, "scopes": key.scopes,
+                "connected_model": key.connected_model}
+
+    def list_api_keys(self) -> list[dict[str, Any]]:
+        """List all API keys."""
+        return [k.as_dict() for k in self.api_keys.list_keys()]
+
     async def get_stats(self) -> dict[str, Any]:
         """Get comprehensive stats about the system."""
         return {
             "memory": self.memory.get_stats(),
+            "goals": self.goals.get_stats(),
             "universal_link": self.universal_link.get_stats(),
             "subscription": self.subscription.get_stats(),
+            "api_keys": self.api_keys.get_stats(),
             "peer_sync_running": self.peer_sync.is_running,
             "last_peer_sync": self.peer_sync.last_sync,
         }

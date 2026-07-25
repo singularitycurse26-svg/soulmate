@@ -30,6 +30,7 @@ from pydantic import BaseModel
 
 from inc_llm.config import Settings
 from inc_llm.harness import IncLLMHarness
+from inc_llm.openai_compat import setup_openai_compat
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ app.add_middleware(
 
 settings = Settings.from_env()
 harness = IncLLMHarness(settings)
+setup_openai_compat(app, harness, harness.api_keys)
 
 
 class ChatRequest(BaseModel):
@@ -64,6 +66,26 @@ class PaymentConfirmRequest(BaseModel):
     tx_hash: str = ""
     amount: float = 0
     currency: str = "USD"
+
+
+class GoalRequest(BaseModel):
+    title: str
+    description: str
+    priority: str = "medium"
+    deadline: float | None = None
+    tags: list[str] | None = None
+
+
+class GoalActionRequest(BaseModel):
+    goal_id: str
+    context: str = ""
+
+
+class APIKeyRequest(BaseModel):
+    name: str
+    scopes: list[str] | None = None
+    connected_model: str = ""
+    rate_limit: int = 60
 
 
 @app.on_event("startup")
@@ -160,6 +182,66 @@ async def learn(authorization: str = Header(""), session_id: str | None = None):
     if user_info is None:
         raise HTTPException(401, "Invalid or missing token")
     return await harness.learn(session_id)
+
+
+@app.post("/v1/goals/create")
+async def create_goal(req: GoalRequest, authorization: str = Header("")):
+    user_info = _get_user(authorization)
+    if user_info is None:
+        raise HTTPException(401, "Invalid or missing token")
+    return await harness.create_goal(req.title, req.description, req.priority, req.deadline, req.tags)
+
+
+@app.post("/v1/goals/plan")
+async def plan_goal(req: GoalActionRequest, authorization: str = Header("")):
+    user_info = _get_user(authorization)
+    if user_info is None:
+        raise HTTPException(401, "Invalid or missing token")
+    return await harness.plan_goal(req.goal_id)
+
+
+@app.post("/v1/goals/execute-step")
+async def execute_goal_step(req: GoalActionRequest, authorization: str = Header("")):
+    user_info = _get_user(authorization)
+    if user_info is None:
+        raise HTTPException(401, "Invalid or missing token")
+    return await harness.execute_goal_step(req.goal_id, req.context)
+
+
+@app.post("/v1/goals/execute")
+async def execute_goal(req: GoalActionRequest, authorization: str = Header("")):
+    user_info = _get_user(authorization)
+    if user_info is None:
+        raise HTTPException(401, "Invalid or missing token")
+    return await harness.execute_goal(req.goal_id, req.context)
+
+
+@app.get("/v1/goals/list")
+async def list_goals(status: str | None = None, authorization: str = Header("")):
+    user_info = _get_user(authorization)
+    if user_info is None:
+        raise HTTPException(401, "Invalid or missing token")
+    return {"goals": harness.list_goals(status=status)}
+
+
+@app.post("/v1/api-keys/create")
+async def create_api_key(req: APIKeyRequest, authorization: str = Header("")):
+    user_info = _get_user(authorization)
+    if user_info is None:
+        raise HTTPException(401, "Invalid or missing token")
+    if not user_info.get("is_owner"):
+        raise HTTPException(403, "Only the owner can create API keys")
+    return harness.create_api_key(req.name, req.scopes, req.connected_model, req.rate_limit)
+
+
+@app.get("/v1/api-keys/list")
+async def list_api_keys(authorization: str = Header("")):
+    user_info = _get_user(authorization)
+    if user_info is None:
+        raise HTTPException(401, "Invalid or missing token")
+    if not user_info.get("is_owner"):
+        raise HTTPException(403, "Only the owner can list API keys")
+    return {"keys": harness.list_api_keys()}
 
 
 @app.get("/v1/stats")
