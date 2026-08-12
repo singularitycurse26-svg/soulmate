@@ -451,6 +451,80 @@ schtasks /create /tn "SoulmateBouncer" /tr "node C:\path\to\soulmate\bouncer.js"
 | `bouncer-config.json` | Bouncer configuration |
 | `.windsurf/workflows/auto-fix.md` | Auto-fix workflow with Turbo Mode (EAGER execution) |
 
+## SoulIllusions Integration
+
+Soulmate OS integrates with [SoulIllusions Agent](https://github.com/singularitycurse26-svg/soulillusions-agent) — an autonomous AI agent with local LLM processing via Ollama. The integration provides three powerful tools accessible directly from the Soulmate sidebar:
+
+### Text to Video
+
+AI-powered video generation using LTX-Video and SDXL models on GPU backends (Lightning AI, Google Colab, Kaggle GPU):
+
+- **Prompt-based generation** — Describe a scene in natural language and the AI generates a video
+- **Style presets** — Cinematic, Documentary, Anime, Realistic
+- **Resolution control** — 720p or 1080p output
+- **Duration slider** — 5s to 120s with segment-based chaining for longer videos
+- **Live progress tracking** — Real-time status updates (storyboarding → rendering → audio → finalizing)
+- **Video library** — Browse, watch, download, and delete generated videos
+- **Built-in player** — Watch completed videos directly in the UI
+
+### Dual Agent Control
+
+Control two autonomous AI agents from within Soulmate OS:
+
+- **Main Agent** — Full ReAct 9-phase reasoning loop powered by dolphin-mistral (uncensored) via Ollama
+- **Sub-Agent** — Secondary agent for delegated tasks and parallel execution
+- **Start/Stop controls** — Launch and halt agents on demand
+- **Goal input** — Set objectives for each agent independently
+- **Live activity logs** — Real-time log output showing agent actions and reasoning
+- **Status indicators** — Visual status badges (running, stopped, idle, offline)
+- **Agent configuration** — Model: dolphin-mistral, Mode: Local (Ollama), Reasoning: ReAct 9-Phase, Memory: 3-Layer Persistent
+
+### Book Writer
+
+Full AI-assisted book writing system with audiobook generation:
+
+- **Book library** — Browse all created books with cover thumbnails, genre tags, and chapter counts
+- **Create books** — Title, author, genre, and description fields
+- **Chapter management** — Add chapters with custom titles
+- **AI writing** — Generate chapter content with a single click
+- **Continue writing** — Extend existing chapter content with AI continuation
+- **Word count tracking** — Monitor progress per chapter
+- **Chapter status** — Track writing state (pending, writing, complete)
+- **Audiobook generation** — Convert completed books to audio with one click
+- **Content preview** — Read chapter content inline with line clamping
+
+### SoulIllusions API Endpoints
+
+The integration connects to the SoulIllusions Agent server running on port 7869:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/video/create` | POST | Create AI video from text prompt |
+| `/api/video/status/{id}` | GET | Check video generation status |
+| `/api/video/list` | GET | List all video projects |
+| `/api/video/download/{id}` | GET | Download completed video |
+| `/api/video/{id}` | DELETE | Delete a video project |
+| `/api/status` | GET | Get main agent status |
+| `/api/start` | POST | Start main agent with goal |
+| `/api/stop` | POST | Stop main agent |
+| `/api/sub-agent/status` | GET | Get sub-agent status |
+| `/api/sub-agent/start` | POST | Start sub-agent with goal |
+| `/api/sub-agent/stop` | POST | Stop sub-agent |
+| `/api/books` | GET | List all books |
+| `/api/books/create` | POST | Create a new book |
+| `/api/books/{id}` | GET | Get book details and chapters |
+| `/api/books/{id}` | DELETE | Delete a book |
+| `/api/books/{id}/chapter` | POST | Add a chapter to a book |
+| `/api/books/{id}/write` | POST | AI-write a chapter |
+| `/api/books/chapter/{id}/continue` | POST | Continue AI-writing a chapter |
+| `/api/books/{id}/audiobook` | POST | Generate audiobook from book |
+
+### Setup
+
+1. Install [SoulIllusions Agent](https://github.com/singularitycurse26-svg/soulillusions-agent)
+2. Start the SoulIllusions server: `soulillusions serve` (runs on port 7869)
+3. Open Soulmate OS and click the SoulIllusions icon in the sidebar
+
 ## Support the Project
 
 If Soulmate helps you, consider supporting development:
