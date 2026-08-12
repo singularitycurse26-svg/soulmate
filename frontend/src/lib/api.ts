@@ -741,3 +741,59 @@ export const soulIllusionsApi = {
   generateAudiobook: (bookId: string) =>
     fetch(`${SOULILLUSIONS_URL}/api/books/${bookId}/audiobook`, { method: "POST" }).then(r => r.json()),
 };
+
+// SoulIllusions Agent API — chat, conversations, projects, config, agent control
+// This is the AI brain that controls all of Soulmate OS
+export const soulIllusionsAgentApi = {
+  // Chat (OpenAI-compatible)
+  chat: (messages: Array<{ role: string; content: string }>, model?: string) =>
+    fetch(`${SOULILLUSIONS_URL}/v1/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: model || "dolphin-mistral:latest", messages, max_tokens: 2000, temperature: 0.7 }),
+    }).then(r => r.json()),
+
+  // Conversations (persistent)
+  listConversations: () =>
+    fetch(`${SOULILLUSIONS_URL}/api/conversations`).then(r => r.json()),
+  createConversation: (data: { title: string; model?: string; project_id?: string }) =>
+    fetch(`${SOULILLUSIONS_URL}/api/conversations`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json()),
+  getConversation: (id: string) =>
+    fetch(`${SOULILLUSIONS_URL}/api/conversations/${id}`).then(r => r.json()),
+  deleteConversation: (id: string) =>
+    fetch(`${SOULILLUSIONS_URL}/api/conversations/${id}`, { method: "DELETE" }).then(r => r.json()),
+  updateConversation: (id: string, data: { title?: string }) =>
+    fetch(`${SOULILLUSIONS_URL}/api/conversations/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json()),
+  addMessage: (convId: string, data: { role: string; content: string; tokens?: number }) =>
+    fetch(`${SOULILLUSIONS_URL}/api/conversations/${convId}/messages`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json()),
+
+  // Projects
+  listProjects: () =>
+    fetch(`${SOULILLUSIONS_URL}/api/projects`).then(r => r.json()),
+  createProject: (data: { name: string; description?: string }) =>
+    fetch(`${SOULILLUSIONS_URL}/api/projects`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json()),
+  deleteProject: (id: string) =>
+    fetch(`${SOULILLUSIONS_URL}/api/projects/${id}`, { method: "DELETE" }).then(r => r.json()),
+
+  // Agent Control
+  getStatus: () =>
+    fetch(`${SOULILLUSIONS_URL}/api/status`).then(r => r.json()),
+  startAgent: (goal?: string) =>
+    fetch(`${SOULILLUSIONS_URL}/api/start`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ goal }) }).then(r => r.json()),
+  stopAgent: () =>
+    fetch(`${SOULILLUSIONS_URL}/api/stop`, { method: "POST" }).then(r => r.json()),
+  setGoal: (goal: string) =>
+    fetch(`${SOULILLUSIONS_URL}/api/goal`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ goal }) }).then(r => r.json()),
+  sendPrompt: (prompt: string) =>
+    fetch(`${SOULILLUSIONS_URL}/api/prompt`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt }) }).then(r => r.json()),
+
+  // Config
+  getConfig: () =>
+    fetch(`${SOULILLUSIONS_URL}/api/config`).then(r => r.json()),
+  updateConfig: (data: any) =>
+    fetch(`${SOULILLUSIONS_URL}/api/config`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json()),
+
+  // Models
+  getModels: () =>
+    fetch(`${SOULILLUSIONS_URL}/api/models`).then(r => r.json()),
+};

@@ -234,7 +234,7 @@ Soulmate includes a full-featured React + TypeScript web application with an Ope
 
 ### Features
 
-- **Hermes Agent Chat** — Full chat interface with the autonomous AI agent, session management, markdown rendering, and tool execution
+- **SoulIllusions AI Brain** — The central AI agent that controls all Soulmate OS categories. Chat interface with persistent conversations, project organization, model switching (dolphin-mistral, qwen2.5, gemma-12b, qwen-hermes-7b), and direct control over email, contacts, wallet, phone, games, and security through natural language
 - **JARVIS Voice Assistant** — Iron Man-style voice integration with wake word detection, push-to-talk, and animated waveform visualizer
 - **Soulmate Social** — Facebook-style social feed with posts, likes, comments, friends, DMs, stories, and notifications
 - **Marketplace** — Buy/sell listings with categories, search, saved items, Google Pay integration, and seller messaging
@@ -383,6 +383,72 @@ A Tinder-style dating feature with swipe mechanics:
 | `/v1/dating/matches` | GET | Get your matches |
 | `/v1/dating/matches/{id}/messages` | GET/POST | Get/send match messages |
 | `/v1/dating/likes-you` | GET | See who liked you |
+
+## SoulIllusions AI Brain
+
+The SoulIllusions Agent is the central AI brain that controls every category in Soulmate OS. Accessible from the sidebar (Brain icon), it provides a full chat interface, autonomous agent control, and configuration — all powered by the [SoulIllusions Agent](https://github.com/singularitycurse26-svg/soulillusions-agent) server running on port 7869.
+
+### Chat Interface
+
+- **Persistent Conversations** — All chats are saved server-side with full message history
+- **Project Organization** — Group conversations into projects for context-aware sessions
+- **Model Switching** — Switch between dolphin-mistral (uncensored), qwen2.5:7b, gemma-12b, and qwen-hermes-7b at runtime
+- **Token Tracking** — Real-time token usage display per message and cumulative
+- **Quick Actions** — One-click prompts to check wallet balance, read emails, list contacts, set reminders, browse the web, or check agent status
+- **Soulmate OS Integration** — The AI can control email, contacts, wallet, phone, games, and security through natural language commands
+
+### Agent Control
+
+- **Start/Stop** — Launch and halt the autonomous agent loop on demand
+- **Goal Setting** — Set autonomous objectives for the agent to work toward
+- **Live Status** — Real-time status indicators (running, stopped, idle, offline)
+- **Action Counter** — Track total actions taken by the agent
+- **Uptime Display** — Monitor how long the agent has been running
+- **9-Phase Reasoning Loop** — Visual breakdown of the agent's reasoning pipeline: Classify → Define Done → Evidence → Decide → Act → Verify → Repair → Synthesize → Judge
+
+### Overview Dashboard
+
+- **Active Model** — Current LLM model in use
+- **Agent Status** — Running state with color-coded indicators
+- **Uptime** — Duration of current agent session
+- **Conversation Count** — Total persistent conversations
+- **Actions Taken** — Cumulative agent actions
+- **Tokens Used** — Total tokens consumed across all chats
+- **3-Layer Memory** — Visual display of Working (context window), Episodic (SQLite, 30-day decay), and Semantic (knowledge graph with bidirectional recursive links) memory layers
+- **Category Integration** — Quick-jump buttons to Email, Contacts, Wallet, Phone, Games, and Security
+
+### Configuration
+
+- **Model Selection** — Choose from available Ollama models
+- **Ollama Endpoint** — Displays connection endpoint (localhost:11434)
+- **API Endpoint** — Displays SoulIllusions server endpoint (localhost:7869)
+- **Censorship Status** — Shows uncensored mode (disabled)
+- **Max Actions** — Configure action limit before agent refresh (5/10/20/50)
+- **Available Models** — Lists all Ollama models installed on the system
+
+### SoulIllusions Agent API
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v1/chat/completions` | POST | OpenAI-compatible chat completion |
+| `/api/conversations` | GET/POST | List/create conversations |
+| `/api/conversations/{id}` | GET/PUT/DELETE | Get/update/delete conversation |
+| `/api/conversations/{id}/messages` | POST | Add message to conversation |
+| `/api/projects` | GET/POST | List/create projects |
+| `/api/projects/{id}` | DELETE | Delete project |
+| `/api/status` | GET | Get agent status |
+| `/api/start` | POST | Start autonomous agent |
+| `/api/stop` | POST | Stop autonomous agent |
+| `/api/goal` | POST | Set agent goal |
+| `/api/prompt` | POST | Send direct prompt to agent |
+| `/api/config` | GET/POST | Get/update configuration |
+| `/api/models` | GET | List available Ollama models |
+
+### Setup
+
+1. Install [SoulIllusions Agent](https://github.com/singularitycurse26-svg/soulillusions-agent)
+2. Start the server: `soulillusions serve` (runs on port 7869)
+3. Open Soulmate OS and click the Brain icon in the sidebar
 
 ## Hermes Agent Integration
 
