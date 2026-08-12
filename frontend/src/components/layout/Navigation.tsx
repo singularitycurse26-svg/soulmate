@@ -19,7 +19,11 @@ import {
   Coins,
   Crown,
   Activity,
+  BookOpen,
+  PlayCircle,
+  Sparkles,
 } from "lucide-react";
+import incentivesCoin from "@/assets/incentives-coin.png";
 
 const navItems: { page: AppPage; labelKey: string; icon: any }[] = [
   { page: "dashboard", labelKey: "common:nav.dashboard", icon: LayoutDashboard },
@@ -35,10 +39,13 @@ const navItems: { page: AppPage; labelKey: string; icon: any }[] = [
   { page: "openclaw", labelKey: "common:nav.openclaw", icon: Terminal },
   { page: "hermes", labelKey: "common:nav.hermes", icon: Cpu },
   { page: "incentives", labelKey: "common:nav.incentives", icon: Coins },
+  { page: "soultube", labelKey: "common:nav.soultube", icon: PlayCircle },
+  { page: "soulillusions", labelKey: "common:nav.soulillusions", icon: Sparkles },
 ];
 
 const founderNavItems: { page: AppPage; labelKey: string; icon: any }[] = [
   { page: "healing", labelKey: "common:nav.healing", icon: Activity },
+  { page: "journal", labelKey: "common:nav.journal", icon: BookOpen },
 ];
 
 export function Sidebar() {
@@ -54,8 +61,13 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex flex-col w-60 h-screen bg-bg-card border-r border-border p-4 fixed left-0 top-0">
       <div className="mb-8 px-2">
-        <h1 className="text-xl font-bold text-gradient">Soulmate OS</h1>
-        <p className="text-xs text-muted mt-1">Personal AI Comms</p>
+        <div className="flex items-center gap-2">
+          <img src={incentivesCoin} alt="Incentives Inc." className="w-7 h-7 rounded-lg object-cover" />
+          <div className="flex flex-col leading-none">
+            <h1 className="text-lg font-bold text-gradient">Incentives Inc.</h1>
+            <p className="text-[10px] text-muted mt-0.5">Soulmate OS</p>
+          </div>
+        </div>
         {isFounder && (
           <div className="flex items-center gap-1.5 mt-2 px-2 py-1 rounded-md bg-accent/10">
             <Crown className="w-3.5 h-3.5 text-accent" />

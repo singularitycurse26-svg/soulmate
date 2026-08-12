@@ -4,7 +4,7 @@
     "email": "Email",
     "phone": "Phone",
     "contacts": "Contacts",
-    "ai": "AI Assistant",
+    "ai": "incllmv2",
     "games": "Games",
     "wallet": "Wallet",
     "security": "Security",
@@ -13,7 +13,11 @@
     "marketplace": "Marketplace",
     "dating": "Dating",
     "incentives": "Incentives",
-    "healing": "Healing"
+    "healing": "Healing",
+    "journal": "Journal",
+    "soultube": "SoulTube",
+    "soulmovies": "SoulMovies",
+    "soulillusions": "SoulIllusions"
   },
   "actions": {
     "send": "Send",

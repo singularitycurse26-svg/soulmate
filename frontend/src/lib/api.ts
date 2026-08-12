@@ -1,4 +1,4 @@
-const API_BASE = "https://191.44.121.29.sslip.io";
+const API_BASE = "";
 const API_PORT = "";
 const API_TOKEN = "soulmate_wallet_2024";
 
@@ -372,10 +372,129 @@ export const hermesApi = {
     apiFetch(`/v1/hermes/sessions/${id}/switch`, { method: "POST" }),
 };
 
+// incllmv2 API — uses same-origin relative URLs when served from incllmv2 server,
+// falls back to localhost:8547 in dev mode
+const INCLLMV2_BASE = isDev ? "http://localhost:8547" : "";
+
+async function incllmv2Token(): Promise<string> {
+  const existing = localStorage.getItem("incllmv2_token");
+  if (existing) return existing;
+  const r = await fetch(`${INCLLMV2_BASE}/v1/auth/auto`, {
+    method: "POST",
+  });
+  const data = await r.json();
+  if (!r.ok || data.status !== "ok") throw new Error(data.message || "incllmv2 auth failed");
+  localStorage.setItem("incllmv2_token", data.token);
+  return data.token;
+}
+
+async function incllmv2Fetch<T = any>(path: string, options: RequestInit = {}): Promise<T> {
+  const token = await incllmv2Token();
+  const r = await fetch(`${INCLLMV2_BASE}${path}`, {
+    ...options,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...options.headers },
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.detail || data.message || `incllmv2 HTTP ${r.status}`);
+  return data;
+}
+
+export const incllmv2Api = {
+  chat: (message: string, model?: string) =>
+    incllmv2Fetch("/v1/ai/chat", {
+      method: "POST",
+      body: JSON.stringify({ message, model: model || "incllmv2" }),
+    }),
+  history: () => incllmv2Fetch("/v1/ai/history"),
+  memories: () => incllmv2Fetch("/v1/ai/memory"),
+  deleteMemory: (nodeId: string) =>
+    incllmv2Fetch(`/v1/ai/memory/${encodeURIComponent(nodeId)}`, { method: "DELETE" }),
+  clearMemories: () =>
+    incllmv2Fetch("/v1/ai/memory/clear", { method: "POST" }),
+  consolidateMemories: () =>
+    incllmv2Fetch("/v1/ai/memory/consolidate", { method: "POST" }),
+  storeMemory: (type: string, content: string, importance?: number) =>
+    incllmv2Fetch("/v1/ai/memory", {
+      method: "POST",
+      body: JSON.stringify({ type, content, importance }),
+    }),
+  settings: () => incllmv2Fetch("/v1/ai/settings"),
+  updateSettings: (data: any) =>
+    incllmv2Fetch("/v1/ai/settings", { method: "POST", body: JSON.stringify(data) }),
+  tools: () => incllmv2Fetch("/v1/ai/tools"),
+  // Raw chat (direct harness, no /v1/ai wrapper)
+  rawChat: async (sessionId: string, message: string, model?: string) => {
+    const token = await incllmv2Token();
+    const r = await fetch(`${INCLLMV2_BASE}/v1/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ message, session_id: sessionId, model: model || "incllmv2" }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || data.message || "incllmv2 chat failed");
+    return data;
+  },
+};
+
+// --- Trill / Singularity / SplitBit LLM APIs ---
+// All route through incllmv2 (port 8547) with a model parameter.
+// incllmv2 handles the request using its RLOS+Ollama backend with
+// LLM-specific system prompts. No separate servers needed.
+
+function makeLlmApi(modelId: string) {
+  return {
+    chat: (message: string) =>
+      incllmv2Fetch("/v1/ai/chat", {
+        method: "POST",
+        body: JSON.stringify({ message, model: modelId }),
+      }),
+    history: () => incllmv2Fetch("/v1/ai/history"),
+    memories: () => incllmv2Fetch("/v1/ai/memory"),
+    deleteMemory: (nodeId: string) =>
+      incllmv2Fetch(`/v1/ai/memory/${encodeURIComponent(nodeId)}`, { method: "DELETE" }),
+    clearMemories: () => incllmv2Fetch("/v1/ai/memory/clear", { method: "POST" }),
+    consolidateMemories: () => incllmv2Fetch("/v1/ai/memory/consolidate", { method: "POST" }),
+    storeMemory: (type: string, content: string, importance?: number) =>
+      incllmv2Fetch("/v1/ai/memory", {
+        method: "POST",
+        body: JSON.stringify({ type, content, importance }),
+      }),
+    settings: () => incllmv2Fetch("/v1/ai/settings"),
+    updateSettings: (data: any) =>
+      incllmv2Fetch("/v1/ai/settings", { method: "POST", body: JSON.stringify(data) }),
+    tools: () => incllmv2Fetch("/v1/ai/tools"),
+    rawChat: async (sessionId: string, message: string) => {
+      const token = await incllmv2Token();
+      const r = await fetch(`${INCLLMV2_BASE}/v1/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ message, session_id: sessionId, model: modelId }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || data.message || `${modelId} chat failed`);
+      return data;
+    },
+  };
+}
+
+export const trillApi = makeLlmApi("trill");
+export const singularityApi = makeLlmApi("singularity");
+export const splitbitApi = makeLlmApi("splitbit");
+
+// Helper to get the right API based on model selection
+export function getLlmApi(model: string) {
+  switch (model) {
+    case "trill": return trillApi;
+    case "singularity": return singularityApi;
+    case "splitbit": return splitbitApi;
+    default: return incllmv2Api;
+  }
+}
+
 // Social API (Soulmate Social)
 export const socialApi = {
   // Posts
-  createPost: (data: { text: string; image_url?: string; privacy?: string }) =>
+  createPost: (data: { text: string; image_url?: string; video_url?: string; privacy?: string }) =>
     apiFetch("/v1/social/posts", { method: "POST", body: JSON.stringify(data) }),
   getFeed: (page?: number) => apiFetch(`/v1/social/feed${page ? `?page=${page}` : ""}`),
   getPost: (id: number) => apiFetch(`/v1/social/posts/${id}`),
@@ -532,4 +651,93 @@ export const translateApi = {
     apiFetch("/v1/user/language", { method: "POST", body: JSON.stringify({ language: lang }) }),
   getLanguage: () => apiFetch("/v1/user/language"),
   getUserLanguage: (userId: number) => apiFetch(`/v1/user/language/${userId}`),
+};
+
+// SoulTube API
+export const soulTubeApi = {
+  getTrending: (limit = 20) => apiFetch(`/v1/soultube/trending?limit=${limit}`),
+  search: (q: string, limit = 20) => apiFetch(`/v1/soultube/search?q=${encodeURIComponent(q)}&limit=${limit}`),
+  getVideo: (id: string) => apiFetch(`/v1/soultube/video/${id}`),
+  getRecommendations: (id: string) => apiFetch(`/v1/soultube/recommendations/${id}`),
+  getComments: (id: string, sort = "top", cursor?: string) =>
+    apiFetch(`/v1/soultube/comments/${id}?sort=${sort}${cursor ? `&cursor=${cursor}` : ""}`),
+  addComment: (id: string, text: string) =>
+    apiFetch(`/v1/soultube/comments/${id}`, { method: "POST", body: JSON.stringify({ text }) }),
+  likeVideo: (id: string) => apiFetch(`/v1/soultube/like/${id}`, { method: "POST" }),
+  subscribe: (creatorId: string) => apiFetch(`/v1/soultube/subscribe/${creatorId}`, { method: "POST" }),
+  unsubscribe: (creatorId: string) => apiFetch(`/v1/soultube/subscribe/${creatorId}`, { method: "DELETE" }),
+  getChannel: (creatorId: string) => apiFetch(`/v1/soultube/channel/${creatorId}`),
+  getAnalytics: () => apiFetch(`/v1/soultube/analytics`),
+  getHistory: () => apiFetch(`/v1/soultube/history`),
+  getStats: () => apiFetch(`/v1/soultube/stats`),
+  uploadVideo: (formData: FormData) =>
+    fetch(`${API_URL}/v1/soultube/upload`, {
+      method: "POST",
+      headers: { "X-API-Token": API_TOKEN, "X-Session-Token": localStorage.getItem("session_token") || "" },
+      body: formData,
+    }).then((r) => r.json()),
+  getStreamUrl: (id: string, resolution = "720p") =>
+    `${API_URL}/v1/soultube/stream/${id}?resolution=${resolution}`,
+  getThumbnailUrl: (id: string) => `${API_URL}/v1/soultube/thumbnail/${id}`,
+};
+
+// SoulMovies API
+export const soulMoviesApi = {
+  create: (data: { text_description: string; style?: string; mode?: string; resolution?: string; duration_s?: number }) =>
+    apiFetch("/v1/soulmovies/create", { method: "POST", body: JSON.stringify(data) }),
+  getStatus: (id: string) => apiFetch(`/v1/soulmovies/status/${id}`),
+  listProjects: () => apiFetch("/v1/soulmovies/list"),
+  download: (id: string) => `${API_URL}/v1/soulmovies/download/${id}`,
+  delete: (id: string) => apiFetch(`/v1/soulmovies/${id}`, { method: "DELETE" }),
+  publish: (id: string) => apiFetch(`/v1/soulmovies/publish/${id}`, { method: "POST" }),
+  getStyles: () => apiFetch("/v1/soulmovies/styles"),
+  getStats: () => apiFetch("/v1/soulmovies/stats"),
+};
+
+// SoulIllusions API — connects to SoulIllusions Agent server (port 7869)
+const SOULILLUSIONS_URL = isDev ? "http://localhost:7869" : "http://localhost:7869";
+
+export const soulIllusionsApi = {
+  // Text to Video
+  createVideo: (data: { text_description: string; style?: string; resolution?: string; duration_s?: number }) =>
+    fetch(`${SOULILLUSIONS_URL}/api/video/create`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json()),
+  getVideoStatus: (id: string) =>
+    fetch(`${SOULILLUSIONS_URL}/api/video/status/${id}`).then(r => r.json()),
+  listVideos: () =>
+    fetch(`${SOULILLUSIONS_URL}/api/video/list`).then(r => r.json()),
+  downloadVideo: (id: string) => `${SOULILLUSIONS_URL}/api/video/download/${id}`,
+  deleteVideo: (id: string) =>
+    fetch(`${SOULILLUSIONS_URL}/api/video/${id}`, { method: "DELETE" }).then(r => r.json()),
+
+  // Agents
+  getAgentStatus: () =>
+    fetch(`${SOULILLUSIONS_URL}/api/status`).then(r => r.json()),
+  startAgent: (goal: string) =>
+    fetch(`${SOULILLUSIONS_URL}/api/start`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ goal }) }).then(r => r.json()),
+  stopAgent: () =>
+    fetch(`${SOULILLUSIONS_URL}/api/stop`, { method: "POST" }).then(r => r.json()),
+  getSubAgentStatus: () =>
+    fetch(`${SOULILLUSIONS_URL}/api/sub-agent/status`).then(r => r.json()),
+  startSubAgent: (goal: string) =>
+    fetch(`${SOULILLUSIONS_URL}/api/sub-agent/start`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ goal }) }).then(r => r.json()),
+  stopSubAgent: () =>
+    fetch(`${SOULILLUSIONS_URL}/api/sub-agent/stop`, { method: "POST" }).then(r => r.json()),
+
+  // Books
+  listBooks: () =>
+    fetch(`${SOULILLUSIONS_URL}/api/books`).then(r => r.json()),
+  getBook: (id: string) =>
+    fetch(`${SOULILLUSIONS_URL}/api/books/${id}`).then(r => r.json()),
+  createBook: (data: { title: string; author?: string; genre?: string; description?: string }) =>
+    fetch(`${SOULILLUSIONS_URL}/api/books/create`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json()),
+  deleteBook: (id: string) =>
+    fetch(`${SOULILLUSIONS_URL}/api/books/${id}`, { method: "DELETE" }).then(r => r.json()),
+  addChapter: (bookId: string, data: { title: string }) =>
+    fetch(`${SOULILLUSIONS_URL}/api/books/${bookId}/chapter`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json()),
+  writeChapter: (bookId: string, data: { chapter_id: string }) =>
+    fetch(`${SOULILLUSIONS_URL}/api/books/${bookId}/write`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json()),
+  continueChapter: (chapterId: string) =>
+    fetch(`${SOULILLUSIONS_URL}/api/books/chapter/${chapterId}/continue`, { method: "POST" }).then(r => r.json()),
+  generateAudiobook: (bookId: string) =>
+    fetch(`${SOULILLUSIONS_URL}/api/books/${bookId}/audiobook`, { method: "POST" }).then(r => r.json()),
 };

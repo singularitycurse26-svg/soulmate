@@ -24,7 +24,10 @@ export type AppPage =
   | "marketplace"
   | "dating"
   | "incentives"
-  | "healing";
+  | "healing"
+  | "journal"
+  | "soultube"
+  | "soulillusions";
 
 interface Alert {
   id: number;
