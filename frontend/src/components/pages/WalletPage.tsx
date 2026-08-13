@@ -3,12 +3,13 @@ import { useStore } from "@/lib/store";
 import { useTranslation } from "react-i18next";
 import { API_BASE } from "@/lib/api";
 import { cn, shortenAddress, copyToClipboard, formatBalance } from "@/lib/utils";
-import { Wallet as WalletIcon, Send, Download, QrCode, Copy, Tag, History, Coins, Search, ArrowUpRight, ArrowDownLeft, RefreshCw, DollarSign, Plus, KeyRound, Crown, Activity, Zap, TrendingUp, ExternalLink, Rocket, Layers, Droplet } from "lucide-react";
+import { Wallet as WalletIcon, Send, Download, QrCode, Copy, Tag, History, Coins, Search, ArrowUpRight, ArrowDownLeft, RefreshCw, DollarSign, Plus, KeyRound, Crown, Activity, Zap, TrendingUp, ExternalLink, Rocket, Layers, Droplet, Gift, Users, Clock, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { IncentiveTokenABI, IncentiveTokenBytecode } from "@/contracts/IncentiveToken";
 import { IncentiveVestingABI, IncentiveVestingBytecode } from "@/contracts/IncentiveVesting";
 import { FounderMasterVaultABI, FounderMasterVaultBytecode } from "@/contracts/FounderMasterVault";
 import { IncentiveGamingStakingABI, IncentiveGamingStakingBytecode } from "@/contracts/IncentiveGamingStaking";
+import { IncentiveUBIABI, IncentiveUBIBytecode } from "@/contracts/IncentiveUBI";
 import incentivesCoin from "@/assets/incentives-coin.png";
 
 const BSC_RPC = "https://bsc-dataseed.binance.org";
@@ -51,7 +52,7 @@ interface TxRecord {
   direction: "out" | "in"; timestamp: number;
 }
 
-type WalletView = "main" | "send" | "receive" | "tags" | "history" | "buy" | "add-funds" | "deploy" | "founder-vault" | "agent-status" | "liquidity";
+type WalletView = "main" | "send" | "receive" | "tags" | "history" | "buy" | "add-funds" | "deploy" | "founder-vault" | "agent-status" | "liquidity" | "ubi";
 
 // Use the shared API_BASE from api.ts (https://191.44.121.29.sslip.io)
 
@@ -78,6 +79,16 @@ export function WalletPage() {
   const [disburseCategory, setDisburseCategory] = useState("0");
   const [disburseAddr, setDisburseAddr] = useState("");
   const [refillAmount, setRefillAmount] = useState("1000000000");
+
+  // UBI state
+  const [ubiData, setUbiData] = useState<any>(null);
+  const [ubiRegistered, setUbiRegistered] = useState(false);
+  const [ubiEligible, setUbiEligible] = useState(false);
+  const [ubiLastClaim, setUbiLastClaim] = useState(0);
+  const [ubiRegTime, setUbiRegTime] = useState(0);
+  const [ubiClaiming, setUbiClaiming] = useState(false);
+  const [ubiRegistering, setUbiRegistering] = useState(false);
+  const ubiContractRef = useRef<any>(null);
 
   const [sendTo, setSendTo] = useState("");
   const [sendAmount, setSendAmount] = useState("");
@@ -197,6 +208,12 @@ export function WalletPage() {
         contractsRef.current["INC"] = incContractRef.current;
       }
 
+      // Init UBI contract if deployed
+      const ubiAddr = localStorage.getItem("inc_ubi_contract");
+      if (ubiAddr) {
+        ubiContractRef.current = new ethers.Contract(ubiAddr, IncentiveUBIABI, wallet);
+      }
+
       await updateBalances();
       const history = JSON.parse(localStorage.getItem("soulmate_tx_history") || "[]");
       setTxHistory(history);
@@ -217,6 +234,40 @@ export function WalletPage() {
   }, [walletKey, walletAddress, updateBalances, showAlert]);
 
   useEffect(() => { initWallet(); }, [initWallet]);
+
+  // Fetch UBI data
+  const fetchUBIData = useCallback(async () => {
+    if (!ubiContractRef.current || !walletAddress) return;
+    try {
+      const ethers = await import("ethers");
+      const ubi = ubiContractRef.current;
+      const [info, registered, eligible, lastClaim, regTime] = await Promise.all([
+        ubi.getUBIInfo(),
+        ubi.isRegistered(walletAddress),
+        ubi.isEligible(walletAddress),
+        ubi.lastClaimTime(walletAddress),
+        ubi.registrationTime(walletAddress),
+      ]);
+      setUbiData({
+        poolBalance: parseFloat(ethers.formatUnits(info[0], 18)),
+        currentRate: parseFloat(ethers.formatUnits(info[1], 18)),
+        nextHalvingTime: Number(info[2]),
+        halvingCount: Number(info[3]),
+        totalRecipients: Number(info[4]),
+        totalDistributed: parseFloat(ethers.formatUnits(info[5], 18)),
+      });
+      setUbiRegistered(registered);
+      setUbiEligible(eligible);
+      setUbiLastClaim(Number(lastClaim));
+      setUbiRegTime(Number(regTime));
+    } catch (e: any) {
+      console.error("UBI data fetch failed:", e);
+    }
+  }, [walletAddress]);
+
+  useEffect(() => {
+    if (localStorage.getItem("inc_ubi_contract")) fetchUBIData();
+  }, [fetchUBIData]);
 
   useEffect(() => {
     const cards = JSON.parse(localStorage.getItem("soulmate_saved_cards") || "[]");
@@ -392,63 +443,79 @@ export function WalletPage() {
       const wallet = walletRef.current;
       const toWei = (n: string) => ethers.parseUnits(n, 18);
 
-      setDeployStep("1/11 Deploying IncentiveToken...");
+      setDeployStep("1/14 Deploying IncentiveToken...");
       const TokenFactory = new ethers.ContractFactory(IncentiveTokenABI, IncentiveTokenBytecode, wallet);
       const token = await TokenFactory.deploy(wallet.address);
       await token.waitForDeployment();
       const tokenAddr = await token.getAddress();
       localStorage.setItem("inc_contract", tokenAddr);
 
-      setDeployStep("2/11 Deploying FounderMasterVault...");
+      setDeployStep("2/14 Deploying FounderMasterVault...");
       const VaultFactory = new ethers.ContractFactory(FounderMasterVaultABI, FounderMasterVaultBytecode, wallet);
       const vault = await VaultFactory.deploy(tokenAddr);
       await vault.waitForDeployment();
       const vaultAddr = await vault.getAddress();
       localStorage.setItem("founder_vault_contract", vaultAddr);
 
-      setDeployStep("3/11 Deploying IncentiveVesting...");
+      setDeployStep("3/14 Deploying IncentiveVesting...");
       const VestingFactory = new ethers.ContractFactory(IncentiveVestingABI, IncentiveVestingBytecode, wallet);
       const vesting = await VestingFactory.deploy(tokenAddr, wallet.address);
       await vesting.waitForDeployment();
       const vestingAddr = await vesting.getAddress();
       localStorage.setItem("inc_vesting_contract", vestingAddr);
 
-      setDeployStep("4/11 Deploying IncentiveGamingStaking...");
+      setDeployStep("4/14 Deploying IncentiveGamingStaking...");
       const StakingFactory = new ethers.ContractFactory(IncentiveGamingStakingABI, IncentiveGamingStakingBytecode, wallet);
       const staking = await StakingFactory.deploy(tokenAddr);
       await staking.waitForDeployment();
       const stakingAddr = await staking.getAddress();
       localStorage.setItem("inc_staking_contract", stakingAddr);
 
-      setDeployStep("5/11 Linking vesting to vault...");
+      setDeployStep("5/14 Deploying IncentiveUBI...");
+      const UBIFactory = new ethers.ContractFactory(IncentiveUBIABI, IncentiveUBIBytecode, wallet);
+      const ubi = await UBIFactory.deploy(tokenAddr, vaultAddr);
+      await ubi.waitForDeployment();
+      const ubiAddr = await ubi.getAddress();
+      localStorage.setItem("inc_ubi_contract", ubiAddr);
+      ubiContractRef.current = new ethers.Contract(ubiAddr, IncentiveUBIABI, wallet);
+
+      setDeployStep("6/14 Linking vesting to vault...");
       await (await vault.setVestingContract(vestingAddr)).wait();
 
-      setDeployStep("6/11 Linking staking to vault...");
+      setDeployStep("7/14 Linking staking to vault...");
       await (await vault.setStakingContract(stakingAddr)).wait();
 
-      setDeployStep("7/11 Initializing reserves...");
-      await (await vault.initializeReserves(toWei("200000000000"), toWei("150000000000"), toWei("100000000000"))).wait();
+      setDeployStep("8/14 Initializing reserves (350B: 200B staking, 150B marketing)...");
+      await (await vault.initializeReserves(toWei("200000000000"), toWei("150000000000"), toWei("0"))).wait();
 
-      setDeployStep("8/11 Transferring 450B INC to vault...");
-      await (await token.transfer(vaultAddr, toWei("450000000000"))).wait();
+      setDeployStep("9/14 Transferring 350B INC to vault...");
+      await (await token.transfer(vaultAddr, toWei("350000000000"))).wait();
 
-      setDeployStep("9/11 Transferring 250B INC to vesting...");
+      setDeployStep("10/14 Transferring 250B INC to vesting...");
       await (await token.transfer(vestingAddr, toWei("250000000000"))).wait();
 
-      setDeployStep("10/11 Transferring 1B INC to staking...");
+      setDeployStep("11/14 Transferring 100B INC to UBI pool...");
+      await (await token.transfer(ubiAddr, toWei("100000000000"))).wait();
+      await (await ubi.depositToPool(toWei("100000000000"))).wait();
+
+      setDeployStep("12/14 Transferring 1B INC to staking...");
       await (await token.transfer(stakingAddr, toWei("1000000000"))).wait();
 
-      setDeployStep("11/11 Starting first reward cycle...");
+      setDeployStep("13/14 Starting first reward cycle...");
       await (await staking.notifyRewardFromBalance(toWei("1000000000"))).wait();
+
+      setDeployStep("14/14 Setting UBI initial rate (1000 INC/month)...");
+      await (await ubi.setInitialRate(toWei("1000"))).wait();
 
       incContractRef.current = new ethers.Contract(tokenAddr, ERC20_ABI, wallet);
       contractsRef.current["INC"] = incContractRef.current;
 
-      showAlert("success", "All contracts deployed! Token, Vault, Vesting, and Staking are live on BSC.");
+      showAlert("success", "All 5 contracts deployed! Token, Vault, Vesting, Staking, and UBI are live on BSC.");
       setDeployStep("");
       setDeploying(false);
       await updateBalances();
       await fetchVaultData();
+      await fetchUBIData();
       setView("founder-vault");
     } catch (e: any) {
       showAlert("danger", "Deployment failed: " + e.message);
@@ -616,6 +683,11 @@ export function WalletPage() {
           <button onClick={() => setView("send")} className="btn-primary flex items-center justify-center gap-2 py-4"><Send className="w-5 h-5" /> Send</button>
           <button onClick={() => setView("receive")} className="btn-secondary flex items-center justify-center gap-2 py-4"><Download className="w-5 h-5" /> Receive</button>
         </div>
+        {localStorage.getItem("inc_ubi_contract") && (
+          <button onClick={() => { setView("ubi"); fetchUBIData(); }} className="btn-ghost flex items-center justify-center gap-2 py-3 text-sm w-full" style={{ background: "linear-gradient(135deg, #16a34a15, #22c55e15)" }}>
+            <Gift className="w-4 h-4 text-success" /> Universal Basic Income {ubiData ? `· ${ubiData.currentRate.toLocaleString()} INC/mo` : ""}
+          </button>
+        )}
         <div className="grid grid-cols-3 gap-3">
           <button onClick={() => setView("buy")} className="btn-ghost flex items-center justify-center gap-2 py-3 text-sm"><DollarSign className="w-4 h-4" /> Buy</button>
           <button onClick={() => setView("add-funds")} className="btn-ghost flex items-center justify-center gap-2 py-3 text-sm"><DollarSign className="w-4 h-4" /> Add Funds</button>
@@ -634,6 +706,9 @@ export function WalletPage() {
               <button onClick={() => setView("founder-vault")} className="btn-ghost flex items-center justify-center gap-2 py-3 text-sm"><Layers className="w-4 h-4" /> Founder Vault</button>
               <button onClick={() => setView("agent-status")} className="btn-ghost flex items-center justify-center gap-2 py-3 text-sm"><Activity className="w-4 h-4" /> Agent Status</button>
               <button onClick={() => setView("liquidity")} className="btn-ghost flex items-center justify-center gap-2 py-3 text-sm"><Droplet className="w-4 h-4" /> Add Liquidity</button>
+              {localStorage.getItem("inc_ubi_contract") && (
+                <button onClick={() => { setView("ubi"); fetchUBIData(); }} className="btn-ghost flex items-center justify-center gap-2 py-3 text-sm"><Gift className="w-4 h-4 text-success" /> UBI Dashboard</button>
+              )}
             </>)}
           </div>
         </>)}
@@ -959,19 +1034,20 @@ export function WalletPage() {
         <div className="card space-y-4">
           <div className="bg-accent/10 rounded-xl p-4">
             <p className="text-sm font-medium text-accent mb-2">Unified Founder Master Vault System</p>
-            <p className="text-xs text-muted">This will deploy 4 contracts on BSC Mainnet:</p>
+            <p className="text-xs text-muted">This will deploy 5 contracts on BSC Mainnet:</p>
             <ul className="text-xs text-muted mt-2 space-y-1">
               <li>1. IncentiveToken (ERC20, 1T supply, halving)</li>
               <li>2. FounderMasterVault (reserves + vesting + treasury)</li>
               <li>3. IncentiveVesting (250B, 5yr quarterly)</li>
               <li>4. IncentiveGamingStaking (Synthetix-style rewards)</li>
+              <li>5. IncentiveUBI (Universal Basic Income, 100B, auto-halving)</li>
             </ul>
           </div>
           <div className="bg-warning/10 rounded-lg p-3 text-xs text-warning">
             <p className="font-medium">⚠ Requirements:</p>
             <p>· Wallet needs ~0.1 BNB for gas (~$30-50)</p>
             <p>· All token supply (1T INC) minted to your wallet</p>
-            <p>· 450B sent to vault, 250B to vesting, 1B to staking</p>
+            <p>· 350B to vault, 250B to vesting, 100B to UBI, 1B to staking</p>
             <p>· Remaining ~299B stays in your wallet as treasury</p>
           </div>
           {deploying ? (
@@ -1048,6 +1124,7 @@ export function WalletPage() {
               {localStorage.getItem("founder_vault_contract") && <p className="text-muted">Vault: {shortenAddress(localStorage.getItem("founder_vault_contract") || "")}</p>}
               {localStorage.getItem("inc_vesting_contract") && <p className="text-muted">Vesting: {shortenAddress(localStorage.getItem("inc_vesting_contract") || "")}</p>}
               {localStorage.getItem("inc_staking_contract") && <p className="text-muted">Staking: {shortenAddress(localStorage.getItem("inc_staking_contract") || "")}</p>}
+              {localStorage.getItem("inc_ubi_contract") && <p className="text-muted">UBI: {shortenAddress(localStorage.getItem("inc_ubi_contract") || "")}</p>}
             </div>
           </div>
         ) : (
@@ -1072,6 +1149,8 @@ export function WalletPage() {
             <div className="flex items-center gap-2 p-2 bg-bg-alt rounded-lg"><Droplet className="w-4 h-4 text-accent" /> Refill staking pool when low</div>
             <div className="flex items-center gap-2 p-2 bg-bg-alt rounded-lg"><Zap className="w-4 h-4 text-warning" /> Execute annual halving</div>
             <div className="flex items-center gap-2 p-2 bg-bg-alt rounded-lg"><DollarSign className="w-4 h-4 text-success" /> Collect transaction fees</div>
+            <div className="flex items-center gap-2 p-2 bg-bg-alt rounded-lg"><Gift className="w-4 h-4 text-success" /> Monitor UBI pool health</div>
+            <div className="flex items-center gap-2 p-2 bg-bg-alt rounded-lg"><Clock className="w-4 h-4 text-accent" /> Auto-trigger UBI halving (every 4 years)</div>
           </div>
         </div>
 
@@ -1139,6 +1218,146 @@ export function WalletPage() {
           <p>4. Users can now swap BNB ↔ INC on PancakeSwap</p>
           <p>5. Price is determined by the pool ratio (x*y=k)</p>
         </div>
+      </div>)}
+
+      {view === "ubi" && (<div className="space-y-4">
+        <div className="flex items-center gap-3"><button onClick={() => setView("main")} className="text-muted hover:text-white text-sm">← Back</button><h3 className="text-lg font-semibold flex items-center gap-2"><Gift className="w-5 h-5 text-success" /> Universal Basic Income</h3></div>
+
+        {ubiData ? (
+          <div className="space-y-4">
+            {/* Pool Stats */}
+            <div className="card bg-gradient-to-br from-success/10 to-transparent">
+              <h4 className="font-semibold text-sm mb-3 flex items-center gap-2"><Gift className="w-4 h-4 text-success" /> UBI Pool</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Pool Balance</p><p className="text-lg font-bold text-success">{fmtNum(ubiData.poolBalance)} INC</p></div>
+                <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Monthly Rate</p><p className="text-lg font-bold">{ubiData.currentRate.toLocaleString()} INC</p></div>
+                <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Total Recipients</p><p className="text-lg font-bold flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {ubiData.totalRecipients.toLocaleString()}</p></div>
+                <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Total Distributed</p><p className="text-lg font-bold">{fmtNum(ubiData.totalDistributed)} INC</p></div>
+              </div>
+            </div>
+
+            {/* Halving Info */}
+            <div className="card">
+              <h4 className="font-semibold text-sm mb-3 flex items-center gap-2"><Clock className="w-4 h-4 text-accent" /> Halving Schedule</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-muted">Current Rate</span><span className="font-mono">{ubiData.currentRate.toLocaleString()} INC/mo</span></div>
+                <div className="flex justify-between"><span className="text-muted">Halvings Done</span><span className="font-mono">{ubiData.halvingCount}</span></div>
+                {ubiData.nextHalvingTime > 0 && (
+                  <div className="flex justify-between"><span className="text-muted">Next Halving</span><span className="font-mono flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {new Date(ubiData.nextHalvingTime * 1000).toLocaleDateString()}</span></div>
+                )}
+                <div className="bg-bg-alt rounded-lg p-2 text-xs text-muted mt-2">
+                  <p>Rate halves every 4 years to ensure 80+ year sustainability:</p>
+                  <p className="mt-1">1000 → 500 → 250 → 125 → 62 → 31 → ...</p>
+                </div>
+              </div>
+            </div>
+
+            {/* User Status */}
+            <div className="card">
+              <h4 className="font-semibold text-sm mb-3">Your UBI Status</h4>
+              {!ubiRegistered ? (
+                <div className="space-y-3">
+                  <div className="bg-warning/10 rounded-lg p-3 text-xs text-warning">
+                    <p className="font-medium">Not registered yet</p>
+                    <p className="mt-1">Register to start receiving monthly UBI. A 30-day waiting period applies before your first claim to prevent abuse.</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!ubiContractRef.current) return showAlert("danger", "UBI contract not loaded");
+                      setUbiRegistering(true);
+                      try {
+                        const tx = await ubiContractRef.current.registerForUBI();
+                        await tx.wait();
+                        showAlert("success", "Registered for UBI! You can claim in 30 days.");
+                        await fetchUBIData();
+                      } catch (e: any) { showAlert("danger", "Registration failed: " + e.message); }
+                      finally { setUbiRegistering(false); }
+                    }}
+                    disabled={ubiRegistering}
+                    className="btn-primary w-full py-3 flex items-center justify-center gap-2"
+                  >
+                    {ubiRegistering ? "Registering..." : <><Gift className="w-4 h-4" /> Register for UBI</>}
+                  </button>
+                </div>
+              ) : !ubiEligible ? (
+                <div className="bg-warning/10 rounded-lg p-3 text-xs text-warning">
+                  <p className="font-medium">Waiting period active</p>
+                  <p className="mt-1">Registered on {new Date(ubiRegTime * 1000).toLocaleDateString()}. Eligible in {Math.max(0, Math.ceil((ubiRegTime + 30 * 86400 - Date.now() / 1000) / 86400))} days.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="bg-success/10 rounded-lg p-3 text-xs text-success">
+                    <p className="font-medium">✓ Eligible to claim</p>
+                    <p className="mt-1">You can claim {ubiData.currentRate.toLocaleString()} INC now.</p>
+                    {ubiLastClaim > 0 && <p className="mt-1 text-muted">Last claim: {new Date(ubiLastClaim * 1000).toLocaleDateString()}</p>}
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!ubiContractRef.current) return showAlert("danger", "UBI contract not loaded");
+                      setUbiClaiming(true);
+                      try {
+                        const tx = await ubiContractRef.current.claimUBI();
+                        await tx.wait();
+                        showAlert("success", `Claimed ${ubiData.currentRate.toLocaleString()} INC! See you next month.`);
+                        await fetchUBIData();
+                        await updateBalances();
+                      } catch (e: any) { showAlert("danger", "Claim failed: " + e.message); }
+                      finally { setUbiClaiming(false); }
+                    }}
+                    disabled={ubiClaiming}
+                    className="btn-primary w-full py-3 flex items-center justify-center gap-2"
+                  >
+                    {ubiClaiming ? "Claiming..." : <><Gift className="w-4 h-4" /> Claim {ubiData.currentRate.toLocaleString()} INC</>}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Sustainability Forecast */}
+            <div className="card">
+              <h4 className="font-semibold text-sm mb-3 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-accent" /> Sustainability</h4>
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between"><span className="text-muted">Current monthly burn</span><span className="font-mono">{fmtNum(ubiData.totalRecipients * ubiData.currentRate)} INC</span></div>
+                <div className="flex justify-between"><span className="text-muted">Pool covers (at current rate)</span><span className="font-mono">{ubiData.totalRecipients > 0 ? Math.floor(ubiData.poolBalance / (ubiData.totalRecipients * ubiData.currentRate)) : "∞"} months</span></div>
+                <div className="flex justify-between"><span className="text-muted">With halving (80yr projection)</span><span className="font-mono text-success">Sustainable ✓</span></div>
+                <div className="bg-bg-alt rounded-lg p-2 mt-2">
+                  <p className="text-muted">UBI is funded by 3 sources:</p>
+                  <p className="mt-1">1. 100B INC reserve (principal)</p>
+                  <p>2. Transaction fees (0.5% auto-routed)</p>
+                  <p>3. 10% of staking yield</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Founder Controls */}
+            {isFounder && (
+              <div className="card space-y-3">
+                <h4 className="font-semibold text-sm flex items-center gap-2"><Crown className="w-4 h-4 text-accent" /> Founder UBI Controls</h4>
+                <button
+                  onClick={async () => {
+                    if (!ubiContractRef.current) return;
+                    try {
+                      const tx = await ubiContractRef.current.triggerHalving();
+                      await tx.wait();
+                      showAlert("success", "Halving triggered! UBI rate reduced.");
+                      await fetchUBIData();
+                    } catch (e: any) { showAlert("danger", "Halving failed: " + e.message); }
+                  }}
+                  className="btn-ghost w-full py-3 text-sm flex items-center justify-center gap-2 text-warning"
+                >
+                  <Zap className="w-4 h-4" /> Trigger Manual Halving
+                </button>
+                {localStorage.getItem("inc_ubi_contract") && (
+                  <p className="text-xs text-muted font-mono">UBI Contract: {shortenAddress(localStorage.getItem("inc_ubi_contract") || "")}</p>
+                )}
+              </div>
+            )}
+
+            <button onClick={fetchUBIData} className="btn-secondary w-full text-sm flex items-center justify-center gap-2"><RefreshCw className="w-4 h-4" /> Refresh UBI Data</button>
+          </div>
+        ) : (
+          <div className="card text-center py-8"><RefreshCw className="w-8 h-8 text-muted mx-auto mb-2 animate-spin" /><p className="text-muted text-sm">Loading UBI data...</p></div>
+        )}
       </div>)}
     </div>
   );
