@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { aiApi, emailApi, smsApi, walletApi, contactsApi, openclawApi, hermesApi } from "@/lib/api";
+import { aiApi, emailApi, smsApi, walletApi, contactsApi, openclawApi, incllmv2Api, getLlmApi, apiFetch } from "@/lib/api";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import {
@@ -79,15 +79,10 @@ interface Subagent {
 }
 
 const LLM_PROVIDERS = [
-  { id: "auto", label: "Auto-Switch (Gemini→Groq→OpenRouter→Gemma)", icon: Zap, models: ["auto"] },
-  { id: "backend", label: "Soulmate Backend (Gemini)", icon: Server, models: ["gemini-flash-latest", "gemini-1.5-flash", "gemini-1.5-pro"] },
-  { id: "openai", label: "OpenAI", icon: Cloud, models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"] },
-  { id: "anthropic", label: "Anthropic", icon: Cpu, models: ["claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022", "claude-3-opus-20240229"] },
-  { id: "google", label: "Google Gemini", icon: Cloud, models: ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash-exp"] },
-  { id: "groq", label: "Groq", icon: Zap, models: ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"] },
-  { id: "openrouter", label: "OpenRouter", icon: Cloud, models: ["auto"] },
-  { id: "ollama", label: "Ollama (Local)", icon: Server, models: ["qwen2.5:0.5b", "qwen2.5:1.5b", "qwen2.5:3b", "gemma3:1b", "gemma4:e4b", "llama3.2:1b"] },
-  { id: "custom", label: "Custom Endpoint", icon: Terminal, models: [] },
+  { id: "incllmv2", label: "incllmv2", icon: Server, models: ["default"] },
+  { id: "trill", label: "Trill LLM", icon: Server, models: ["default"] },
+  { id: "singularity", label: "Singularity LLM", icon: Server, models: ["default"] },
+  { id: "splitbit", label: "SplitBit LLM", icon: Server, models: ["default"] },
 ];
 
 const TOOL_ICONS: Record<string, any> = {
@@ -122,8 +117,8 @@ export function HermesPage() {
   const [newGoalPriority, setNewGoalPriority] = useState<"high" | "medium" | "low">("medium");
 
   // LLM settings
-  const [provider, setProvider] = useState("ollama");
-  const [model, setModel] = useState("qwen2.5:0.5b");
+  const [provider, setProvider] = useState("incllmv2");
+  const [model, setModel] = useState("default");
   const [apiKey, setApiKey] = useState("");
   const [ollamaUrl, setOllamaUrl] = useState("http://localhost:11434");
   const [ollamaModels, setOllamaModels] = useState<string[]>([]);
@@ -376,11 +371,8 @@ export function HermesPage() {
     if (!message || loading) return;
     setInput("");
     const userMsg: ChatMessage = { role: "user", content: message };
-    setMessages((prev) => {
-      const updated = [...prev, userMsg];
-      ensureSession();
-      return updated;
-    });
+    const sessionId = ensureSession();
+    setMessages((prev) => [...prev, userMsg]);
     setLoading(true);
 
     try {
@@ -394,27 +386,10 @@ export function HermesPage() {
       let responseText = "";
       let modelUsed = provider;
 
-      if (provider === "auto") {
-        const data = await hermesApi.autoLlm(chatMessages);
-        if (data.error) throw new Error(data.error);
-        responseText = data.response || "";
-        modelUsed = `${data.provider}/${data.model}`;
-      } else if (provider === "backend") {
-        const data = await openclawApi.llmProxy("backend", model || "gemini-flash-latest", chatMessages, apiKey);
-        if (data.error) throw new Error(data.error);
-        responseText = data.response || "";
-        modelUsed = data.model || "backend";
-      } else if (provider === "ollama") {
-        const data = await hermesApi.llmProxy("ollama", model || "qwen2.5:0.5b", chatMessages, apiKey, ollamaUrl);
-        if (data.error) throw new Error(data.error);
-        responseText = data.response || "";
-        modelUsed = data.model || `ollama/${model}`;
-      } else {
-        const data = await openclawApi.llmProxy(provider, model, chatMessages, apiKey);
-        if (data.error) throw new Error(data.error);
-        responseText = data.response || data.choices?.[0]?.message?.content || "";
-        modelUsed = `${provider}/${model}`;
-      }
+      const prompt = chatMessages.map((m) => `${m.role}: ${m.content}`).join("\n\n");
+      const data = await getLlmApi(provider).rawChat(sessionId, prompt);
+      if (data.status === "error") throw new Error(data.message || data.detail);
+      responseText = data.response || "";
 
       const { content, tools } = await processToolCalls(responseText);
 
@@ -422,37 +397,16 @@ export function HermesPage() {
       if (tools.length > 0) {
         const toolResults = tools.map((t) => `[TOOL_RESULT: ${t.tool} → ${JSON.stringify(t.result).slice(0, 500)}]`).join("\n");
         try {
-          let followUp = "";
-          if (provider === "auto") {
-            const data2 = await hermesApi.autoLlm([
-              ...chatMessages,
-              { role: "assistant", content: responseText },
-              { role: "user", content: `Tool results:\n${toolResults}\n\nRespond naturally about what happened.` },
-            ]);
-            followUp = data2.response || "";
-          } else if (provider === "backend") {
-            const data2 = await openclawApi.llmProxy("backend", model || "gemini-flash-latest", [
-              ...chatMessages,
-              { role: "assistant", content: responseText },
-              { role: "user", content: `Tool results:\n${toolResults}\n\nRespond naturally about what happened.` },
-            ], apiKey);
-            followUp = data2.response || "";
-          } else if (provider === "ollama") {
-            const data2 = await hermesApi.llmProxy("ollama", model || "qwen2.5:0.5b", [
-              ...chatMessages,
-              { role: "assistant", content: responseText },
-              { role: "user", content: `Tool results:\n${toolResults}\n\nRespond naturally about what happened.` },
-            ], apiKey, ollamaUrl);
-            followUp = data2.response || "";
-          } else {
-            const data2 = await openclawApi.llmProxy(provider, model, [
-              ...chatMessages,
-              { role: "assistant", content: responseText },
-              { role: "user", content: `Tool results:\n${toolResults}\n\nRespond naturally about what happened.` },
-            ], apiKey);
-            followUp = data2.response || data2.choices?.[0]?.message?.content || "";
+          const followMessages = [
+            ...chatMessages,
+            { role: "assistant", content: responseText },
+            { role: "user", content: `Tool results:\n${toolResults}\n\nRespond naturally about what happened.` },
+          ];
+          const prompt = followMessages.map((m) => `${m.role}: ${m.content}`).join("\n\n");
+          const data2 = await getLlmApi(provider).rawChat(sessionId, prompt);
+          if (data2.status !== "error") {
+            finalContent = data2.response || "";
           }
-          if (followUp) finalContent = followUp;
         } catch {}
       }
 
@@ -865,7 +819,7 @@ export function HermesPage() {
                     {provider === "ollama" && ollamaModels.length === 0 && <option value="">No local models found</option>}
                   </select>
                 </div>
-                {provider !== "backend" && provider !== "ollama" && (
+                {provider !== "backend" && provider !== "ollama" && provider !== "incllmv2" && provider !== "trill" && provider !== "singularity" && provider !== "splitbit" && (
                   <div><label className="text-xs block mb-1" style={{ color: OUI.muted }}>API Key</label>
                     <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="Paste your API key..." className="w-full text-sm rounded-lg px-3 py-2 outline-none" style={{ background: OUI.input, color: OUI.text, border: `1px solid ${OUI.border}` }} />
                   </div>

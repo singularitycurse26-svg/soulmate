@@ -1,4 +1,4 @@
-# INC-LLM-v1 Configuration
+# incllmv2 Configuration
 
 hardware_tier: minimal  # minimal | standard | full
 provider_backend: ollama
@@ -11,6 +11,7 @@ ollama:
   num_predict: 128
   num_ctx: 2048
   temperature: 0.7
+  max_tokens: 512
 
 memory:
   context_window_tokens: 2048
@@ -26,7 +27,7 @@ memory:
 universal_link:
   enabled: true
   sync_interval_s: 300
-  instance_name: "inc-llm-v1"
+  instance_name: "incllmv2"
   learn_from_peers: true
   share_learnings: true
   max_peers: 50
@@ -34,21 +35,382 @@ universal_link:
 payment:
   enabled: true
   price_monthly: 15.0
-  trial_hours: 3060  # 4.25 months
-  # All payments routed through Soulmate OS wallet to founder's account
+  trial_hours: 10800  # 15 months (1 year 3 months)
   soulmate_api_url: "https://191.44.121.29.sslip.io"
   soulmate_api_token: "soulmate_wallet_2024"
   founder_email: "hawpetossjustin25@gmail.com"
-  founder_wallet_address: ""  # fetched from API at runtime
+  founder_wallet_address: ""
   payment_method: "soulmate_wallet"
   accepted_tokens:
     - USDT
     - USDC
     - BNB
     - INC
+  # Tiered subscription pricing per hardware tier
+  tiered_pricing:
+    mobile: 5.0           # $5/mo — basic phone access
+    minimal: 15.0         # $15/mo — Pi/low-end
+    light: 25.0           # $25/mo — laptop without GPU
+    standard: 50.0        # $50/mo — desktop with GPU
+    full: 100.0           # $100/mo — GPU workstation
+    maximum: 250.0        # $250/mo — server-grade
+    datacenter: 1000.0    # $1,000/mo — data center
+    supercomputer: 5000.0 # $5,000/mo — AI supercomputer access
+  supercomputer_model_size: "400B+"
+  supercomputer_gpus_required: 16
+  supercomputer_min_ram_gb: 256
 
 auth:
   password_grants_free_access: true
   session_token_expiry_s: 2592000  # 30 days
 
+knowledge:
+  enabled: true
+  rag_collection: "knowledge_rag"
+  seed_on_startup: true
+  files_dir: "inc_llm/knowledge/files"
+  chunk_size_tokens: 500
+  retrieve_top_k: 3
+
+cache:
+  enabled: true
+  similarity_threshold: 0.92
+  hot_cache_size: 500
+
+vault:
+  enabled: true
+  archive_after_days: 30
+  archive_unused_skills_after_days: 60
+  maintenance_interval_s: 86400
+
+integrations:
+  hermes:
+    enabled: true
+    api_url: "https://191.44.121.29.sslip.io"
+    api_token: "soulmate_wallet_2024"
+  jarvis:
+    enabled: true
+  internet:
+    enabled: true
+    rate_limit_per_min: 10
+    timeout_s: 15
+    cache_ttl_s: 3600
+  telegram:
+    enabled: true
+    bot_token: ""
+    pairing_enabled: true
+    voice_calls: true
+    webhook_url: ""
+    polling_fallback: true
+  trading:
+    enabled: true
+    default_platform: "binance"
+    platforms:
+      binance:
+        api_key: ""
+        api_secret: ""
+      coinbase:
+        api_key: ""
+        api_secret: ""
+        passphrase: ""
+        sandbox: false
+      kraken:
+        api_key: ""
+        api_secret: ""
+    # Automated trading engine
+    auto_trading_enabled: false
+    auto_trading_interval_s: 300
+    auto_trading_max_position_usd: 100.0
+    auto_trading_max_daily_loss_usd: 50.0
+    auto_trading_symbols:
+      - BTCUSDT
+      - ETHUSDT
+    auto_trading_platform: "coinbase"
+    # Self-improving trading skills
+    trading_skills_enabled: true
+    trading_skills_min_trades: 10
+    trading_skills_share: true
+  voice:
+    enabled: true
+    tts_engine: "edge-tts"
+    stt_engine: "whisper"
+    voice_profile: "en-US-GuyNeural"
+    speed: 1.0
+
+rlos:
+  enabled: true
+  primary_server: "http://localhost:11434"
+  preload_models: []  # auto-populated from hardware tier
+  keep_alive: "-1"
+  num_parallel: 4
+  prefix_cache_size: 50
+  batch_window_ms: 50
+  max_batch_size: 5
+  health_check_interval_s: 30
+  free_servers: []
+  enable_code_execution: true
+  mesh_enabled: true
+
+universal_mesh:
+  enabled: true
+  propagate_learnings: true
+  propagate_knowledge: true
+  bandwidth_limit_kbps: 1024
+  version_tag: "1.0.0"
+
+publish:
+  github_repo: "incentivesinc/incllmv2"
+  huggingface:
+    enabled: true
+    model_repo_id: "incentivesinc/incllmv2"
+    dataset_repo_id: "incentivesinc/incllmv2-knowledge"
+    token_env_var: "HF_TOKEN"
+
+multi_role_pipeline: true
+max_tool_rounds: 3
+
 log_level: INFO
+
+# AI Gaming MPC integration — companion + autonomous game playing
+ai_gaming:
+  enabled: true
+  api_url: ""
+  api_token: ""
+  pairing_enabled: true
+  webhook_url: ""
+  db_path: "~/.inc_llm/ai_gaming.db"
+  companion_mode: true
+  autonomous_game_play: true
+  personality_traits:
+    - friendly
+    - supportive
+    - humorous
+  supported_game_types:
+    - strategy
+    - rpg
+    - sandbox
+    - competitive
+    - cooperative
+    - puzzle
+    - simulation
+    - adventure
+    - card
+    - board
+  relationship_tracking: true
+
+# Security hardening
+security:
+  enabled: true
+  founder_only_endpoints: true
+  sanitize_responses: true
+  require_auth_all_endpoints: true
+
+# Conversation skill creation
+conversation_skills:
+  enabled: true
+  min_interactions_before_skill: 3
+  share_via_universal_link: true
+
+# Code writing skill creation
+code_skills:
+  enabled: true
+  min_patterns_before_skill: 5
+  cross_language_skills: true
+  share_via_universal_link: true
+
+# Biometric authentication
+biometric:
+  enabled: true
+  db_path: "~/.inc_llm/biometric.db"
+  cache_ttl_s: 3600
+
+# Speed skill auto-tuning — precision reply speed optimization
+speed_skills:
+  enabled: true
+  min_interactions: 5
+  share_via_universal_link: true
+
+# Harness-level meta-learning — skill effectiveness tracking and optimization
+meta_learner:
+  enabled: true
+  min_uses_before_scoring: 5
+  effectiveness_threshold: 0.3
+  auto_adjust_selection: true
+  share_via_universal_link: true
+
+# Split-bit precision mathematics — sub-byte quantization and mixed-precision
+split_bit:
+  enabled: true
+  # Override default quant format per tier (empty = use SplitBitMath defaults)
+  tier_quant_overrides: {}
+  entropy_aware_temperature: true
+  bayesian_scoring: true
+
+# AI Gaming MPC auto-skill creation — game strategies and companion behavior
+gaming_skills:
+  enabled: true
+  min_games_before_strategy: 3
+  min_interactions_before_companion_skill: 5
+  share_via_universal_link: true
+  track_emotional_patterns: true
+  track_relationship_patterns: true
+
+# Founder wallet configuration (hidden — not exposed in API or stats)
+founder_wallet:
+  enabled: true
+  unlock_ttl_s: 3600
+  db_path: "~/.inc_llm/founder_wallet.db"
+
+# YouTube video understanding — transcript extraction, LLM analysis, skill creation
+youtube:
+  enabled: true
+  prefer_transcript_api: true
+  whisper_fallback: true
+  auto_create_skill: true
+  share_via_universal_link: true
+  store_in_rag: true
+  max_transcript_length: 50000
+  analysis_max_tokens: 2000
+  cache_ttl_s: 86400
+  languages: ["en", "en-US", "en-GB"]
+  min_videos_before_pattern_skill: 3
+  min_videos_before_meta_skill: 5
+  auto_adjust_prompt: true
+
+# Plan Mode — deep planning with phases, steps, dependencies, and risk assessment
+planning:
+  enabled: true
+  max_phases: 5
+  max_steps_per_phase: 6
+  auto_create_skill: true
+  share_via_universal_link: true
+  min_plans_before_meta_skill: 3
+  auto_adjust_prompt: true
+
+# Autonomous execution — checkpointing, self-review, auto-retry, auto-replan
+execution:
+  enabled: true
+  workspace_root: "~/inc_llm_projects"
+  max_retries: 3
+  checkpoint_interval_s: 30
+  max_consecutive_failures: 5
+  self_review: true
+  auto_replan: true
+  auto_create_skill: true
+  share_via_universal_link: true
+  min_executions_before_meta_skill: 10
+  allowed_commands: []
+
+# Free server slot management — 10 slots (5 execution, 5 reserved)
+free_server_slots:
+  total_slots: 10
+  execution_slots: 5
+  reserved_slots: 5
+  health_check_interval_s: 300
+
+# Enhanced tool calling — native Ollama function calling, schema validation, parallel execution
+tools:
+  enabled: true
+  use_native_ollama: true
+  parallel_execution: true
+  max_rounds: 5
+  schema_validation: true
+  auto_create_skill: true
+  share_via_universal_link: true
+  min_calls_before_meta_skill: 20
+
+# Self-evolving autonomous goal system — always-on improvement loop
+evolution:
+  enabled: true
+  interval_s: 3600
+  web_research: true
+  auto_execute_improvements: false
+  auto_create_skill: true
+  share_via_universal_link: true
+  min_cycles_before_meta_skill: 5
+  benchmark_db_path: "~/.inc_llm/benchmarks.db"
+
+# Image generation — Pollinations.ai (free, no API key, no GPU required)
+image_gen:
+  enabled: true
+  output_dir: "~/.inc_llm/images"
+  default_model: "flux"
+  default_width: 1024
+  default_height: 1024
+  timeout_s: 60
+  auto_create_skill: true
+  share_via_universal_link: true
+
+# Vision/image understanding — Ollama vision models (moondream2 CPU-friendly, llava fallback)
+vision:
+  enabled: true
+  default_model: "moondream2"
+  fallback_model: "llava"
+  max_image_size_mb: 10.0
+  auto_pull_models: true
+  auto_create_skill: true
+  share_via_universal_link: true
+  min_analyses_before_meta_skill: 10
+
+# SoulMovies — text-to-video maker with recursive link speed mechanics
+soul_movies:
+  enabled: true
+  default_duration_s: 35
+  scene_count: 5
+  scene_duration_s: 7
+  default_resolution: "1080p"
+  resolutions: ["720p", "1080p"]
+  ai_video_generation: true
+  clip_assembly_fallback: true
+  voiceover_enabled: true
+  music_enabled: true
+  default_voice: "default"
+  music_library_path: "~/.inc_llm/music"
+  output_dir: "~/.inc_llm/soulmovies"
+  ffmpeg_path: "ffmpeg"
+  transition_style: "crossfade"
+  render_cache_enabled: true
+  render_cache_max_entries: 100
+  render_cache_warm_threshold: 3
+  render_batch_window_ms: 500
+  render_batch_max_size: 5
+  render_predictive_enabled: true
+  auto_publish_to_soultube: false
+  vault_storage: true
+  min_vram_gb: 4.0
+  predictive_prefetch_count: 3
+
+# SoulTube — YouTube alternative with RLOS mesh streaming
+soul_tube:
+  enabled: true
+  transcoding_resolutions: ["240p", "480p", "720p", "1080p"]
+  hls_segment_duration_s: 10
+  ffmpeg_path: "ffmpeg"
+  thumbnail_time_s: 1.0
+  storage_dir: "~/.inc_llm/soultube"
+  max_video_size_gb: 2.0
+  auto_size_storage: true
+  segment_replication_factor: 2
+  adaptive_bitrate: true
+  p2p_streaming: true
+  max_streaming_connections: 100
+  segment_cache_enabled: true
+  segment_cache_max_entries: 500
+  segment_cache_warm_threshold: 3
+  segment_batch_window_ms: 200
+  segment_batch_max_size: 10
+  predictive_prefetch_enabled: true
+  predictive_prefetch_count: 3
+  search_enabled: true
+  recommendations_enabled: true
+  engagement_enabled: true
+  comments_enabled: true
+  subscriptions_enabled: true
+  playlists_enabled: true
+  trending_enabled: true
+  history_enabled: true
+  monetization_enabled: true
+  soul_token_per_view: 0.001
+  min_payout_tokens: 100.0
+  analytics_enabled: true
+  db_path: "~/.inc_llm/soultube.db"

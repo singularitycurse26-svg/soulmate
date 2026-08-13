@@ -19,5 +19,16 @@
   "textSent": "短訊已發送！",
   "enterPhoneNumber": "輸入電話號碼",
   "enterMessage": "輸入訊息",
-  "messageTooLong": "訊息過長（最多160字符）"
+  "messageTooLong": "訊息過長（最多160字符）",
+  "verificationCodes": "驗證碼",
+  "manualRelay": "手動轉發驗證碼",
+  "enterCode": "輸入驗證碼",
+  "enterService": "服務名稱（可選）",
+  "relayCode": "轉發驗證碼",
+  "codeRelayed": "驗證碼已轉發給AI代理",
+  "textbeeStatus": "TextBee網關",
+  "textbeeConnected": "已連接",
+  "textbeeDisconnected": "未連接",
+  "noCodes": "暫無驗證碼",
+  "pendingVerifications": "待驗證"
 }

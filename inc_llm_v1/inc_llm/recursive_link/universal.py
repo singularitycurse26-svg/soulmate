@@ -1,6 +1,6 @@
 """Universal recursive link manager — connects all INC-LLM instances.
 
-Every instance of INC-LLM-v1 connects to every other instance through a
+Every instance of incllmv2 connects to every other instance through a
 peer-to-peer network. When one instance learns something (creates a skill,
 discovers a fact, solves a problem), it shares that learning with all other
 connected instances. This creates a self-improving network where every use
@@ -40,7 +40,12 @@ class UniversalLinkManager:
         self.instance_id = config.instance_id or self._generate_instance_id()
         self.db_path = Path(os.path.expanduser(config.peer_db_path))
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.mesh_link = None
         self._init_db()
+
+    def set_mesh_link(self, mesh_link: Any) -> None:
+        """Set the universal mesh link for RLOS integration."""
+        self.mesh_link = mesh_link
 
     def _generate_instance_id(self) -> str:
         hostname = os.uname().nodename if hasattr(os, "uname") else "unknown"
@@ -115,6 +120,14 @@ class UniversalLinkManager:
                  record["timestamp"], record["metadata"]),
             )
         logger.info("Shared learning %s (type: %s)", learning_id, learning_type)
+        if self.mesh_link:
+            try:
+                self.mesh_link.propagate_learning(
+                    learning_type=learning_type, content=content,
+                    metadata=metadata,
+                )
+            except Exception as e:
+                logger.warning("Mesh propagation failed: %s", e)
         return record
 
     def receive_learning(self, learning: dict[str, Any]) -> bool:
@@ -175,6 +188,15 @@ class UniversalLinkManager:
         elif learning_type == "fact":
             self.memory.register_fact(f"peer-{learning_id}", content, metadata={"source": source_instance})
 
+        elif learning_type == "rlt_tokens":
+            try:
+                payload = json.loads(content)
+                if hasattr(self, '_rlt_manager') and self._rlt_manager:
+                    received = self._rlt_manager.receive_mesh_payload(payload)
+                    logger.info("Received %d RLT tokens from peer %s", received, source_instance)
+            except Exception as e:
+                logger.warning("Failed to apply peer RLT tokens: %s", e)
+
     def get_learnings_to_share(self, since: float = 0, limit: int = 50) -> list[dict[str, Any]]:
         """Get learnings to share with peers (since timestamp)."""
         with sqlite3.connect(str(self.db_path)) as conn:
@@ -196,10 +218,13 @@ class UniversalLinkManager:
             return conn.execute("SELECT COUNT(*) FROM shared_learnings").fetchone()[0]
 
     def get_stats(self) -> dict[str, int]:
-        return {
+        stats = {
             "instance_id": self.instance_id,
             "peers": self.get_peer_count(),
             "shared_learnings": self.get_shared_learning_count(),
             "graph_nodes": self.memory.graph.count_nodes(),
             "graph_edges": self.memory.graph.count_edges(),
         }
+        if self.mesh_link:
+            stats["mesh"] = self.mesh_link.get_stats()
+        return stats

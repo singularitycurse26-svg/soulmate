@@ -9,6 +9,7 @@ import { IncentiveTokenABI, IncentiveTokenBytecode } from "@/contracts/Incentive
 import { IncentiveVestingABI, IncentiveVestingBytecode } from "@/contracts/IncentiveVesting";
 import { FounderMasterVaultABI, FounderMasterVaultBytecode } from "@/contracts/FounderMasterVault";
 import { IncentiveGamingStakingABI, IncentiveGamingStakingBytecode } from "@/contracts/IncentiveGamingStaking";
+import incentivesCoin from "@/assets/incentives-coin.png";
 
 const BSC_RPC = "https://bsc-dataseed.binance.org";
 const FEE_PERCENT = 0.005;
@@ -583,7 +584,7 @@ export function WalletPage() {
             {ALL_TOKENS.map((token) => (
               <div key={token.symbol} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: token.color }}>{token.icon}</div>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white overflow-hidden" style={{ background: token.color }}>{token.symbol === "INC" ? <img src={incentivesCoin} alt="INC" className="w-full h-full object-cover" /> : token.icon}</div>
                   <div><p className="font-medium text-sm">{token.symbol}</p><p className="text-xs text-muted">{token.name}</p></div>
                 </div>
                 <div className="text-right"><p className="font-mono text-sm">{formatBalance(balances[token.symbol] || 0)}</p><p className="text-xs text-muted">${(usdValues[token.symbol] || 0).toFixed(2)}</p></div>

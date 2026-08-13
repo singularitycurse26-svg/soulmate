@@ -19,5 +19,16 @@
   "textSent": "短信已发送！",
   "enterPhoneNumber": "输入电话号码",
   "enterMessage": "输入消息",
-  "messageTooLong": "消息过长（最多160字符）"
+  "messageTooLong": "消息过长（最多160字符）",
+  "verificationCodes": "验证码",
+  "manualRelay": "手动转发验证码",
+  "enterCode": "输入验证码",
+  "enterService": "服务名称（可选）",
+  "relayCode": "转发验证码",
+  "codeRelayed": "验证码已转发给AI代理",
+  "textbeeStatus": "TextBee网关",
+  "textbeeConnected": "已连接",
+  "textbeeDisconnected": "未连接",
+  "noCodes": "暂无验证码",
+  "pendingVerifications": "待验证"
 }

@@ -16,5 +16,15 @@
   "starred": "星标",
   "archive": "归档",
   "trash": "垃圾箱",
-  "noEmails": "没有邮件"
+  "noEmails": "没有邮件",
+  "sync": "同步",
+  "syncing": "同步中...",
+  "sent": "已发送",
+  "drafts": "草稿",
+  "delete": "删除",
+  "aiCompose": "AI撰写",
+  "aiSummarize": "AI摘要",
+  "verificationCodes": "验证码",
+  "noCodes": "未找到验证码",
+  "composePrompt": "描述你想写的邮件..."
 }

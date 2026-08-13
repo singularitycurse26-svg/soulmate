@@ -1,8 +1,8 @@
-"""OpenAI-compatible API endpoint for INC-LLM-v1.
+"""OpenAI-compatible API endpoint for incllmv2.
 
-This makes INC-LLM-v1 accessible to ANY LLM that speaks the OpenAI API protocol.
+This makes incllmv2 accessible to ANY LLM that speaks the OpenAI API protocol.
 Larger models (Fable 5, GLM 5.2, Mythos, GPT-4, Claude, etc.) can connect to
-INC-LLM-v1 by setting it as their base_url with an INC API key.
+incllmv2 by setting it as their base_url with an INC API key.
 
 Endpoints (OpenAI-compatible):
 - POST /v1/chat/completions — chat completion (with memory + skills + goals)
@@ -46,7 +46,7 @@ class ChatMessage(BaseModel):
 
 
 class ChatCompletionRequest(BaseModel):
-    model: str = "inc-llm-v1"
+    model: str = "incllmv2"
     messages: list[ChatMessage]
     max_tokens: int | None = 128
     temperature: float | None = 0.7
@@ -57,7 +57,7 @@ class ChatCompletionRequest(BaseModel):
 
 
 class EmbeddingRequest(BaseModel):
-    model: str = "inc-llm-v1"
+    model: str = "incllmv2"
     input: str
     user: str | None = None
 
@@ -70,11 +70,11 @@ def setup_openai_compat(app, harness, api_key_manager):
         return {
             "object": "list",
             "data": [
-                {"id": "inc-llm-v1", "object": "model", "created": int(time.time()),
+                {"id": "incllmv2", "object": "model", "created": int(time.time()),
                  "owned_by": "incentives"},
-                {"id": "inc-llm-v1-fast", "object": "model", "created": int(time.time()),
+                {"id": "incllmv2-fast", "object": "model", "created": int(time.time()),
                  "owned_by": "incentives"},
-                {"id": "inc-llm-v1-code", "object": "model", "created": int(time.time()),
+                {"id": "incllmv2-code", "object": "model", "created": int(time.time()),
                  "owned_by": "incentives"},
             ],
         }

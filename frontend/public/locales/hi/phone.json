@@ -19,5 +19,16 @@
   "textSent": "टेक्स्ट भेजा गया!",
   "enterPhoneNumber": "फोन नंबर दर्ज करें",
   "enterMessage": "संदेश दर्ज करें",
-  "messageTooLong": "संदेश बहुत लंबा है (अधिकतम 160 अक्षर)"
+  "messageTooLong": "संदेश बहुत लंबा है (अधिकतम 160 अक्षर)",
+  "verificationCodes": "सत्यापन कोड",
+  "manualRelay": "मैनुअल कोड रिले",
+  "enterCode": "सत्यापन कोड दर्ज करें",
+  "enterService": "सेवा नाम (वैकल्पिक)",
+  "relayCode": "कोड रिले करें",
+  "codeRelayed": "कोड AI एजेंट्स को भेजा गया",
+  "textbeeStatus": "TextBee गेटवे",
+  "textbeeConnected": "जुड़ा हुआ",
+  "textbeeDisconnected": "वियोजित",
+  "noCodes": "अभी तक कोई कोड नहीं",
+  "pendingVerifications": "लंबित सत्यापन"
 }

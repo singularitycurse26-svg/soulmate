@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "incllmv2"
+version = "1.0.0"
+description = "Self-improving LLM harness with universal recursive linking and RLOS"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "Incentives Inc — An AI Crypto Company", email = "hawpetossjustin25@gmail.com"}]
+requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0",
+    "httpx>=0.25.0",
+]
+
+[project.optional-dependencies]
+full = [
+    "chromadb>=0.4.0",
+    "edge-tts>=6.1.0",
+    "openai-whisper>=20231117",
+    "httpx>=0.25.0",
+    "huggingface-hub>=0.20.0",
+    "build>=1.0.0",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+]
+
+[project.scripts]
+incllmv2-server = "inc_llm.server:app"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

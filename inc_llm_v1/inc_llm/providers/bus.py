@@ -1,4 +1,4 @@
-"""5-model routing bus for INC-LLM-v1.
+"""5-model routing bus for incllmv2.
 
 Routes requests to the appropriate model based on role:
   fast  → triage, routing, cheap passes

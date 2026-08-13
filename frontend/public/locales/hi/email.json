@@ -16,5 +16,15 @@
   "starred": "तारांकित",
   "archive": "संग्रहित",
   "trash": "कचरा",
-  "noEmails": "कोई ईमेल नहीं"
+  "noEmails": "कोई ईमेल नहीं",
+  "sync": "सिंक",
+  "syncing": "सिंक हो रहा है...",
+  "sent": "भेजे गए",
+  "drafts": "ड्राफ्ट",
+  "delete": "हटाएं",
+  "aiCompose": "AI लेखन",
+  "aiSummarize": "AI सारांश",
+  "verificationCodes": "सत्यापन कोड",
+  "noCodes": "कोई कोड नहीं मिला",
+  "composePrompt": "जो ईमेल लिखना चाहते हैं उसका वर्णन करें..."
 }

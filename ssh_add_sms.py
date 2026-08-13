@@ -409,6 +409,197 @@ async def telegram_webhook(request: Request):
 async def get_carriers():
     """Return list of supported carriers and their gateway domains."""
     return {"carriers": CARRIER_GATEWAYS}
+
+# --- SMS VERIFICATION SYSTEM ---
+
+import re as re_mod
+
+def extract_code_from_text(text):
+    """Extract verification code (4-8 digits) from text."""
+    if not text:
+        return None
+    patterns = [
+        r"(?:verification\s+code|code|OTP|pin|password)\s*(?:is|:)?\s*(\d{4,8})",
+        r"(?:your\s+code|enter\s+(?:this\s+)?code)\s*(?:is|:)?\s*(\d{4,8})",
+        r"(\d{4,8})\s*(?:is\s+your|verification|confirm)",
+        r"^\s*(\d{4,8})\s*$",
+        r"[\[(<{](\d{4,8})[\])>}",
+        r"(\d{3})[-\s](\d{3})",
+    ]
+    for pattern in patterns:
+        match = re_mod.search(pattern, text, re_mod.IGNORECASE | re_mod.MULTILINE)
+        if match:
+            if match.lastindex == 2:
+                return match.group(1) + match.group(2)
+            return match.group(1)
+    return None
+
+def init_verification_db():
+    conn = sqlite3.connect(sms_db_path)
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS verification_codes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER DEFAULT 0,
+            code TEXT NOT NULL,
+            source TEXT DEFAULT 'manual',
+            sender TEXT,
+            raw_message TEXT,
+            service_hint TEXT,
+            used INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS pending_verifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER DEFAULT 0,
+            service_name TEXT,
+            email_used TEXT,
+            phone_used TEXT,
+            status TEXT DEFAULT 'waiting',
+            code_received TEXT,
+            created_at TEXT DEFAULT (datetime('now')),
+            completed_at TEXT
+        )
+    """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS textbee_config (
+            id INTEGER PRIMARY KEY DEFAULT 1,
+            gateway_connected INTEGER DEFAULT 0,
+            gateway_phone TEXT,
+            gateway_last_seen TEXT,
+            webhook_secret TEXT,
+            UNIQUE(id)
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+init_verification_db()
+
+@app.get("/v1/sms/verification-codes")
+async def get_verification_codes(request: Request,
+                                  _rl=Depends(rate_limited(RATE_LIMIT_GENERAL, "sms_verif_codes"))):
+    user_id = get_user_from_session(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    conn = sqlite3.connect(sms_db_path)
+    c = conn.cursor()
+    c.execute("SELECT id, code, source, sender, service_hint, used, created_at FROM verification_codes WHERE user_id = ? OR user_id = 0 ORDER BY created_at DESC LIMIT 20", (user_id,))
+    rows = c.fetchall()
+    conn.close()
+    codes = [{"id": r[0], "code": r[1], "source": r[2], "sender": r[3], "service": r[4], "used": bool(r[5]), "created_at": r[6]} for r in rows]
+    return {"codes": codes}
+
+class RelayCodeRequest(BaseModel):
+    code: str
+    service_hint: str = None
+    sender: str = None
+
+@app.post("/v1/sms/relay-code")
+async def relay_verification_code(req: RelayCodeRequest, request: Request,
+                                   _rl=Depends(rate_limited(RATE_LIMIT_GENERAL, "sms_relay"))):
+    user_id = get_user_from_session(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    code = req.code.strip()
+    if not code:
+        raise HTTPException(status_code=400, detail="Code is required")
+    conn = sqlite3.connect(sms_db_path)
+    c = conn.cursor()
+    c.execute("INSERT INTO verification_codes (user_id, code, source, sender, service_hint) VALUES (?, ?, 'manual', ?, ?)",
+              (user_id, code, req.sender, req.service_hint))
+    conn.commit()
+    conn.close()
+    logger.info(f"Verification code relayed by user {user_id}: {code}")
+    return {"status": "stored", "code": code}
+
+@app.get("/v1/sms/pending-verifications")
+async def get_pending_verifications(request: Request,
+                                     _rl=Depends(rate_limited(RATE_LIMIT_GENERAL, "sms_pending"))):
+    user_id = get_user_from_session(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    conn = sqlite3.connect(sms_db_path)
+    c = conn.cursor()
+    c.execute("SELECT id, service_name, email_used, phone_used, status, code_received, created_at FROM pending_verifications WHERE user_id = ? AND status = 'waiting' ORDER BY created_at DESC", (user_id,))
+    rows = c.fetchall()
+    conn.close()
+    pending = [{"id": r[0], "service": r[1], "email": r[2], "phone": r[3], "status": r[4], "code": r[5], "created_at": r[6]} for r in rows]
+    return {"pending": pending}
+
+class PendingVerificationRequest(BaseModel):
+    service_name: str
+    email_used: str = None
+    phone_used: str = None
+
+@app.post("/v1/sms/pending-verifications")
+async def create_pending_verification(req: PendingVerificationRequest, request: Request,
+                                       _rl=Depends(rate_limited(RATE_LIMIT_GENERAL, "sms_pending_create"))):
+    user_id = get_user_from_session(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    conn = sqlite3.connect(sms_db_path)
+    c = conn.cursor()
+    c.execute("INSERT INTO pending_verifications (user_id, service_name, email_used, phone_used) VALUES (?, ?, ?, ?)",
+              (user_id, req.service_name, req.email_used, req.phone_used))
+    conn.commit()
+    conn.close()
+    return {"status": "created", "service": req.service_name}
+
+# --- TEXTBEE WEBHOOK (for Android SMS gateway) ---
+
+@app.post("/v1/sms/textbee/webhook")
+async def textbee_webhook(request: Request):
+    """Webhook for TextBee incoming SMS from Android gateway."""
+    try:
+        body = await request.json()
+        # TextBee sends: {"from": "+1234567890", "to": "+1987654321", "body": "message text", "timestamp": ...}
+        from_number = body.get("from", body.get("sender", ""))
+        to_number = body.get("to", body.get("recipient", ""))
+        text = body.get("body", body.get("message", body.get("text", "")))
+        
+        if not text:
+            return {"ok": True}
+        
+        # Store in sms_messages
+        conn = sqlite3.connect(sms_db_path)
+        c = conn.cursor()
+        c.execute("INSERT INTO sms_messages (user_id, from_number, to_number, body, direction, status) VALUES (0, ?, ?, ?, 'in', 'received')",
+                  (from_number, to_number, text))
+        
+        # Check for verification code
+        code = extract_code_from_text(text)
+        if code:
+            c.execute("INSERT INTO verification_codes (user_id, code, source, sender, raw_message) VALUES (0, ?, 'textbee', ?, ?)",
+                      (code, from_number, text))
+            logger.info(f"TextBee verification code stored: {code} from {from_number}")
+        
+        # Update gateway last seen
+        c.execute("INSERT OR REPLACE INTO textbee_config (id, gateway_connected, gateway_phone, gateway_last_seen) VALUES (1, 1, ?, datetime('now'))",
+                  (to_number,))
+        
+        conn.commit()
+        conn.close()
+        
+        return {"ok": True, "code_extracted": code}
+    except Exception as e:
+        logger.error(f"TextBee webhook error: {e}")
+        return {"ok": False, "error": str(e)}
+
+@app.get("/v1/sms/textbee/status")
+async def textbee_status(request: Request,
+                          _rl=Depends(rate_limited(RATE_LIMIT_GENERAL, "textbee_status"))):
+    """Check TextBee gateway connection status."""
+    conn = sqlite3.connect(sms_db_path)
+    c = conn.cursor()
+    c.execute("SELECT gateway_connected, gateway_phone, gateway_last_seen FROM textbee_config WHERE id = 1")
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        return {"connected": False, "phone": None, "last_seen": None}
+    return {"connected": bool(row[0]), "phone": row[1], "last_seen": row[2]}
 '''
 
 # Insert before the static serving section

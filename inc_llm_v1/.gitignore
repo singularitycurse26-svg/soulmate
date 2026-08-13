@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Project data
+~/.inc_llm/
+*.db
+*.sqlite
+chroma/
+vault/
+biometric.db
+ai_gaming.db
+profiles/
+SOUL.md
+MEMORY.md
+
+# Environment — NEVER commit secrets
+.env
+.env.local
+.env.production
+.env.development
+config.local.yaml
+*.secret
+*.key
+*.pem
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Docker
+docker-data/

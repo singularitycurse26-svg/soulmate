@@ -19,5 +19,16 @@
   "textSent": "Text sent!",
   "enterPhoneNumber": "Enter a phone number",
   "enterMessage": "Enter a message",
-  "messageTooLong": "Message too long (160 char max)"
+  "messageTooLong": "Message too long (160 char max)",
+  "verificationCodes": "Verification Codes",
+  "manualRelay": "Manual Code Relay",
+  "enterCode": "Enter verification code",
+  "enterService": "Service name (optional)",
+  "relayCode": "Relay Code",
+  "codeRelayed": "Code relayed to AI agents",
+  "textbeeStatus": "TextBee Gateway",
+  "textbeeConnected": "Connected",
+  "textbeeDisconnected": "Disconnected",
+  "noCodes": "No verification codes yet",
+  "pendingVerifications": "Pending Verifications"
 }

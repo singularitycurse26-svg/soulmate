@@ -124,6 +124,7 @@ class EpisodicMemory:
 
     def _text_search(self, query: str, k: int) -> list[Episode]:
         query_lower = query.lower()
+        query_words = set(query_lower.split())
         with sqlite3.connect(str(self.db_path)) as conn:
             cursor = conn.execute(
                 "SELECT * FROM episodes WHERE success = 1 ORDER BY timestamp DESC LIMIT ?",
@@ -132,7 +133,8 @@ class EpisodicMemory:
             rows = cursor.fetchall()
         scored: list[tuple[float, Episode]] = []
         for row in self._rows_to_episodes(rows):
-            score = sum(1.0 for w in query_lower.split() if w in row.task_description.lower())
+            desc_lower = row.task_description.lower()
+            score = sum(1.0 for w in query_words if w in desc_lower)
             if score > 0:
                 scored.append((score, row))
         scored.sort(key=lambda x: x[0], reverse=True)
@@ -148,7 +150,8 @@ class EpisodicMemory:
             if not ep.embedding:
                 continue
             sim = self._cosine_sim(query_embedding, ep.embedding)
-            scored.append((sim, ep))
+            if sim > 0.3:
+                scored.append((sim, ep))
         scored.sort(key=lambda x: x[0], reverse=True)
         return [ep for _, ep in scored[:k]]
 

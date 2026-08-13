@@ -11,14 +11,17 @@ Provides a single integration point for:
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import time
 from typing import Any
 
 from inc_llm.config import Settings
+from inc_llm.hardware_detector import HardwareTier
 from inc_llm.memory.episodic import Episode, EpisodicMemory
 from inc_llm.memory.knowledge_graph import KnowledgeGraph
 from inc_llm.memory.semantic import SemanticMemory, Skill
+from inc_llm.memory.vault import VaultMemory
 from inc_llm.memory.working import WorkingMemory
 
 logger = logging.getLogger(__name__)
@@ -27,9 +30,10 @@ logger = logging.getLogger(__name__)
 class MemoryManager:
     """Central orchestrator for the 3-layer memory system + knowledge graph."""
 
-    def __init__(self, settings: Settings, bus: Any = None) -> None:
+    def __init__(self, settings: Settings, bus: Any = None, meta_learner: Any = None) -> None:
         self.settings = settings
         self.bus = bus
+        self._meta_learner = meta_learner
         mem_cfg = settings.memory
 
         episodic_path = mem_cfg.resolve_path(mem_cfg.episodic_db_path)
@@ -58,6 +62,7 @@ class MemoryManager:
             decay_halflife_days=mem_cfg.graph_link_decay_halflife_days,
         )
         self._traversal_depth = mem_cfg.graph_traversal_depth
+        self.vault = VaultMemory(settings.vault, tier=settings.hardware_tier) if settings.vault.enabled else None
 
     async def prefetch_context(self, query: str) -> dict[str, Any]:
         """Prefetch relevant context from all memory layers before a turn."""
@@ -116,6 +121,13 @@ class MemoryManager:
 
         all_episodes = episodes + linked_episodes
         all_skills = skills + linked_skills
+
+        # Meta-learner skill re-ranking — boost effective skills, demote ineffective
+        if self._meta_learner:
+            skill_dicts = [s.as_dict() for s in all_skills]
+            reranked = self._meta_learner.rerank_skills(skill_dicts)
+            reranked_names = [s.get("name", s.get("id", "")) for s in reranked]
+            all_skills.sort(key=lambda s: reranked_names.index(s.name) if s.name in reranked_names else len(reranked_names))
 
         self.working.inject_episodes([ep.as_dict() for ep in all_episodes])
         self.working.inject_skills([s.as_dict() for s in all_skills])
@@ -186,6 +198,12 @@ class MemoryManager:
                 if self.graph.get_node(skill_node):
                     self.graph.auto_link_skill_verified(skill_node, f"episode:{episode_id}")
 
+        if self.vault:
+            self.vault.store(
+                f"episode:{episode_id}", "episode",
+                json.dumps(episode.as_dict(), default=str),
+                metadata={"session_id": session_id, "success": success},
+            )
         logger.info("Synced episode %s (success=%s)", episode_id, success)
         return episode_id
 
@@ -195,6 +213,12 @@ class MemoryManager:
             f"skill:{skill.name}", "skill", skill.name,
             metadata={"description": skill.description, "category": skill.category},
         )
+        if self.vault:
+            self.vault.store(
+                f"skill:{skill.name}", "skill",
+                json.dumps(skill.as_dict(), default=str),
+                metadata={"category": skill.category},
+            )
 
     def register_fact(self, fact_id: str, content: str, metadata: dict[str, Any] | None = None) -> None:
         self.graph.add_node(f"fact:{fact_id}", "fact", content, metadata=metadata)
@@ -240,7 +264,7 @@ class MemoryManager:
         self.working.clear()
 
     def get_stats(self) -> dict[str, int]:
-        return {
+        stats = {
             "episodes": self.episodic.count(),
             "skills": self.semantic.count(),
             "graph_nodes": self.graph.count_nodes(),
@@ -248,3 +272,6 @@ class MemoryManager:
             "peer_count": len(self.graph.get_peer_nodes()),
             "learning_count": len(self.graph.get_learning_nodes()),
         }
+        if self.vault:
+            stats.update({f"vault_{k}": v for k, v in self.vault.get_tier_stats().items()})
+        return stats

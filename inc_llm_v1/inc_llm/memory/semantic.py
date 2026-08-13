@@ -114,10 +114,11 @@ class SemanticMemory:
     def _text_search(self, query_text: str, k: int) -> list[Skill]:
         if not query_text:
             return list(self._skills_cache.values())[:k]
-        query_lower = query_text.lower()
+        query_words = set(query_text.lower().split())
         scored: list[tuple[float, Skill]] = []
         for skill in self._skills_cache.values():
-            score = sum(1.0 for w in query_lower.split() if w in f"{skill.name} {skill.description} {skill.category}".lower())
+            skill_text = f"{skill.name} {skill.description} {skill.category}".lower()
+            score = sum(1.0 for w in query_words if w in skill_text)
             if score > 0:
                 scored.append((score, skill))
         scored.sort(key=lambda x: x[0], reverse=True)

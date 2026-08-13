@@ -19,5 +19,16 @@
   "textSent": "¡Texto enviado!",
   "enterPhoneNumber": "Ingresa un número de teléfono",
   "enterMessage": "Ingresa un mensaje",
-  "messageTooLong": "Mensaje demasiado largo (máx 160 caracteres)"
+  "messageTooLong": "Mensaje demasiado largo (máx 160 caracteres)",
+  "verificationCodes": "Códigos de Verificación",
+  "manualRelay": "Reenvío Manual de Código",
+  "enterCode": "Ingresa el código de verificación",
+  "enterService": "Nombre del servicio (opcional)",
+  "relayCode": "Reenviar Código",
+  "codeRelayed": "Código enviado a agentes IA",
+  "textbeeStatus": "Gateway TextBee",
+  "textbeeConnected": "Conectado",
+  "textbeeDisconnected": "Desconectado",
+  "noCodes": "Sin códigos aún",
+  "pendingVerifications": "Verificaciones Pendientes"
 }

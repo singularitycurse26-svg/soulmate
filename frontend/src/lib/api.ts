@@ -254,6 +254,14 @@ export const smsApi = {
   getProfile: () => apiFetch("/v1/sms/profile"),
   saveProfile: (data: { first_name: string; last_name: string; phone_number: string; home_address: string; display_name_type: string; wallet_tag?: string }) =>
     apiFetch("/v1/sms/profile", { method: "POST", body: JSON.stringify(data) }),
+  // Verification
+  verificationCodes: () => apiFetch("/v1/sms/verification-codes"),
+  relayCode: (code: string, service_hint?: string, sender?: string) =>
+    apiFetch("/v1/sms/relay-code", { method: "POST", body: JSON.stringify({ code, service_hint, sender }) }),
+  pendingVerifications: () => apiFetch("/v1/sms/pending-verifications"),
+  createPending: (service_name: string, email_used?: string, phone_used?: string) =>
+    apiFetch("/v1/sms/pending-verifications", { method: "POST", body: JSON.stringify({ service_name, email_used, phone_used }) }),
+  textbeeStatus: () => apiFetch("/v1/sms/textbee/status"),
 };
 
 // Voice / Walkie-Talkie API
@@ -283,6 +291,15 @@ export const emailApi = {
   read: (id: number) => apiFetch(`/v1/email/${id}`),
   send: (to: string, subject: string, body: string) =>
     apiFetch("/v1/email/send", { method: "POST", body: JSON.stringify({ to, subject, body }) }),
+  sync: () => apiFetch("/v1/email/sync"),
+  sent: () => apiFetch("/v1/email/sent"),
+  delete: (id: number) => apiFetch(`/v1/email/${id}`, { method: "DELETE" }),
+  star: (id: number) => apiFetch(`/v1/email/${id}/star`, { method: "POST" }),
+  archive: (id: number) => apiFetch(`/v1/email/${id}/archive`, { method: "POST" }),
+  aiCompose: (prompt: string, context?: string) =>
+    apiFetch("/v1/email/ai-compose", { method: "POST", body: JSON.stringify({ prompt, context }) }),
+  aiSummarize: () => apiFetch("/v1/email/ai-summarize", { method: "POST" }),
+  verificationCodes: () => apiFetch("/v1/email/verification-codes"),
 };
 
 // AI API

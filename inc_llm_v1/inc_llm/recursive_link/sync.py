@@ -52,6 +52,8 @@ class PeerSyncManager:
 
     async def _sync_loop(self) -> None:
         """Main sync loop — runs periodically."""
+        # C2: Initial delay so server starts before first sync
+        await asyncio.sleep(30)
         while self._running:
             try:
                 await self.sync_once()
@@ -98,7 +100,7 @@ class PeerSyncManager:
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        urllib.request.urlopen(req, timeout=10)
+        urllib.request.urlopen(req, timeout=5)  # C2: reduced from 10s
 
     def _share_learnings(self) -> int:
         """Share local learnings with the sync endpoint."""
@@ -112,14 +114,14 @@ class PeerSyncManager:
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        urllib.request.urlopen(req, timeout=30)
+        urllib.request.urlopen(req, timeout=10)  # C2: reduced from 30s
         return len(learnings)
 
     def _receive_learnings(self) -> tuple[int, int]:
         """Receive learnings from the sync endpoint."""
         params = f"?instance_id={self.universal.instance_id}&since={self._last_sync}"
         req = urllib.request.Request(f"{self.config.sync_endpoint}/receive{params}")
-        resp = urllib.request.urlopen(req, timeout=30)
+        resp = urllib.request.urlopen(req, timeout=10)  # C2: reduced from 30s
         data = json.loads(resp.read().decode())
 
         received = 0

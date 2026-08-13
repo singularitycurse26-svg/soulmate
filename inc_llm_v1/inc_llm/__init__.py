@@ -1,4 +1,4 @@
-"""INC-LLM-v1 — Self-improving LLM harness with universal recursive linking.
+"""incllmv2 — Self-improving LLM harness with universal recursive linking.
 
 A custom LLM harness that wraps a base model (qwen2.5) with:
 - 3-layer memory system (working, episodic, semantic + knowledge graph)
@@ -8,6 +8,7 @@ A custom LLM harness that wraps a base model (qwen2.5) with:
 - Self-improving (gets smarter with every use)
 - Subscription payment system ($15/mo, INC, card, Cash App, stablecoins)
 - Secret password for free access
+- SplitBit Token System — sub-byte token encoding for 4-20x memory compression
 """
 
 __version__ = "1.0.0"

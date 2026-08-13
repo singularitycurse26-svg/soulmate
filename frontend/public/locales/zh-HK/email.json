@@ -16,5 +16,15 @@
   "starred": "星標",
   "archive": "歸檔",
   "trash": "垃圾箱",
-  "noEmails": "沒有郵件"
+  "noEmails": "沒有郵件",
+  "sync": "同步",
+  "syncing": "同步中...",
+  "sent": "已發送",
+  "drafts": "草稿",
+  "delete": "刪除",
+  "aiCompose": "AI撰寫",
+  "aiSummarize": "AI摘要",
+  "verificationCodes": "驗證碼",
+  "noCodes": "未找到驗證碼",
+  "composePrompt": "描述你想寫的郵件..."
 }

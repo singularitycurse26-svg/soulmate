@@ -1,4 +1,4 @@
-"""INC-LLM-v1 memory system — 3-layer memory with recursive linking."""
+"""incllmv2 memory system — 3-layer memory with recursive linking."""
 
 from inc_llm.memory.working import WorkingMemory
 from inc_llm.memory.episodic import EpisodicMemory, Episode

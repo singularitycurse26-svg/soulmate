@@ -1,9 +1,39 @@
 import { useState } from "react";
+import { ethers } from "ethers";
 import { useStore } from "@/lib/store";
 import { authApi, API_URL } from "@/lib/api";
-import { saveAccountToVault } from "@/lib/vault";
+import { saveAccountToVault, saveWalletToVault } from "@/lib/vault";
 import { Fingerprint, Mail, Lock, ArrowRight, ArrowLeft, Loader2, CheckCircle, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const WALLET_BIO_KEY = "soulmate_wallet_bio";
+
+function getWalletBiometricEntries(): Array<{ credential_id: string; encrypted_key: string; address: string }> {
+  try {
+    return JSON.parse(localStorage.getItem(WALLET_BIO_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+async function decryptWalletKey(encryptedB64: string, credentialId: ArrayBuffer): Promise<string> {
+  const combined = Uint8Array.from(atob(encryptedB64), (c: string) => c.charCodeAt(0));
+  const iv = combined.slice(0, 12);
+  const data = combined.slice(12);
+  const cryptoKey = await window.crypto.subtle.importKey(
+    "raw",
+    credentialId,
+    { name: "AES-GCM" },
+    false,
+    ["encrypt", "decrypt"]
+  );
+  const decrypted = await window.crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    cryptoKey,
+    data
+  );
+  return new TextDecoder().decode(decrypted);
+}
 
 export function AuthViews() {
   const { view, setView, setAuth, setFounder, showAlert, setLoading, loadingText } = useStore();
@@ -101,7 +131,7 @@ export function AuthViews() {
     setView("loading");
     try {
       const beginResp = await authApi.webauthnAuthBegin(email.toLowerCase());
-      const challenge = Uint8Array.from(atob(beginResp.challenge), c => c.charCodeAt(0));
+      const challenge = Uint8Array.from(atob(beginResp.challenge), (c: string) => c.charCodeAt(0));
       const allowCreds: PublicKeyCredentialDescriptor[] = [];
 
       const assertion = await navigator.credentials.get({
@@ -124,10 +154,30 @@ export function AuthViews() {
       const result = await authApi.webauthnAuthComplete(credId, signCount);
       if (result.status === "ok") {
         setAuth(result.session_token, result.email);
+        localStorage.setItem("auth_email", result.email);
         saveAccountToVault(result.email, result.session_token, {
           last_login: new Date().toISOString(),
           method: "fingerprint",
         });
+
+        // Auto-unlock wallet if biometric entries exist
+        const bioEntries = getWalletBiometricEntries();
+        if (bioEntries.length > 0) {
+          for (const entry of bioEntries) {
+            try {
+              const decryptedKey = await decryptWalletKey(entry.encrypted_key, assertion.rawId);
+              if (decryptedKey) {
+                const wallet = new ethers.Wallet(decryptedKey);
+                useStore.getState().setWallet(wallet.address, decryptedKey);
+                saveWalletToVault(wallet.address, decryptedKey);
+                break;
+              }
+            } catch {
+              continue;
+            }
+          }
+        }
+
         showAlert("success", "Welcome back! (Fingerprint)");
         setView("app");
       } else {
@@ -179,10 +229,10 @@ export function AuthViews() {
       if (result.status === "registered") {
         localStorage.setItem("fingerprint_registered", "true");
         showAlert("success", "Fingerprint registered! You can now use it to log in.");
-        setView("create-wallet");
+        setView("app");
       } else {
         showAlert("danger", result.detail || "Fingerprint registration failed");
-        setView("create-wallet");
+        setView("app");
       }
     } catch (e: any) {
       if (e.name === "NotAllowedError") {
@@ -190,7 +240,7 @@ export function AuthViews() {
       } else {
         showAlert("danger", e.message || "Fingerprint registration failed");
       }
-      setView("create-wallet");
+      setView("app");
     } finally {
       setBusy(false);
     }
@@ -291,7 +341,7 @@ export function AuthViews() {
                 Enable Fingerprint Login
               </button>
               <button
-                onClick={() => setView("create-wallet")}
+                onClick={() => setView("app")}
                 className="btn-ghost w-full text-sm"
               >
                 Skip for now
@@ -303,10 +353,10 @@ export function AuthViews() {
                 Fingerprint login isn't available on this device. You can still use email and password.
               </p>
               <button
-                onClick={() => setView("create-wallet")}
+                onClick={() => setView("app")}
                 className="btn-primary w-full"
               >
-                Continue to Wallet
+                Continue
               </button>
             </>
           )}

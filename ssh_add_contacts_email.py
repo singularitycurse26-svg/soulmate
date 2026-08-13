@@ -330,6 +330,8 @@ def init_email_db():
             body TEXT,
             folder TEXT DEFAULT 'inbox',
             is_read INTEGER DEFAULT 0,
+            is_starred INTEGER DEFAULT 0,
+            is_archived INTEGER DEFAULT 0,
             created_at TEXT DEFAULT (datetime('now')),
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
@@ -339,7 +341,7 @@ def init_email_db():
 
 init_email_db()
 
-EMAIL_DOMAIN = "191.44.121.29.sslip.io"
+EMAIL_DOMAIN = "soulmateos.de5.net"
 
 @app.post("/v1/email/setup")
 async def setup_email_account(request: Request,
@@ -443,15 +445,236 @@ async def send_email(req: SendEmailRequest, request: Request,
               (user_id, from_addr, req.to, req.subject, req.body))
     conn.commit()
     conn.close()
-    # Try to send via postfix if available
+    # Send via Resend API
     try:
-        import subprocess
-        proc = subprocess.run(["sendmail", "-t"], input=f"From: {from_addr}\\nTo: {req.to}\\nSubject: {req.subject}\\n\\n{req.body}",
-                            capture_output=True, text=True, timeout=10)
-    except Exception:
-        pass  # Postfix may not be installed yet
+        import resend
+        resend.api_key = os.environ.get("RESEND_API_KEY", "")
+        params = {
+            "from": "Soulmate OS <onboarding@resend.dev>",
+            "to": [req.to],
+            "subject": req.subject,
+            "html": f"<p>{req.body}</p>",
+        }
+        r = resend.Emails.send(params)
+        logger.info(f"Email sent via Resend: {r.get('id', 'unknown')}")
+    except Exception as e:
+        logger.warning(f"Resend send failed (stored in DB): {e}")
     logger.info(f"Email sent: {from_addr} -> {req.to}")
     return {"status": "sent"}
+
+@app.get("/v1/email/sync")
+async def sync_email(request: Request,
+                     _rl=Depends(rate_limited(RATE_LIMIT_GENERAL, "email_sync"))):
+    """Sync emails from Gmail IMAP to SQLite inbox."""
+    user_id = get_user_from_session(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    import imaplib
+    import email as email_lib
+    import re as re_mod
+    gmail_user = os.environ.get("GMAIL_USER", "soulmate.ai.dev@gmail.com")
+    gmail_pass = os.environ.get("GMAIL_APP_PASSWORD", "")
+    if not gmail_pass:
+        raise HTTPException(status_code=503, detail="Gmail app password not configured")
+    fetched = 0
+    stored = 0
+    duplicates = 0
+    try:
+        mail = imaplib.IMAP4_SSL("imap.gmail.com", 993)
+        mail.login(gmail_user, gmail_pass)
+        mail.select("INBOX")
+        status, data = mail.search(None, "ALL")
+        if status == "OK" and data[0]:
+            ids = data[0].split()[-20:]
+            for eid in reversed(ids):
+                fetched += 1
+                status, msg_data = mail.fetch(eid, "(RFC822)")
+                if status == "OK" and msg_data and msg_data[0]:
+                    raw = msg_data[0][1]
+                    raw_str = raw.decode("utf-8", errors="replace") if isinstance(raw, bytes) else str(raw)
+                    msg = email_lib.message_from_string(raw_str)
+                    from_addr = msg.get("From", "")
+                    to_addr = msg.get("To", "")
+                    subject = msg.get("Subject", "")
+                    date = msg.get("Date", "")
+                    body = ""
+                    if msg.is_multipart():
+                        for part in msg.walk():
+                            ct = part.get_content_type()
+                            if ct == "text/plain":
+                                payload = part.get_payload(decode=True)
+                                if payload:
+                                    body = payload.decode("utf-8", errors="replace")
+                                    break
+                            elif ct == "text/html":
+                                payload = part.get_payload(decode=True)
+                                if payload:
+                                    body = re_mod.sub(r"<[^>]+>", "", payload.decode("utf-8", errors="replace"))
+                    else:
+                        payload = msg.get_payload(decode=True)
+                        if payload:
+                            body = payload.decode("utf-8", errors="replace")
+                    conn = sqlite3.connect(email_db_path)
+                    c = conn.cursor()
+                    c.execute("SELECT id FROM emails WHERE user_id = ? AND from_addr = ? AND subject = ? AND created_at = ?",
+                              (user_id, from_addr, subject, date))
+                    if c.fetchone():
+                        duplicates += 1
+                    else:
+                        c.execute("INSERT INTO emails (user_id, from_addr, to_addr, subject, body, folder, created_at) VALUES (?, ?, ?, ?, ?, 'inbox', ?)",
+                                  (user_id, from_addr, to_addr, subject, body, date))
+                        stored += 1
+                    conn.commit()
+                    conn.close()
+        mail.logout()
+    except Exception as e:
+        logger.warning(f"Email sync error: {e}")
+        raise HTTPException(status_code=500, detail=f"Sync failed: {e}")
+    logger.info(f"Email sync: fetched={fetched}, stored={stored}, duplicates={duplicates}")
+    return {"status": "synced", "fetched": fetched, "stored": stored, "duplicates": duplicates}
+
+@app.get("/v1/email/sent")
+async def get_sent_emails(request: Request,
+                          _rl=Depends(rate_limited(RATE_LIMIT_GENERAL, "email_sent"))):
+    user_id = get_user_from_session(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    conn = sqlite3.connect(email_db_path)
+    c = conn.cursor()
+    c.execute("SELECT id, from_addr, to_addr, subject, is_read, created_at FROM emails WHERE user_id = ? AND folder = 'sent' ORDER BY created_at DESC LIMIT 50",
+              (user_id,))
+    rows = c.fetchall()
+    conn.close()
+    emails = [{"id": r[0], "from": r[1], "to": r[2], "subject": r[3], "is_read": bool(r[4]), "date": r[5]} for r in rows]
+    return {"emails": emails}
+
+@app.delete("/v1/email/{email_id}")
+async def delete_email(email_id: int, request: Request,
+                       _rl=Depends(rate_limited(RATE_LIMIT_GENERAL, "email_delete"))):
+    user_id = get_user_from_session(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    conn = sqlite3.connect(email_db_path)
+    c = conn.cursor()
+    c.execute("DELETE FROM emails WHERE id = ? AND user_id = ?", (email_id, user_id))
+    conn.commit()
+    conn.close()
+    return {"status": "deleted"}
+
+@app.post("/v1/email/{email_id}/star")
+async def toggle_star(email_id: int, request: Request,
+                      _rl=Depends(rate_limited(RATE_LIMIT_GENERAL, "email_star"))):
+    user_id = get_user_from_session(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    conn = sqlite3.connect(email_db_path)
+    c = conn.cursor()
+    c.execute("SELECT is_starred FROM emails WHERE id = ? AND user_id = ?", (email_id, user_id))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Email not found")
+    new_val = 0 if row[0] else 1
+    c.execute("UPDATE emails SET is_starred = ? WHERE id = ?", (new_val, email_id))
+    conn.commit()
+    conn.close()
+    return {"status": "starred" if new_val else "unstarred"}
+
+@app.post("/v1/email/{email_id}/archive")
+async def toggle_archive(email_id: int, request: Request,
+                         _rl=Depends(rate_limited(RATE_LIMIT_GENERAL, "email_archive"))):
+    user_id = get_user_from_session(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    conn = sqlite3.connect(email_db_path)
+    c = conn.cursor()
+    c.execute("SELECT is_archived FROM emails WHERE id = ? AND user_id = ?", (email_id, user_id))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Email not found")
+    new_val = 0 if row[0] else 1
+    c.execute("UPDATE emails SET is_archived = ? WHERE id = ?", (new_val, email_id))
+    conn.commit()
+    conn.close()
+    return {"status": "archived" if new_val else "unarchived"}
+
+class AIComposeRequest(BaseModel):
+    prompt: str
+    context: str = None
+
+@app.post("/v1/email/ai-compose")
+async def ai_compose_email(req: AIComposeRequest, request: Request,
+                           _rl=Depends(rate_limited(RATE_LIMIT_GENERAL, "email_ai_compose"))):
+    user_id = get_user_from_session(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    import urllib.request
+    import urllib.parse
+    gemini_key = os.environ.get("GEMINI_API_KEY", "")
+    if not gemini_key:
+        raise HTTPException(status_code=503, detail="AI not configured")
+    context_str = f" Context: {req.context}" if req.context else ""
+    prompt = f"Write a professional email based on this request: {req.prompt}{context_str}. Write only the email body, no subject line."
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+    payload = json_mod.dumps({"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.7, "maxOutputTokens": 512}})
+    data = payload.encode()
+    api_req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+    resp = urllib.request.urlopen(api_req, timeout=30)
+    result = json_mod.loads(resp.read().decode())
+    text = result.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+    return {"draft": text.strip()}
+
+@app.post("/v1/email/ai-summarize")
+async def ai_summarize_inbox(request: Request,
+                             _rl=Depends(rate_limited(RATE_LIMIT_GENERAL, "email_ai_summarize"))):
+    user_id = get_user_from_session(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    conn = sqlite3.connect(email_db_path)
+    c = conn.cursor()
+    c.execute("SELECT from_addr, subject, body FROM emails WHERE user_id = ? AND folder = 'inbox' AND is_read = 0 ORDER BY created_at DESC LIMIT 10", (user_id,))
+    rows = c.fetchall()
+    conn.close()
+    if not rows:
+        return {"summary": "No unread emails."}
+    import urllib.request
+    gemini_key = os.environ.get("GEMINI_API_KEY", "")
+    if not gemini_key:
+        raise HTTPException(status_code=503, detail="AI not configured")
+    email_list = "\n".join([f"From: {r[0]}, Subject: {r[1]}, Preview: {(r[2] or '')[:100]}" for r in rows])
+    prompt = f"Summarize these unread emails in a brief bullet-point format:\n{email_list}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+    payload = json_mod.dumps({"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.5, "maxOutputTokens": 512}})
+    data = payload.encode()
+    api_req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+    resp = urllib.request.urlopen(api_req, timeout=30)
+    result = json_mod.loads(resp.read().decode())
+    text = result.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+    return {"summary": text.strip()}
+
+@app.get("/v1/email/verification-codes")
+async def get_email_verification_codes(request: Request,
+                                       _rl=Depends(rate_limited(RATE_LIMIT_GENERAL, "email_verif_codes"))):
+    """Extract verification codes from recent emails."""
+    user_id = get_user_from_session(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    conn = sqlite3.connect(email_db_path)
+    c = conn.cursor()
+    c.execute("SELECT id, from_addr, subject, body, created_at FROM emails WHERE user_id = ? AND folder = 'inbox' ORDER BY created_at DESC LIMIT 20", (user_id,))
+    rows = c.fetchall()
+    conn.close()
+    import re as re_mod
+    codes = []
+    for r in rows:
+        text = (r[2] or "") + " " + (r[3] or "")
+        for pattern in [r"(?:verification\s+code|code|OTP|pin)\s*(?:is|:)?\s*(\d{4,8})", r"^\s*(\d{4,8})\s*$", r"[\[(<{](\d{4,8})[\])>}"]:
+            match = re_mod.search(pattern, text, re_mod.IGNORECASE | re_mod.MULTILINE)
+            if match:
+                codes.append({"email_id": r[0], "from": r[1], "subject": r[2], "code": match.group(1), "date": r[4]})
+                break
+    return {"codes": codes}
 '''
 
 # Insert before the static serving section

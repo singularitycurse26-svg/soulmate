@@ -1,12 +1,27 @@
 import { useState, useEffect, useCallback } from "react";
 import { useStore } from "@/lib/store";
 import { socialApi } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { cn, copyToClipboard } from "@/lib/utils";
 import {
   Search, Home, Users, Heart, ShoppingBag, Bell, MessageCircle,
   ThumbsUp, MessageSquare, Share2, MoreHorizontal, X, Image as ImageIcon,
-  Video, Smile, Send, Clock, Bookmark, Calendar, ChevronDown,
+  Video, Smile, Send, Clock, Bookmark, Calendar, ChevronDown, Youtube,
 } from "lucide-react";
+
+function getYouTubeId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([\w-]{11})/,
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+function getYouTubeThumb(videoId: string): string {
+  return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+}
 
 interface Post {
   id: number;
@@ -15,6 +30,7 @@ interface Post {
   author_avatar?: string;
   text: string;
   image_url?: string;
+  video_url?: string;
   created_at: string;
   likes_count: number;
   comments_count: number;
@@ -67,7 +83,12 @@ export function DashboardPage() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [postText, setPostText] = useState("");
   const [postImage, setPostImage] = useState("");
+  const [postVideo, setPostVideo] = useState("");
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [showVideoInput, setShowVideoInput] = useState(false);
+  const [seeMore, setSeeMore] = useState(false);
+  const [playingVideo, setPlayingVideo] = useState<number | null>(null);
+  const [sharedPosts, setSharedPosts] = useState<Set<number>>(new Set());
   const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
   const [commentsCache, setCommentsCache] = useState<Record<number, Comment[]>>({});
   const [commentText, setCommentText] = useState<Record<number, string>>({});
@@ -98,13 +119,15 @@ export function DashboardPage() {
   useEffect(() => { loadData(); }, [loadData]);
 
   const handleCreatePost = async () => {
-    if (!postText.trim() && !postImage.trim()) return;
+    if (!postText.trim() && !postImage.trim() && !postVideo.trim()) return;
     try {
-      const data = await socialApi.createPost({ text: postText, image_url: postImage });
+      const data = await socialApi.createPost({ text: postText, image_url: postImage, video_url: postVideo });
       setPosts([data.post, ...posts]);
       setPostText("");
       setPostImage("");
+      setPostVideo("");
       setShowCreatePost(false);
+      setShowVideoInput(false);
       showAlert("success", "Posted!");
     } catch (e: any) {
       showAlert("danger", e.message);
@@ -147,6 +170,27 @@ export function DashboardPage() {
     } catch (e: any) {
       showAlert("danger", e.message);
     }
+  };
+
+  const handleShare = async (postId: number) => {
+    if (sharedPosts.has(postId)) return;
+    copyToClipboard(`${window.location.origin}/post/${postId}`);
+    setSharedPosts(new Set([...sharedPosts, postId]));
+    showAlert("success", "Post link copied to clipboard!");
+    setTimeout(() => {
+      setSharedPosts(new Set([...sharedPosts].filter(id => id !== postId)));
+    }, 3000);
+  };
+
+  const handleNotificationClick = async (notifId: number) => {
+    try { await socialApi.markNotificationRead(notifId); } catch {}
+    setNotifications(notifications.map(n => n.id === notifId ? { ...n, read: true } : n));
+  };
+
+  const handleAddEmoji = () => {
+    const emojis = ["😀", "❤️", "🔥", "👍", "🎉", "✨", "🚀", "💎", "😍", "🤔"];
+    const random = emojis[Math.floor(Math.random() * emojis.length)];
+    setPostText(postText + " " + random);
   };
 
   const handleSearch = async (q: string) => {
@@ -221,7 +265,7 @@ export function DashboardPage() {
             {showSearch && searchResults.length > 0 && (
               <div className="absolute top-full mt-1 left-0 w-full bg-white rounded-lg shadow-xl py-2 max-h-80 overflow-y-auto">
                 {searchResults.map((user) => (
-                  <button key={user.id} className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 text-left">
+                  <button key={user.id} onClick={() => { setShowSearch(false); setSearchQuery(""); setSearchResults([]); showAlert("info", `User: ${user.name}`); }} className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 text-left">
                     <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold" style={{ background: avatarColor(user.name) }}>
                       {getAvatar(user.name)}
                     </div>
@@ -264,7 +308,7 @@ export function DashboardPage() {
                 {notifications.length === 0 ? (
                   <p className="text-sm text-gray-500 px-4 py-4 text-center">No notifications</p>
                 ) : notifications.map((n) => (
-                  <button key={n.id} className={cn("w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-100 text-left", !n.read && "bg-blue-50")}>
+                  <button key={n.id} onClick={() => handleNotificationClick(n.id)} className={cn("w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-100 text-left", !n.read && "bg-blue-50")}>
                     <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                       <Bell className="w-5 h-5 text-blue-600" />
                     </div>
@@ -279,11 +323,11 @@ export function DashboardPage() {
             )}
           </div>
 
-          <button className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center">
+          <button onClick={() => setActivePage("contacts")} className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center">
             <MessageCircle className="w-5 h-5" />
           </button>
 
-          <button className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-sm overflow-hidden">
+          <button onClick={() => setActivePage("security")} className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center font-bold text-sm overflow-hidden">
             {profile?.avatar ? <img src={profile.avatar} alt="" className="w-full h-full object-cover" /> : getAvatar(authEmail)}
           </button>
         </div>
@@ -307,26 +351,46 @@ export function DashboardPage() {
             <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center"><ShoppingBag className="w-5 h-5 text-blue-600" /></div>
             <span className="font-medium text-sm">Marketplace</span>
           </button>
-          <button className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 text-left">
+          <button onClick={() => setActivePage("contacts")} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 text-left">
             <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center"><Users className="w-5 h-5 text-blue-600" /></div>
             <span className="font-medium text-sm">Friends</span>
           </button>
-          <button className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 text-left">
+          <button onClick={() => setActivePage("dashboard")} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 text-left">
             <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center"><Clock className="w-5 h-5 text-blue-600" /></div>
             <span className="font-medium text-sm">Memories</span>
           </button>
-          <button className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 text-left">
+          <button onClick={() => setActivePage("wallet")} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 text-left">
             <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center"><Bookmark className="w-5 h-5 text-blue-600" /></div>
             <span className="font-medium text-sm">Saved</span>
           </button>
-          <button className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 text-left">
+          <button onClick={() => setActivePage("marketplace")} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 text-left">
             <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center"><Calendar className="w-5 h-5 text-blue-600" /></div>
             <span className="font-medium text-sm">Events</span>
           </button>
-          <button className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 text-left">
-            <div className="w-9 h-9 rounded-full bg-gray-300 flex items-center justify-center"><ChevronDown className="w-5 h-5 text-gray-700" /></div>
+          <button onClick={() => setSeeMore(!seeMore)} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 text-left">
+            <div className="w-9 h-9 rounded-full bg-gray-300 flex items-center justify-center"><ChevronDown className={cn("w-5 h-5 text-gray-700 transition-transform", seeMore && "rotate-180")} /></div>
             <span className="font-medium text-sm">See More</span>
           </button>
+          {seeMore && (
+            <>
+              <button onClick={() => setActivePage("ai")} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 text-left">
+                <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center"><MessageCircle className="w-5 h-5 text-purple-600" /></div>
+                <span className="font-medium text-sm">AI Chat</span>
+              </button>
+              <button onClick={() => setActivePage("games")} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 text-left">
+                <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center"><Youtube className="w-5 h-5 text-red-600" /></div>
+                <span className="font-medium text-sm">Games</span>
+              </button>
+              <button onClick={() => setActivePage("incentives")} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 text-left">
+                <div className="w-9 h-9 rounded-full bg-yellow-100 flex items-center justify-center"><ShoppingBag className="w-5 h-5 text-yellow-600" /></div>
+                <span className="font-medium text-sm">Incentives</span>
+              </button>
+              <button onClick={() => setActivePage("healing")} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 text-left">
+                <div className="w-9 h-9 rounded-full bg-teal-100 flex items-center justify-center"><Heart className="w-5 h-5 text-teal-600" /></div>
+                <span className="font-medium text-sm">Healing</span>
+              </button>
+            </>
+          )}
         </aside>
 
         {/* Center — Feed */}
@@ -401,6 +465,35 @@ export function DashboardPage() {
               </div>
               {post.text && <p className="px-4 pb-3 text-sm whitespace-pre-wrap">{post.text}</p>}
               {post.image_url && <img src={post.image_url} alt="" className="w-full max-h-[500px] object-cover" />}
+              {post.video_url && (() => {
+                const ytId = getYouTubeId(post.video_url);
+                if (ytId) {
+                  if (playingVideo === post.id) {
+                    return (
+                      <div className="w-full" style={{ aspectRatio: "16/9" }}>
+                        <iframe
+                          src={`https://www.youtube.com/embed/${ytId}?autoplay=1`}
+                          title="YouTube video"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full"
+                        />
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="relative w-full cursor-pointer" style={{ aspectRatio: "16/9" }} onClick={() => setPlayingVideo(post.id)}>
+                      <img src={getYouTubeThumb(ytId)} alt="" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                        <div className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center hover:bg-red-700 transition-colors">
+                          <Youtube className="w-8 h-8 text-white" />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
               <div className="flex items-center justify-between px-4 py-2 text-sm text-gray-500">
                 <div className="flex items-center gap-1">
                   <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center"><ThumbsUp className="w-3 h-3 text-white fill-white" /></div>
@@ -415,8 +508,8 @@ export function DashboardPage() {
                 <button onClick={() => handleLoadComments(post.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 flex-1 justify-center">
                   <MessageSquare className="w-5 h-5" /><span className="text-sm font-medium">Comment</span>
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 flex-1 justify-center">
-                  <Share2 className="w-5 h-5" /><span className="text-sm font-medium">Share</span>
+                <button onClick={() => handleShare(post.id)} className={cn("flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 flex-1 justify-center", sharedPosts.has(post.id) && "text-blue-600")}>
+                  <Share2 className="w-5 h-5" /><span className="text-sm font-medium">{sharedPosts.has(post.id) ? "Copied!" : "Share"}</span>
                 </button>
               </div>
               {expandedComments.has(post.id) && (
@@ -452,7 +545,7 @@ export function DashboardPage() {
         <aside className="hidden xl:flex flex-col w-[300px] flex-shrink-0 p-4 gap-3 sticky top-14 h-[calc(100vh-56px)] overflow-y-auto">
           <div>
             <p className="font-semibold text-sm text-gray-500 mb-2">Sponsored</p>
-            <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 cursor-pointer">
+            <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 cursor-pointer" onClick={() => setActivePage("wallet")}>
               <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold">AD</div>
               <div><p className="text-sm font-medium">Soulmate Premium</p><p className="text-xs text-gray-500">soulmate.io</p></div>
             </div>
@@ -499,12 +592,35 @@ export function DashboardPage() {
                   <button onClick={() => setPostImage("")} className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center"><X className="w-4 h-4 text-white" /></button>
                 </div>
               )}
+              {postVideo && getYouTubeId(postVideo) && (
+                <div className="relative mt-2 rounded-lg overflow-hidden border border-gray-200" style={{ aspectRatio: "16/9" }}>
+                  <img src={getYouTubeThumb(getYouTubeId(postVideo)!)} alt="" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <Youtube className="w-12 h-12 text-red-600" />
+                  </div>
+                  <button onClick={() => setPostVideo("")} className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center"><X className="w-4 h-4 text-white" /></button>
+                </div>
+              )}
+              {showVideoInput && (
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={postVideo}
+                    onChange={(e) => setPostVideo(e.target.value)}
+                    placeholder="Paste YouTube URL (e.g. https://youtube.com/watch?v=...)"
+                    className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-900 outline-none focus:border-blue-500"
+                    autoFocus
+                  />
+                  <button onClick={() => setShowVideoInput(false)} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm text-gray-700">Done</button>
+                </div>
+              )}
               <div className="flex items-center gap-2 mt-3 p-3 border border-gray-200 rounded-lg">
                 <span className="text-sm font-medium text-gray-700 flex-1">Add to your post</span>
-                <button onClick={() => { const url = prompt("Image URL:"); if (url) setPostImage(url); }} className="p-1.5 rounded-lg hover:bg-gray-100"><ImageIcon className="w-5 h-5 text-green-500" /></button>
-                <button className="p-1.5 rounded-lg hover:bg-gray-100"><Smile className="w-5 h-5 text-yellow-500" /></button>
+                <button onClick={() => { const url = prompt("Image URL:"); if (url) setPostImage(url); }} className="p-1.5 rounded-lg hover:bg-gray-100" title="Add image"><ImageIcon className="w-5 h-5 text-green-500" /></button>
+                <button onClick={() => setShowVideoInput(!showVideoInput)} className={cn("p-1.5 rounded-lg hover:bg-gray-100", showVideoInput && "bg-gray-100")} title="Add YouTube video"><Youtube className="w-5 h-5 text-red-600" /></button>
+                <button onClick={handleAddEmoji} className="p-1.5 rounded-lg hover:bg-gray-100" title="Add emoji"><Smile className="w-5 h-5 text-yellow-500" /></button>
               </div>
-              <button onClick={handleCreatePost} disabled={!postText.trim() && !postImage.trim()} className="w-full mt-3 py-2.5 rounded-lg font-bold text-white disabled:opacity-40" style={{ background: FB_BLUE }}>Post</button>
+              <button onClick={handleCreatePost} disabled={!postText.trim() && !postImage.trim() && !postVideo.trim()} className="w-full mt-3 py-2.5 rounded-lg font-bold text-white disabled:opacity-40" style={{ background: FB_BLUE }}>Post</button>
             </div>
           </div>
         </div>

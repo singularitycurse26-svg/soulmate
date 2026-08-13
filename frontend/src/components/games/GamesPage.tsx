@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { PachinkoGame } from "./PachinkoGame";
 import { BlackjackGame } from "./BlackjackGame";
 import { TexasHoldemGame } from "./TexasHoldemGame";
+import { MerramunSlotGame } from "./MerramunSlotGame";
 
 const SUITS = ["♠", "♥", "♦", "♣"] as const;
 const RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"] as const;
@@ -107,7 +108,7 @@ function ParticleBurst({ type }: { type: "win" | "loss" }) {
 
 export function GamesPage() {
   const { showAlert } = useStore();
-  const [tab, setTab] = useState<"highlow" | "pachinko" | "blackjack" | "holdem">("highlow");
+  const [tab, setTab] = useState<"highlow" | "pachinko" | "blackjack" | "holdem" | "merramun">("highlow");
 
   // High/Low game state
   const [coins, setCoins] = useState(1000);
@@ -418,6 +419,12 @@ export function GamesPage() {
         >
           Texas Hold'em
         </button>
+        <button
+          onClick={() => setTab("merramun")}
+          className={cn("px-4 py-2 rounded-md text-sm font-medium transition-all", tab === "merramun" ? "bg-accent text-white" : "text-muted hover:text-white")}
+        >
+          Incentives OS
+        </button>
       </div>
 
       {showParticles && <ParticleBurst type={result === "win" ? "win" : "loss"} />}
@@ -638,6 +645,10 @@ export function GamesPage() {
 
       {tab === "holdem" && (
         <TexasHoldemGame />
+      )}
+
+      {tab === "merramun" && (
+        <MerramunSlotGame />
       )}
     </div>
   );

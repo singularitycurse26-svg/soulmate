@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  inc-llm:
+    build: .
+    ports:
+      - "8547:8547"
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - inc-llm-data:/root/.inc_llm
+    environment:
+      - INC_LLM_LOG_LEVEL=INFO
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  inc-llm-data:
+  ollama-data:

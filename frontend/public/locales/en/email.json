@@ -16,5 +16,15 @@
   "starred": "Starred",
   "archive": "Archive",
   "trash": "Trash",
-  "noEmails": "No emails"
+  "noEmails": "No emails",
+  "sync": "Sync",
+  "syncing": "Syncing...",
+  "sent": "Sent",
+  "drafts": "Drafts",
+  "delete": "Delete",
+  "aiCompose": "AI Compose",
+  "aiSummarize": "AI Summarize",
+  "verificationCodes": "Verification Codes",
+  "noCodes": "No verification codes found",
+  "composePrompt": "Describe the email you want to write..."
 }

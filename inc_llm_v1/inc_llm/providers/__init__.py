@@ -1,4 +1,4 @@
-"""INC-LLM-v1 providers."""
+"""incllmv2 providers."""
 
 from inc_llm.providers.bus import ModelBus, create_bus
 from inc_llm.providers.base import ModelProvider

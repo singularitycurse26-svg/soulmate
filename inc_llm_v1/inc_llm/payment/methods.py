@@ -1,6 +1,6 @@
 """Payment processor — routes all payments through Soulmate OS wallet system.
 
-All subscription payments for INC-LLM-v1 are routed to the founder's wallet
+All subscription payments for incllmv2 are routed to the founder's wallet
 on the Soulmate OS platform (hawpetossjustin25@gmail.com). The Soulmate OS
 incentives wallet API handles deposit verification, crypto transfers, and
 wallet management.
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 class SoulmateWalletProcessor:
     """Processes payments through the Soulmate OS incentives wallet system.
 
-    All payments are routed to the founder's wallet (hawpetossjustin25@gmail.com)
+    All payments are routed to the founder's wallet
     on the Soulmate OS platform. This class handles:
     - Fetching the founder's wallet address from the API
     - Creating deposit requests
@@ -136,7 +136,7 @@ class SoulmateWalletProcessor:
             "amount": amount,
             "token": token,
             "method": "crypto",
-            "source": "inc-llm-v1",
+            "source": "incllmv2",
         }).encode()
 
         def _do_request():

@@ -16,5 +16,15 @@
   "starred": "Destacados",
   "archive": "Archivar",
   "trash": "Papelera",
-  "noEmails": "Sin correos"
+  "noEmails": "Sin correos",
+  "sync": "Sincronizar",
+  "syncing": "Sincronizando...",
+  "sent": "Enviados",
+  "drafts": "Borradores",
+  "delete": "Eliminar",
+  "aiCompose": "Redactar con IA",
+  "aiSummarize": "Resumir con IA",
+  "verificationCodes": "Códigos de Verificación",
+  "noCodes": "No se encontraron códigos",
+  "composePrompt": "Describe el correo que quieres escribir..."
 }

@@ -1,13 +1,13 @@
 """API key system for model-to-model connections.
 
-Allows larger models (Fable 5, GLM 5.2, Mythos, etc.) to connect to INC-LLM-v1
+Allows larger models (Fable 5, GLM 5.2, Mythos, etc.) to connect to incllmv2
 and use it as a backend reasoning/memory/skill engine. Keys can be:
 - Created with specific scopes (chat, embed, skills, goals, memory)
 - Rate-limited per key
 - Tracked for usage statistics
 - Free for local/Ollama connections (no payment required for model-to-model)
 
-This makes INC-LLM-v1 a "reasoning provider" that bigger models can offload to:
+This makes incllmv2 a "reasoning provider" that bigger models can offload to:
 - A large model can send queries → INC-LLM responds with its memory-enhanced output
 - A large model can request skill lookups → INC-LLM returns relevant skills
 - A large model can store episodes → INC-LLM remembers for next time

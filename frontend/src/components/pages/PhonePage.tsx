@@ -33,6 +33,8 @@ import {
   Globe,
   Hash,
   Bot,
+  KeyRound,
+  RefreshCw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -175,6 +177,14 @@ export function PhonePage() {
   const [cryptoSending, setCryptoSending] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const cryptoProviderRef = useRef<ethers.JsonRpcProvider | null>(null);
+
+  // Verification relay
+  const [verifCodes, setVerifCodes] = useState<any[]>([]);
+  const [relayCode, setRelayCode] = useState("");
+  const [relayService, setRelayService] = useState("");
+  const [relaying, setRelaying] = useState(false);
+  const [textbeeStatus, setTextbeeStatus] = useState<any>(null);
+  const [showVerifSection, setShowVerifSection] = useState(false);
 
   const loadStatus = useCallback(async () => {
     try {
@@ -765,6 +775,126 @@ export function PhonePage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Verification Code Relay Section */}
+                  <div className="px-4 py-2">
+                    <button
+                      onClick={() => {
+                        setShowVerifSection(!showVerifSection);
+                        if (!showVerifSection) {
+                          smsApi.verificationCodes().then(d => setVerifCodes(d.codes || [])).catch(() => {});
+                          smsApi.textbeeStatus().then(d => setTextbeeStatus(d)).catch(() => {});
+                        }
+                      }}
+                      className="w-full flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm hover:shadow-md transition-all"
+                    >
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#16a34a15" }}>
+                        <KeyRound className="w-5 h-5" style={{ color: "#16a34a" }} />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className="text-sm font-medium">Verification Codes</p>
+                        <p className="text-xs text-gray-500">{verifCodes.length > 0 ? `${verifCodes.length} code(s) available` : "Relay codes to AI agents"}</p>
+                      </div>
+                      {verifCodes.length > 0 && (
+                        <span className="text-xs bg-green-500 text-white rounded-full px-2 py-0.5">{verifCodes.length}</span>
+                      )}
+                    </button>
+                  </div>
+
+                  {showVerifSection && (
+                    <div className="px-4 py-2 space-y-3">
+                      {/* TextBee Status */}
+                      <div className="bg-white rounded-xl p-3 shadow-sm">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Smartphone className="w-4 h-4 text-gray-500" />
+                          <span className="text-xs font-medium">TextBee Gateway</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${textbeeStatus?.connected ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                            {textbeeStatus?.connected ? "Connected" : "Disconnected"}
+                          </span>
+                        </div>
+                        {textbeeStatus?.phone && (
+                          <p className="text-xs text-gray-500 ml-6">Phone: {textbeeStatus.phone}</p>
+                        )}
+                        {textbeeStatus?.last_seen && (
+                          <p className="text-xs text-gray-400 ml-6">Last seen: {textbeeStatus.last_seen}</p>
+                        )}
+                      </div>
+
+                      {/* Manual Code Relay */}
+                      <div className="bg-white rounded-xl p-3 shadow-sm space-y-2">
+                        <p className="text-xs font-medium text-gray-700">Manual Code Relay</p>
+                        <input
+                          value={relayCode}
+                          onChange={(e) => setRelayCode(e.target.value)}
+                          placeholder="Enter verification code"
+                          className="w-full p-2 border border-gray-300 rounded-lg text-sm font-mono"
+                        />
+                        <input
+                          value={relayService}
+                          onChange={(e) => setRelayService(e.target.value)}
+                          placeholder="Service name (optional)"
+                          className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                        />
+                        <button
+                          onClick={async () => {
+                            if (!relayCode.trim()) return;
+                            setRelaying(true);
+                            try {
+                              await smsApi.relayCode(relayCode.trim(), relayService.trim() || undefined);
+                              showAlert("success", "Code relayed to AI agents!");
+                              setRelayCode("");
+                              setRelayService("");
+                              const d = await smsApi.verificationCodes();
+                              setVerifCodes(d.codes || []);
+                            } catch (e: any) {
+                              showAlert("danger", e.message);
+                            } finally {
+                              setRelaying(false);
+                            }
+                          }}
+                          disabled={!relayCode.trim() || relaying}
+                          className="w-full py-2 rounded-lg text-white text-sm font-medium flex items-center justify-center gap-2"
+                          style={{ background: "#16a34a" }}
+                        >
+                          {relaying ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                          Relay Code
+                        </button>
+                      </div>
+
+                      {/* Recent Codes */}
+                      {verifCodes.length > 0 && (
+                        <div className="bg-white rounded-xl p-3 shadow-sm">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-medium text-gray-700">Recent Codes</p>
+                            <button
+                              onClick={async () => {
+                                const d = await smsApi.verificationCodes();
+                                setVerifCodes(d.codes || []);
+                              }}
+                              className="text-gray-400 hover:text-gray-600"
+                            >
+                              <RefreshCw className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <div className="space-y-1.5">
+                            {verifCodes.map((vc, i) => (
+                              <div key={i} className="flex items-center gap-2 text-xs">
+                                <code className="font-mono font-bold text-blue-600">{vc.code}</code>
+                                <span className="text-gray-500 truncate flex-1">{vc.service || vc.sender || "Unknown"}</span>
+                                <span className="text-gray-400">{vc.source}</span>
+                                <button
+                                  onClick={() => { navigator.clipboard?.writeText(vc.code); showAlert("success", "Copied!"); }}
+                                  className="text-blue-500 hover:text-blue-700"
+                                >
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Compose new message */}
                   {toNumber.trim() && (

@@ -242,8 +242,13 @@ TOOL_DEFINITIONS = [
     {"name": "check_balance", "description": "Check wallet token balances", "parameters": {"type": "object", "properties": {}}},
     {"name": "list_contacts", "description": "List user's contacts", "parameters": {"type": "object", "properties": {}}},
     {"name": "create_contact", "description": "Add a new contact", "parameters": {"type": "object", "properties": {"name": {"type": "string"}, "email": {"type": "string"}, "phone": {"type": "string"}}, "required": ["name"]}},
-    {"name": "send_email", "description": "Send an email", "parameters": {"type": "object", "properties": {"to": {"type": "string"}, "subject": {"type": "string"}, "body": {"type": "string"}}, "required": ["to", "subject", "body"]}},
-    {"name": "read_inbox", "description": "Get recent emails", "parameters": {"type": "object", "properties": {}}},
+    {"name": "send_email", "description": "Send an email via Resend API", "parameters": {"type": "object", "properties": {"to": {"type": "string"}, "subject": {"type": "string"}, "body": {"type": "string"}}, "required": ["to", "subject", "body"]}},
+    {"name": "read_inbox", "description": "Get recent emails from inbox", "parameters": {"type": "object", "properties": {}}},
+    {"name": "wait_for_verification_email", "description": "Poll Gmail inbox for a verification email and extract the code. Use after signing up for a service.", "parameters": {"type": "object", "properties": {"timeout": {"type": "integer", "description": "Max seconds to wait (default 120)"}, "sender_filter": {"type": "string", "description": "Filter by sender email substring"}, "subject_filter": {"type": "string", "description": "Filter by subject substring"}}, "required": []}},
+    {"name": "extract_verification_code", "description": "Extract a verification code (4-8 digits) from text", "parameters": {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]}},
+    {"name": "check_sms_for_code", "description": "Check Telegram and TextBee messages for verification codes", "parameters": {"type": "object", "properties": {}}},
+    {"name": "signup_with_email", "description": "Register a pending verification for a service using email. Creates a tracking entry.", "parameters": {"type": "object", "properties": {"service_name": {"type": "string"}, "email_used": {"type": "string"}}, "required": ["service_name"]}},
+    {"name": "complete_verification", "description": "Mark a pending verification as completed with the received code", "parameters": {"type": "object", "properties": {"service_name": {"type": "string"}, "code": {"type": "string"}}, "required": ["service_name", "code"]}},
     {"name": "get_subscription", "description": "Check current subscription plan", "parameters": {"type": "object", "properties": {}}},
     {"name": "set_reminder", "description": "Store a reminder in memory", "parameters": {"type": "object", "properties": {"reminder": {"type": "string"}}, "required": ["reminder"]}},
 ]
@@ -290,11 +295,18 @@ def execute_tool(tool_name, args, user_id, session_token):
             conn.commit()
             conn.close()
             try:
-                import subprocess
-                subprocess.run(["sendmail", "-t"], input=f"From: {from_addr}\\nTo: {args['to']}\\nSubject: {args['subject']}\\n\\n{args['body']}",
-                              capture_output=True, text=True, timeout=10)
-            except Exception:
-                pass
+                import resend
+                resend.api_key = os.environ.get("RESEND_API_KEY", "")
+                params = {
+                    "from": "Soulmate OS <onboarding@resend.dev>",
+                    "to": [args["to"]],
+                    "subject": args["subject"],
+                    "html": f"<p>{args['body']}</p>",
+                }
+                r = resend.Emails.send(params)
+                logger.info(f"AI agent sent email via Resend: {r.get('id', 'unknown')}")
+            except Exception as e:
+                logger.warning(f"Resend send failed (stored in DB): {e}")
             return {"status": "sent", "to": args["to"], "subject": args["subject"]}
         elif tool_name == "read_inbox":
             conn = sqlite3.connect(email_db_path)
@@ -303,6 +315,106 @@ def execute_tool(tool_name, args, user_id, session_token):
             rows = c.fetchall()
             conn.close()
             return {"emails": [{"id": r[0], "from": r[1], "subject": r[2], "read": bool(r[3]), "date": r[4]} for r in rows]}
+        elif tool_name == "wait_for_verification_email":
+            import imaplib
+            import email as email_lib
+            import time as time_mod
+            import re as re_mod
+            gmail_user = os.environ.get("GMAIL_USER", "soulmate.ai.dev@gmail.com")
+            gmail_pass = os.environ.get("GMAIL_APP_PASSWORD", "")
+            if not gmail_pass:
+                return {"error": "Gmail app password not configured"}
+            timeout = args.get("timeout", 120)
+            sender_filter = args.get("sender_filter")
+            subject_filter = args.get("subject_filter")
+            start = time_mod.time()
+            seen_ids = set()
+            while time_mod.time() - start < timeout:
+                try:
+                    mail = imaplib.IMAP4_SSL("imap.gmail.com", 993)
+                    mail.login(gmail_user, gmail_pass)
+                    mail.select("INBOX")
+                    status, data = mail.search(None, "ALL")
+                    if status == "OK" and data[0]:
+                        ids = data[0].split()[-10:]
+                        for eid in reversed(ids):
+                            eid_str = eid.decode() if isinstance(eid, bytes) else str(eid)
+                            if eid_str in seen_ids:
+                                continue
+                            seen_ids.add(eid_str)
+                            status, msg_data = mail.fetch(eid, "(RFC822)")
+                            if status == "OK" and msg_data and msg_data[0]:
+                                raw = msg_data[0][1]
+                                raw_str = raw.decode("utf-8", errors="replace") if isinstance(raw, bytes) else str(raw)
+                                msg = email_lib.message_from_string(raw_str)
+                                from_addr = msg.get("From", "")
+                                subject = msg.get("Subject", "")
+                                body = ""
+                                if msg.is_multipart():
+                                    for part in msg.walk():
+                                        ct = part.get_content_type()
+                                        if ct == "text/plain":
+                                            payload = part.get_payload(decode=True)
+                                            if payload:
+                                                body = payload.decode("utf-8", errors="replace")
+                                                break
+                                        elif ct == "text/html":
+                                            payload = part.get_payload(decode=True)
+                                            if payload:
+                                                body = re_mod.sub(r"<[^>]+>", "", payload.decode("utf-8", errors="replace"))
+                                else:
+                                    payload = msg.get_payload(decode=True)
+                                    if payload:
+                                        body = payload.decode("utf-8", errors="replace")
+                                if sender_filter and sender_filter.lower() not in from_addr.lower():
+                                    continue
+                                if subject_filter and subject_filter.lower() not in subject.lower():
+                                    continue
+                                for pattern in [r"(?:verification\s+code|code|OTP|pin)\s*(?:is|:)?\s*(\d{4,8})", r"^\s*(\d{4,8})\s*$", r"[\[(<{](\d{4,8})[\])>}"]:
+                                    match = re_mod.search(pattern, body + " " + subject, re_mod.IGNORECASE | re_mod.MULTILINE)
+                                    if match:
+                                        code = match.group(1)
+                                        mail.logout()
+                                        return {"status": "found", "code": code, "from": from_addr, "subject": subject}
+                    mail.logout()
+                except Exception as e:
+                    logger.warning(f"IMAP poll error: {e}")
+                time_mod.sleep(10)
+            return {"status": "timeout", "message": f"No verification email found within {timeout}s"}
+        elif tool_name == "extract_verification_code":
+            import re as re_mod
+            text = args.get("text", "")
+            for pattern in [r"(?:verification\s+code|code|OTP|pin|password)\s*(?:is|:)?\s*(\d{4,8})", r"^\s*(\d{4,8})\s*$", r"[\[(<{](\d{4,8})[\])>}", r"(\d{3})[-\s](\d{3})"]:
+                match = re_mod.search(pattern, text, re_mod.IGNORECASE | re_mod.MULTILINE)
+                if match:
+                    if match.lastindex == 2:
+                        return {"code": match.group(1) + match.group(2)}
+                    return {"code": match.group(1)}
+            return {"code": None, "message": "No verification code found in text"}
+        elif tool_name == "check_sms_for_code":
+            conn = sqlite3.connect(sms_db_path)
+            c = conn.cursor()
+            c.execute("SELECT id, code, source, sender, service_hint, created_at FROM verification_codes WHERE used = 0 ORDER BY created_at DESC LIMIT 10")
+            rows = c.fetchall()
+            conn.close()
+            codes = [{"id": r[0], "code": r[1], "source": r[2], "sender": r[3], "service": r[4], "created_at": r[5]} for r in rows]
+            return {"codes": codes}
+        elif tool_name == "signup_with_email":
+            conn = sqlite3.connect(sms_db_path)
+            c = conn.cursor()
+            c.execute("INSERT INTO pending_verifications (user_id, service_name, email_used) VALUES (?, ?, ?)",
+                      (user_id, args["service_name"], args.get("email_used")))
+            conn.commit()
+            conn.close()
+            return {"status": "tracking", "service": args["service_name"]}
+        elif tool_name == "complete_verification":
+            conn = sqlite3.connect(sms_db_path)
+            c = conn.cursor()
+            c.execute("UPDATE pending_verifications SET status = 'completed', code_received = ?, completed_at = datetime('now') WHERE user_id = ? AND service_name = ? AND status = 'waiting'",
+                      (args["code"], user_id, args["service_name"]))
+            conn.commit()
+            conn.close()
+            return {"status": "completed", "service": args["service_name"], "code": args["code"]}
         elif tool_name == "get_subscription":
             conn = sqlite3.connect(subscription_db_path)
             c = conn.cursor()

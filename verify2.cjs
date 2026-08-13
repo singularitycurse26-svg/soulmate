@@ -1,4 +1,4 @@
-const { Client } = require("ssh2");
+@const { Client } = require("ssh2");
 const c = new Client();
 c.on("ready", () => {
   c.exec("curl -s -X POST http://localhost:8546/v1/ai/openclaw-llm -H 'Content-Type: application/json' -d '{\"provider\":\"backend\",\"model\":\"gemini-flash-latest\",\"messages\":[{\"role\":\"user\",\"content\":\"say hello\"}]}' 2>&1", (err, stream) => {
