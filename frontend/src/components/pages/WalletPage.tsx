@@ -20,6 +20,7 @@ const STABLECOINS: Record<string, { address: string; decimals: number; name: str
   USDC: { address: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d", decimals: 18, name: "USD Coin", icon: "U", color: "#2775ca" },
   BUSD: { address: "0xe9e7cea3dedca5984780bafc599bd69add087d56", decimals: 18, name: "Binance USD", icon: "B", color: "#f0b90b" },
   DAI:  { address: "0x1af3f329e963e609a3a4f2173050835a825754b0", decimals: 18, name: "Dai Stablecoin", icon: "D", color: "#f5ac37" },
+  XRP:  { address: "0x1d2f0da169ceb9fc7b44060a82d6566db7460d4f", decimals: 18, name: "XRP", icon: "X", color: "#23292f" },
 };
 
 const ERC20_ABI = [
@@ -42,6 +43,7 @@ const ALL_TOKENS: TokenInfo[] = [
   { symbol: "USDC", name: "USD Coin", decimals: 18, icon: "U", color: "#2775ca", ...STABLECOINS.USDC },
   { symbol: "BUSD", name: "Binance USD", decimals: 18, icon: "B", color: "#f0b90b", ...STABLECOINS.BUSD },
   { symbol: "DAI", name: "Dai Stablecoin", decimals: 18, icon: "D", color: "#f5ac37", ...STABLECOINS.DAI },
+  { symbol: "XRP", name: "XRP", decimals: 18, icon: "X", color: "#23292f", ...STABLECOINS.XRP },
 ];
 
 interface TxRecord {
@@ -119,12 +121,14 @@ export function WalletPage() {
       newBalances["BNB"] = bnbFormatted;
 
       try {
-        const resp = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=binancecoin&vs_currencies=usd");
+        const resp = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=binancecoin,ripple&vs_currencies=usd");
         const data = await resp.json();
-        const price = data.binancecoin?.usd || 0;
-        const bnbUsd = bnbFormatted * price;
+        const bnbPrice = data.binancecoin?.usd || 0;
+        const xrpPrice = data.ripple?.usd || 0;
+        const bnbUsd = bnbFormatted * bnbPrice;
         newUsd["BNB"] = bnbUsd;
         total += bnbUsd;
+        (window as any).__xrpPrice = xrpPrice;
       } catch { newUsd["BNB"] = 0; }
 
       if (incContractRef.current) {
@@ -136,7 +140,9 @@ export function WalletPage() {
       } else { newBalances["INC"] = 0; }
       newUsd["INC"] = 0;
 
-      for (const [sym, info] of Object.entries(STABLECOINS)) {
+      const STABLE_SYMS = ["USDT", "USDC", "BUSD", "DAI"];
+      for (const sym of STABLE_SYMS) {
+        const info = STABLECOINS[sym];
         try {
           const contract = contractsRef.current[sym];
           if (!contract) { newBalances[sym] = 0; newUsd[sym] = 0; continue; }
@@ -147,6 +153,20 @@ export function WalletPage() {
           total += formatted;
         } catch { newBalances[sym] = 0; newUsd[sym] = 0; }
       }
+
+      // XRP — has fluctuating price, fetch from CoinGecko
+      try {
+        const xrpContract = contractsRef.current["XRP"];
+        if (xrpContract) {
+          const xrpBal = await xrpContract.balanceOf(wallet.address);
+          const xrpFormatted = parseFloat(ethers.formatUnits(xrpBal, STABLECOINS.XRP.decimals));
+          newBalances["XRP"] = xrpFormatted;
+          const xrpPrice = (window as any).__xrpPrice || 0;
+          const xrpUsd = xrpFormatted * xrpPrice;
+          newUsd["XRP"] = xrpUsd;
+          total += xrpUsd;
+        } else { newBalances["XRP"] = 0; newUsd["XRP"] = 0; }
+      } catch { newBalances["XRP"] = 0; newUsd["XRP"] = 0; }
 
       setBalances(newBalances);
       setUsdValues(newUsd);
@@ -559,7 +579,7 @@ export function WalletPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Wallet</h2>
-          <p className="text-muted text-sm mt-1">BSC · 6 tokens · {isFounder ? "0% fee (Founder)" : "0.5% fee"}</p>
+          <p className="text-muted text-sm mt-1">BSC · 7 tokens · {isFounder ? "0% fee (Founder)" : "0.5% fee"}</p>
         </div>
         <button onClick={updateBalances} disabled={refreshing} className="btn-secondary p-2" title="Refresh">
           <RefreshCw className={cn("w-4 h-4", refreshing && "animate-spin")} />

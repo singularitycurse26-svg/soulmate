@@ -17,6 +17,7 @@ const STABLECOINS = {
     USDC: { address: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d", decimals: 18, name: "USD Coin", icon: "U", color: "#2775ca" },
     BUSD: { address: "0xe9e7cea3dedca5984780bafc599bd69add087d56", decimals: 18, name: "Binance USD", icon: "B", color: "#f0b90b" },
     DAI:  { address: "0x1af3f329e963e609a3a4f2173050835a825754b0", decimals: 18, name: "Dai Stablecoin", icon: "D", color: "#f5ac37" },
+    XRP:  { address: "0x1d2f0da169ceb9fc7b44060a82d6566db7460d4f", decimals: 18, name: "XRP", icon: "X", color: "#23292f" },
 };
 
 // All supported tokens
@@ -27,6 +28,7 @@ const ALL_TOKENS = {
     USDC: { ...STABLECOINS.USDC, symbol: "USDC" },
     BUSD: { ...STABLECOINS.BUSD, symbol: "BUSD" },
     DAI:  { ...STABLECOINS.DAI, symbol: "DAI" },
+    XRP:  { ...STABLECOINS.XRP, symbol: "XRP" },
 };
 
 // Token contracts cache
