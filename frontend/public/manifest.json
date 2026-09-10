@@ -1,0 +1,71 @@
+{
+  "name": "Soulmate OS",
+  "short_name": "Soulmate",
+  "description": "The world's first AI operating system. Wallet, email, phone, games, dating, AI assistant, and more — all in one platform.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["productivity", "lifestyle", "finance", "social"],
+  "icons": [
+    {
+      "src": "/incentives-coin.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/incentives-coin.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/incentives-coin.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/incentives-coin.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/?view=dashboard",
+      "description": "Social feed and home"
+    },
+    {
+      "name": "Wakkii Links",
+      "url": "/?view=wakkii",
+      "description": "Live voice rooms"
+    },
+    {
+      "name": "Wallet",
+      "url": "/?view=wallet",
+      "description": "Crypto wallet"
+    },
+    {
+      "name": "Phone",
+      "url": "/?view=phone",
+      "description": "Phone and calls"
+    },
+    {
+      "name": "Email",
+      "url": "/?view=email",
+      "description": "Email inbox"
+    },
+    {
+      "name": "AI Assistant",
+      "url": "/?view=ai",
+      "description": "Hermes AI chat"
+    }
+  ]
+}
