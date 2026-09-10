@@ -1842,6 +1842,26 @@ function AcelineAssistant({ userName, onExit, roomId }: { userName: string; onEx
     setListening(false);
   };
 
+  const generateLocalResponse = (query: string): string => {
+    const q = query.toLowerCase();
+    if (q.includes("daytrad") || q.includes("trading") || q.includes("stablecoin") || q.includes("stock") || q.includes("crypto")) {
+      return `Here's what's up with the Incentives Inc. Day Trading platform:\n\n**Features live now:**\n• Live crypto prices from Binance API (no API key needed)\n• Candlestick charts with 6 time intervals (1m, 5m, 15m, 1h, 4h, 1d)\n• Paper trading with $100K virtual cash — no real money at risk\n• Buy/sell panel with quick amount buttons (25%, 50%, 75%, 100%)\n• Watchlist with 25+ coins (BNB, BTC, ETH, SOL, XRP, ADA, DOGE, AVAX, and more)\n• Portfolio tracking with unrealized P&L\n• Order history with timestamps\n• Auto-refresh every 10 seconds\n\n**For the INC stablecoin integration:**\nThe daytrading platform currently uses USDT pairs from Binance. To add INC token trading, we'd need to:\n1. List INC on a DEX (PancakeSwap on BSC)\n2. Add INC/USDT and INC/BNB pairs to the watchlist\n3. Pull price data from the DEX contract\n4. Enable real trading through the Soulmate OS wallet\n\nWant me to start building the INC stablecoin trading integration?`;
+    }
+    if (q.includes("build") || q.includes("feature") || q.includes("code")) {
+      return `I can help you build! Here's what I can do right now:\n\n• **Day Trading** — add new trading features, indicators, or coin pairs\n• **Wakkii Social** — voice rooms, messaging, social feed\n• **Radio Widget** — add stations, saved songs, podcast support\n• **Wallet** — INC token, BSC payments, escrow contracts\n• **Aceline Blind Date** — voice-only worldwide matching\n\nTell me what you want to build and I'll get started. I work with the room agents to coordinate builds across the platform.`;
+    }
+    if (q.includes("room") || q.includes("message") || q.includes("send")) {
+      return `To send a message to the Wakkii room:\n1. Make sure you're in a voice room (join or create one)\n2. Use the text chat section beside the voice controls\n3. Messages are sent through the Wakkii chat server\n\nIf the server isn't running locally, messages won't deliver on the deployed site. The Wakkii chat server runs on port 8085 locally.`;
+    }
+    if (q.includes("agent") || q.includes("jarvis") || q.includes("ai")) {
+      return `There are two AI assistants in Soulmate OS room chat:\n\n**Aceline (me)** — Building assistant. I help with features, code, and coordinating builds. Voice enabled.\n\n**Jarvis** — Uncensored assistant. Handles any task with no limitations. Also voice enabled.\n\nBoth use local Ollama models when the backend is running. On the deployed site, I'm running in offline mode with built-in knowledge about the platform.`;
+    }
+    if (q.includes("hello") || q.includes("hi") || q.includes("hey") || q.includes("whats good") || q.includes("what's good")) {
+      return `Hey ${userName}! Here's what's good with Soulmate OS right now:\n\n• **Day Trading** is live — paper trade 25+ crypto pairs with live Binance prices\n• **Wakkii Social** — voice rooms, messaging, blind date, radio\n• **Radio Widget** — 12 stations + podcasts, save songs, scrollable side panel\n• **Wallet** — INC token, BSC, escrow, UBI\n\nWhat do you want to work on?`;
+    }
+    return `I'm currently running in offline mode (no local backend detected). I can still help with:\n\n• Day trading platform questions\n• Building new features\n• Wakkii social and voice rooms\n• Radio and podcast setup\n• Wallet and INC token\n\nFor full AI capabilities, run the Soulmate server locally with Ollama. What do you need?`;
+  };
+
   const send = async () => {
     if (!input.trim() || thinking) return;
     const text = input.trim();
@@ -1860,8 +1880,13 @@ function AcelineAssistant({ userName, onExit, roomId }: { userName: string; onEx
       }]);
       speak(reply);
     } catch (e: any) {
-      const errMsg = `I couldn't reach the backend. Make sure the Soulmate server is running. Error: ${e.message}`;
-      setMessages((prev) => [...prev, { role: "ai", text: errMsg }]);
+      // Backend not available (deployed site or server down) — use local fallback
+      const reply = generateLocalResponse(text);
+      setMessages((prev) => [...prev, {
+        role: "ai",
+        text: reply,
+      }]);
+      speak(reply);
     } finally {
       setThinking(false);
     }
