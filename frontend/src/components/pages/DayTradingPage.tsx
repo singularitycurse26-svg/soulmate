@@ -43,6 +43,7 @@ interface Position {
   stopLoss?: number;
   trailingStop?: number;
   trailingTakeProfit?: number;
+  isOCO?: boolean;
 }
 
 interface Order {
@@ -159,6 +160,7 @@ type LayoutKey = typeof LAYOUTS[number]["key"];
 
 const PORTFOLIO_KEY = "daytrading_portfolio_v3";
 const WATCHLIST_KEY = "daytrading_watchlist_v3";
+const WATCHLISTS_KEY = "daytrading_watchlists_v3";
 const ORDERS_KEY = "daytrading_orders_v3";
 const DCA_BOTS_KEY = "daytrading_dca_bots_v3";
 const DRAWINGS_KEY = "daytrading_drawings_v3";
@@ -216,6 +218,24 @@ function loadWatchlist(): string[] {
     const raw = localStorage.getItem(WATCHLIST_KEY);
     return raw ? JSON.parse(raw) : DEFAULT_WATCHLIST;
   } catch { return DEFAULT_WATCHLIST; }
+}
+
+interface SavedWatchlist {
+  id: string;
+  name: string;
+  symbols: string[];
+  createdAt: number;
+}
+
+function loadSavedWatchlists(): SavedWatchlist[] {
+  try {
+    const raw = localStorage.getItem(WATCHLISTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveSavedWatchlists(lists: SavedWatchlist[]) {
+  try { localStorage.setItem(WATCHLISTS_KEY, JSON.stringify(lists)); } catch {}
 }
 
 function loadOrders(): Order[] {
@@ -280,6 +300,9 @@ function saveAlerts(a: PriceAlert[]) {
 export function DayTradingPage() {
   const { showAlert } = useStore();
   const [watchlist, setWatchlist] = useState<string[]>(() => loadWatchlist());
+  const [savedWatchlists, setSavedWatchlists] = useState<SavedWatchlist[]>(() => loadSavedWatchlists());
+  const [showWatchlistManager, setShowWatchlistManager] = useState(false);
+  const [newWatchlistName, setNewWatchlistName] = useState("");
   const [tickers, setTickers] = useState<Record<string, Ticker>>({});
   const [selectedSymbol, setSelectedSymbol] = useState<string>("BNBUSDT");
   const [candles, setCandles] = useState<Candle[]>([]);
@@ -654,6 +677,37 @@ export function DayTradingPage() {
     saveWatchlist(updated);
   };
 
+  // ── Saved watchlist management ────────────────────────────────────
+  const saveCurrentWatchlist = () => {
+    if (!newWatchlistName.trim()) { showAlert("danger", "Enter a name"); return; }
+    const newList: SavedWatchlist = {
+      id: `wl-${Date.now()}`,
+      name: newWatchlistName.trim(),
+      symbols: [...watchlist],
+      createdAt: Date.now(),
+    };
+    const updated = [...savedWatchlists, newList];
+    setSavedWatchlists(updated);
+    saveSavedWatchlists(updated);
+    setNewWatchlistName("");
+    showAlert("success", `Watchlist "${newList.name}" saved with ${watchlist.length} symbols`);
+  };
+
+  const loadSavedWatchlist = (id: string) => {
+    const list = savedWatchlists.find(w => w.id === id);
+    if (!list) return;
+    setWatchlist(list.symbols);
+    saveWatchlist(list.symbols);
+    setShowWatchlistManager(false);
+    showAlert("info", `Loaded watchlist: ${list.name}`);
+  };
+
+  const deleteSavedWatchlist = (id: string) => {
+    const updated = savedWatchlists.filter(w => w.id !== id);
+    setSavedWatchlists(updated);
+    saveSavedWatchlists(updated);
+  };
+
   // ── Price alert management ───────────────────────────────────────
   const addPriceAlert = () => {
     const target = parseFloat(alertTargetPrice);
@@ -708,6 +762,36 @@ export function DayTradingPage() {
     }
   }, [tickers, priceAlerts, showAlert]);
 
+  // ── OCO position monitoring ─────────────────────────────────────
+  useEffect(() => {
+    for (const pos of portfolio.positions) {
+      if (!pos.isOCO || (!pos.takeProfit && !pos.stopLoss)) continue;
+      const ticker = tickers[pos.symbol];
+      if (!ticker) continue;
+
+      // Check TP hit
+      if (pos.takeProfit && ticker.price >= pos.takeProfit) {
+        const proceeds = pos.amount * pos.takeProfit;
+        const pnl = (pos.takeProfit - pos.entryPrice) * pos.amount;
+        const newPositions = portfolio.positions.filter(p => p.id !== pos.id);
+        const newPortfolio = { cash: portfolio.cash + proceeds, positions: newPositions };
+        setPortfolio(newPortfolio);
+        savePortfolio(newPortfolio);
+        showAlert("success", `OCO TP filled: ${pos.symbol.replace("USDT", "")} @ $${formatPrice(pos.takeProfit)} — P&L: $${formatPrice(pnl)} · SL cancelled`);
+      }
+      // Check SL hit
+      else if (pos.stopLoss && ticker.price <= pos.stopLoss) {
+        const proceeds = pos.amount * pos.stopLoss;
+        const pnl = (pos.stopLoss - pos.entryPrice) * pos.amount;
+        const newPositions = portfolio.positions.filter(p => p.id !== pos.id);
+        const newPortfolio = { cash: portfolio.cash + proceeds, positions: newPositions };
+        setPortfolio(newPortfolio);
+        savePortfolio(newPortfolio);
+        showAlert("danger", `OCO SL filled: ${pos.symbol.replace("USDT", "")} @ $${formatPrice(pos.stopLoss)} — P&L: $${formatPrice(pnl)} · TP cancelled`);
+      }
+    }
+  }, [tickers, portfolio, showAlert]);
+
   // ── Drawing management ──────────────────────────────────────────
   const handleDrawingsChange = (newDrawings: Drawing[]) => {
     const updated = { ...drawingsBySymbol, [selectedSymbol]: newDrawings };
@@ -737,6 +821,7 @@ export function DayTradingPage() {
         takeProfit: firstTP, stopLoss: opts.stopLoss,
         trailingStop: opts.trailingStopLoss ? opts.trailingOffset : undefined,
         trailingTakeProfit: opts.trailingTakeProfit ? opts.trailingOffset : undefined,
+        isOCO: opts.isOCO,
       };
       const newPortfolio = { cash: portfolio.cash - total, positions: [...portfolio.positions, newPos] };
       setPortfolio(newPortfolio);
@@ -962,10 +1047,60 @@ export function DayTradingPage() {
                 <Eye className="w-3.5 h-3.5 text-muted" />
                 Watchlist
               </h3>
-              <button onClick={() => setShowAddSymbol(true)} className="text-muted hover:text-accent">
-                <Plus className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setShowWatchlistManager(!showWatchlistManager)}
+                  className="text-muted hover:text-accent"
+                  title="Saved watchlists"
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={() => setShowAddSymbol(true)} className="text-muted hover:text-accent">
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
+
+            {/* Saved watchlists manager */}
+            {showWatchlistManager && (
+              <div className="mb-2 p-2 rounded-lg bg-bg-alt space-y-2">
+                <div className="flex gap-1">
+                  <input
+                    value={newWatchlistName}
+                    onChange={(e) => setNewWatchlistName(e.target.value)}
+                    placeholder="Save current as..."
+                    className="flex-1 px-2 py-1 rounded bg-bg-card text-[10px] outline-none focus:ring-1 focus:ring-accent"
+                  />
+                  <button onClick={saveCurrentWatchlist} className="px-2 py-1 rounded bg-accent text-white text-[10px] font-medium">
+                    Save
+                  </button>
+                </div>
+                {savedWatchlists.length > 0 && (
+                  <div className="space-y-1">
+                    {savedWatchlists.map(wl => (
+                      <div key={wl.id} className="flex items-center justify-between p-1.5 rounded bg-bg-card">
+                        <button
+                          onClick={() => loadSavedWatchlist(wl.id)}
+                          className="flex-1 text-left min-w-0"
+                        >
+                          <p className="text-[10px] font-medium truncate">{wl.name}</p>
+                          <p className="text-[9px] text-muted">{wl.symbols.length} symbols</p>
+                        </button>
+                        <button
+                          onClick={() => deleteSavedWatchlist(wl.id)}
+                          className="text-muted hover:text-danger ml-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {savedWatchlists.length === 0 && (
+                  <p className="text-[9px] text-muted text-center py-1">No saved watchlists yet</p>
+                )}
+              </div>
+            )}
             {/* Watchlist tabs */}
             <div className="flex gap-0.5 mb-2 p-0.5 rounded-lg bg-bg-alt">
               {[
@@ -1174,6 +1309,14 @@ export function DayTradingPage() {
                   onDrawingsChange={handleDrawingsChange}
                   drawMode={drawMode}
                   symbol={selectedSymbol}
+                  positions={portfolio.positions.map(p => ({
+                    symbol: p.symbol,
+                    side: p.side,
+                    entryPrice: p.entryPrice,
+                    amount: p.amount,
+                    takeProfit: p.takeProfit,
+                    stopLoss: p.stopLoss,
+                  }))}
                 />
               </div>
             </div>

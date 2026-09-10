@@ -17,6 +17,15 @@ export interface Drawing {
   color: string;
 }
 
+export interface PositionOverlay {
+  symbol: string;
+  side: "long" | "short";
+  entryPrice: number;
+  amount: number;
+  takeProfit?: number;
+  stopLoss?: number;
+}
+
 interface ProChartProps {
   candles: Candle[];
   indicators: ChartIndicators;
@@ -28,6 +37,7 @@ interface ProChartProps {
   onDrawingsChange: (d: Drawing[]) => void;
   drawMode: string | null;
   symbol: string;
+  positions?: PositionOverlay[];
 }
 
 const PATTERN_LABELS: Record<PatternType, { label: string; color: string }> = {
@@ -43,7 +53,7 @@ const PATTERN_LABELS: Record<PatternType, { label: string; color: string }> = {
 
 export function ProChart({
   candles, indicators, chartType, height = 380,
-  showRSI, showMACD, drawings, onDrawingsChange, drawMode, symbol,
+  showRSI, showMACD, drawings, onDrawingsChange, drawMode, symbol, positions = [],
 }: ProChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rsiCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -306,6 +316,59 @@ export function ProChart({
     ctx.font = "bold 10px 'JetBrains Mono', monospace";
     ctx.fillText(lastPrice.toFixed(lastPrice >= 1000 ? 0 : 2), padL + chartW + 3, lastY + 3);
 
+    // Position overlays — entry/TP/SL lines
+    const symbolPositions = positions.filter(p => p.symbol === symbol);
+    symbolPositions.forEach(pos => {
+      const entryY = priceToY(pos.entryPrice, minP, pRange, chartH, padT);
+      // Entry line
+      ctx.strokeStyle = pos.side === "long" ? "#3b82f6" : "#f97316";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 3]);
+      ctx.beginPath();
+      ctx.moveTo(padL, entryY);
+      ctx.lineTo(padL + chartW, entryY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Entry label
+      ctx.fillStyle = pos.side === "long" ? "#3b82f6" : "#f97316";
+      ctx.fillRect(padL, entryY - 8, 52, 16);
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 9px 'JetBrains Mono', monospace";
+      ctx.fillText(`${pos.side === "long" ? "L" : "S"} ${pos.amount}`, padL + 2, entryY + 3);
+
+      // Take profit line
+      if (pos.takeProfit) {
+        const tpY = priceToY(pos.takeProfit, minP, pRange, chartH, padT);
+        ctx.strokeStyle = "#00e676";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(padL, tpY);
+        ctx.lineTo(padL + chartW, tpY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#00e676";
+        ctx.font = "bold 9px 'JetBrains Mono', monospace";
+        ctx.fillText(`TP ${pos.takeProfit.toFixed(pos.takeProfit >= 1000 ? 0 : 2)}`, padL + chartW - 50, tpY - 3);
+      }
+
+      // Stop loss line
+      if (pos.stopLoss) {
+        const slY = priceToY(pos.stopLoss, minP, pRange, chartH, padT);
+        ctx.strokeStyle = "#ff1744";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(padL, slY);
+        ctx.lineTo(padL + chartW, slY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#ff1744";
+        ctx.font = "bold 9px 'JetBrains Mono', monospace";
+        ctx.fillText(`SL ${pos.stopLoss.toFixed(pos.stopLoss >= 1000 ? 0 : 2)}`, padL + chartW - 50, slY + 10);
+      }
+    });
+
     // Volume bars
     if (indicators.volume && volH > 0) {
       const volTop = padT + chartH + 10;
@@ -408,7 +471,7 @@ export function ProChart({
         ctx.fillText(tooltip, padL + 8, padT + 13);
       }
     }
-  }, [displayCandles, indicators, chartType, height, drawings, crosshair, drawing, sma7, sma25, ema9, bb, vwapVals, rsiValues, macdData]);
+  }, [displayCandles, indicators, chartType, height, drawings, crosshair, drawing, sma7, sma25, ema9, bb, vwapVals, rsiValues, macdData, positions, symbol]);
 
   // ── RSI panel ───────────────────────────────────────────────────
   useEffect(() => {

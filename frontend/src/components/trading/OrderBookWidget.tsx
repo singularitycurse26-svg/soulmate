@@ -26,7 +26,7 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
   const [orderBook, setOrderBook] = useState<OrderBookData | null>(null);
   const [loading, setLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [viewMode, setViewMode] = useState<"list" | "ladder">("list");
+  const [viewMode, setViewMode] = useState<"list" | "ladder" | "depth">("list");
   const [volMode, setVolMode] = useState<"cumulative" | "step">("cumulative");
   const [grouping, setGrouping] = useState<number>(0);
   const [showDepth, setShowDepth] = useState(true);
@@ -81,7 +81,8 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
 
   // ── Depth chart drawing ─────────────────────────────────────────
   useEffect(() => {
-    if (!showDepth || !orderBook) return;
+    if (!showDepth && viewMode !== "depth") return;
+    if (!orderBook) return;
     const canvas = depthCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -89,11 +90,12 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
 
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
+    const canvasH = viewMode === "depth" ? 200 : 80;
     canvas.width = rect.width * dpr;
-    canvas.height = 80 * dpr;
+    canvas.height = canvasH * dpr;
     ctx.scale(dpr, dpr);
 
-    const w = rect.width, h = 80;
+    const w = rect.width, h = canvasH;
     const padL = 8, padR = 8;
     const chartW = w - padL - padR;
 
@@ -157,7 +159,16 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
     ctx.lineTo(midX, h);
     ctx.stroke();
     ctx.setLineDash([]);
-  }, [orderBook, showDepth, midPrice]);
+
+    // Price labels (depth mode only)
+    if (viewMode === "depth") {
+      ctx.fillStyle = "rgba(255,255,255,0.4)";
+      ctx.font = "9px 'JetBrains Mono', monospace";
+      ctx.fillText(formatPrice(minP), padL, h - 2);
+      ctx.fillText(formatPrice(maxP), padL + chartW - 40, h - 2);
+      ctx.fillText(formatPrice(midPrice), midX - 20, 10);
+    }
+  }, [orderBook, showDepth, viewMode, midPrice]);
 
   const displayBids = orderBook?.bids.slice(0, 15) || [];
   const displayAsks = orderBook?.asks.slice(-15).reverse() || [];
@@ -188,6 +199,7 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
             <div className="flex gap-1">
               <button onClick={() => setViewMode("list")} className={cn("px-2 py-0.5 rounded", viewMode === "list" ? "bg-accent/20 text-accent" : "text-muted")}>List</button>
               <button onClick={() => setViewMode("ladder")} className={cn("px-2 py-0.5 rounded", viewMode === "ladder" ? "bg-accent/20 text-accent" : "text-muted")}>Ladder</button>
+              <button onClick={() => setViewMode("depth")} className={cn("px-2 py-0.5 rounded", viewMode === "depth" ? "bg-accent/20 text-accent" : "text-muted")}>Depth</button>
             </div>
           </div>
           <div className="flex items-center justify-between">
@@ -222,9 +234,9 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
       </div>
 
       {/* Depth chart */}
-      {showDepth && (
+      {(showDepth || viewMode === "depth") && (
         <div className="mb-2">
-          <canvas ref={depthCanvasRef} style={{ width: "100%", height: 80 }} />
+          <canvas ref={depthCanvasRef} style={{ width: "100%", height: viewMode === "depth" ? 200 : 80 }} />
           <div className="flex justify-between text-[8px] text-muted font-mono mt-0.5">
             <span>Depth</span>
             <span>Spread: {spread.toFixed(4)}</span>
@@ -232,6 +244,9 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
         </div>
       )}
 
+      {/* Order book list (hidden in depth mode) */}
+      {viewMode !== "depth" && (
+        <>
       {/* Column headers */}
       <div className="flex justify-between text-[9px] text-muted px-1 mb-0.5 font-mono">
         <span>Price</span>
@@ -277,6 +292,8 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
           );
         })}
       </div>
+        </>
+      )}
     </div>
   );
 }

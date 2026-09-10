@@ -19,7 +19,7 @@ interface Portfolio {
   positions: Position[];
 }
 
-type OrderType = "market" | "limit" | "cond_limit" | "cond_market";
+type OrderType = "market" | "limit" | "cond_limit" | "cond_market" | "oco";
 
 export interface SmartTradeOptions {
   side: "buy" | "sell";
@@ -36,6 +36,7 @@ export interface SmartTradeOptions {
   trailingStopLoss: boolean;
   trailingOffset?: number;
   moveBreakeven: boolean;
+  isOCO?: boolean;
 }
 
 export function SmartTradeTerminal({
@@ -103,7 +104,7 @@ export function SmartTradeTerminal({
     if (!amt) return;
     onExecute({
       side,
-      orderType,
+      orderType: orderType === "oco" ? "limit" : orderType,
       amount: amt,
       price: limitPrice ? parseFloat(limitPrice) : undefined,
       triggerPrice: triggerPrice ? parseFloat(triggerPrice) : undefined,
@@ -118,6 +119,7 @@ export function SmartTradeTerminal({
       trailingStopLoss: trailingSL,
       trailingOffset: trailingOffset ? parseFloat(trailingOffset) : undefined,
       moveBreakeven,
+      isOCO: orderType === "oco",
     });
     setAmount("");
     setLimitPrice("");
@@ -132,6 +134,7 @@ export function SmartTradeTerminal({
     limit: "Limit",
     cond_limit: "Cond. Limit",
     cond_market: "Cond. Market",
+    oco: "OCO",
   };
 
   return (
@@ -162,8 +165,8 @@ export function SmartTradeTerminal({
       {/* Order type selector */}
       <div className="mb-2">
         <label className="text-[9px] text-muted block mb-0.5">Order Type</label>
-        <div className="grid grid-cols-4 gap-1">
-          {(["market", "limit", "cond_limit", "cond_market"] as OrderType[]).map(t => (
+        <div className="grid grid-cols-5 gap-1">
+          {(["market", "limit", "cond_limit", "cond_market", "oco"] as OrderType[]).map(t => (
             <button
               key={t}
               onClick={() => setOrderType(t)}
@@ -174,6 +177,11 @@ export function SmartTradeTerminal({
             </button>
           ))}
         </div>
+        {orderType === "oco" && (
+          <p className="text-[9px] text-warning mt-1">
+            OCO: When TP fills, SL auto-cancels (and vice versa). Set both TP and SL below.
+          </p>
+        )}
       </div>
 
       {/* Amount */}
