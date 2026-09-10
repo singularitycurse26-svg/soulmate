@@ -335,3 +335,238 @@ export function detectIcebergs(trades: { price: number; qty: number; time: numbe
   }
   return icebergs.sort((a, b) => b.confidence - a.confidence).slice(0, 5);
 }
+
+// ── Footprint Data (bid/ask volume per price level per candle) ────
+export interface FootprintCell {
+  price: number;
+  buyVolume: number;
+  sellVolume: number;
+  delta: number;
+  total: number;
+  isImbalance: boolean;
+  imbalanceSide: "buy" | "sell" | null;
+  isPOC: boolean;
+  isMaxVolume: boolean;
+  isAbsorption: boolean;
+}
+
+export interface FootprintCandle {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  cells: FootprintCell[];
+  totalDelta: number;
+  totalVolume: number;
+  pocPrice: number;
+  isFinishedAuctionTop: boolean;
+  isFinishedAuctionBottom: boolean;
+  hasStacking: boolean;
+  stackingSide: "buy" | "sell" | null;
+  stackingCount: number;
+}
+
+export function buildFootprint(
+  candle: Candle,
+  trades: { price: number; qty: number; isBuyerMaker: boolean; time: number }[],
+  imbalanceRatio: number = 3,
+): FootprintCandle {
+  const priceMap: Record<string, { buy: number; sell: number }> = {};
+  for (const t of trades) {
+    if (t.time < candle.time || t.time > candle.time + 86400000) continue;
+    const key = t.price.toFixed(4);
+    if (!priceMap[key]) priceMap[key] = { buy: 0, sell: 0 };
+    if (t.isBuyerMaker) priceMap[key].sell += t.qty;
+    else priceMap[key].buy += t.qty;
+  }
+
+  const prices = Object.keys(priceMap).map(Number).sort((a, b) => a - b);
+  let maxVol = 0;
+  let pocPrice = candle.close;
+
+  const cells: FootprintCell[] = prices.map(price => {
+    const { buy, sell } = priceMap[price.toFixed(4)];
+    const delta = buy - sell;
+    const total = buy + sell;
+    if (total > maxVol) { maxVol = total; pocPrice = price; }
+    const ratio = total > 0 ? Math.max(buy, sell) / Math.min(buy, sell || 0.0001) : 1;
+    const isImbalance = ratio >= imbalanceRatio && Math.min(buy, sell) > 0;
+    return {
+      price, buyVolume: buy, sellVolume: sell, delta, total,
+      isImbalance,
+      imbalanceSide: isImbalance ? (buy > sell ? "buy" : "sell") : null,
+      isPOC: false,
+      isMaxVolume: false,
+      isAbsorption: false,
+    };
+  });
+
+  // Mark POC and max volume
+  cells.forEach(c => {
+    c.isPOC = c.price === pocPrice;
+    c.isMaxVolume = c.total === maxVol;
+  });
+
+  // Absorption: large volume but small price move
+  const avgVol = cells.reduce((s, c) => s + c.total, 0) / (cells.length || 1);
+  cells.forEach(c => {
+    if (c.total > avgVol * 2 && Math.abs(c.delta) < avgVol * 0.3) {
+      c.isAbsorption = true;
+    }
+  });
+
+  // Stacking: consecutive imbalances
+  let maxStack = 0;
+  let curStack = 0;
+  let stackSide: "buy" | "sell" | null = null;
+  let finalStackSide: "buy" | "sell" | null = null;
+  for (const c of cells) {
+    if (c.isImbalance) {
+      if (stackSide === c.imbalanceSide) {
+        curStack++;
+      } else {
+        curStack = 1;
+        stackSide = c.imbalanceSide;
+      }
+      if (curStack > maxStack) {
+        maxStack = curStack;
+        finalStackSide = stackSide;
+      }
+    } else {
+      curStack = 0;
+      stackSide = null;
+    }
+  }
+
+  // Auction analysis: zero at edges = finished
+  const topCell = cells[cells.length - 1];
+  const bottomCell = cells[0];
+  const isFinishedTop = topCell ? (topCell.buyVolume === 0 || topCell.sellVolume === 0) : true;
+  const isFinishedBottom = bottomCell ? (bottomCell.buyVolume === 0 || bottomCell.sellVolume === 0) : true;
+
+  return {
+    time: candle.time,
+    open: candle.open, high: candle.high, low: candle.low, close: candle.close,
+    cells,
+    totalDelta: cells.reduce((s, c) => s + c.delta, 0),
+    totalVolume: cells.reduce((s, c) => s + c.total, 0),
+    pocPrice,
+    isFinishedAuctionTop: isFinishedTop,
+    isFinishedAuctionBottom: isFinishedBottom,
+    hasStacking: maxStack >= 3,
+    stackingSide: finalStackSide,
+    stackingCount: maxStack,
+  };
+}
+
+// ── Liquidity Heatmap (Bookmap-style) ─────────────────────────────
+export interface HeatmapSnapshot {
+  time: number;
+  levels: { price: number; bidQty: number; askQty: number }[];
+}
+
+export function buildHeatmapData(
+  snapshots: HeatmapSnapshot[],
+  minPrice: number,
+  maxPrice: number,
+  bins: number = 50,
+): { time: number; binIndex: number; intensity: number; side: "bid" | "ask" }[] {
+  const result: { time: number; binIndex: number; intensity: number; side: "bid" | "ask" }[] = [];
+  const binSize = (maxPrice - minPrice) / bins || 1;
+  for (const snap of snapshots) {
+    const binMap: Record<number, { bid: number; ask: number }> = {};
+    for (const lvl of snap.levels) {
+      const binIdx = Math.floor((lvl.price - minPrice) / binSize);
+      if (!binMap[binIdx]) binMap[binIdx] = { bid: 0, ask: 0 };
+      binMap[binIdx].bid += lvl.bidQty;
+      binMap[binIdx].ask += lvl.askQty;
+    }
+    for (const [binIdx, { bid, ask }] of Object.entries(binMap)) {
+      const total = bid + ask;
+      if (total > 0) {
+        result.push({
+          time: snap.time,
+          binIndex: parseInt(binIdx),
+          intensity: total,
+          side: bid > ask ? "bid" : "ask",
+        });
+      }
+    }
+  }
+  return result;
+}
+
+// ── Volume Dots (Bookmap-style trade visualization) ───────────────
+export interface VolumeDot {
+  time: number;
+  price: number;
+  volume: number;
+  buyVolume: number;
+  sellVolume: number;
+  isBuy: boolean;
+  size: number;
+}
+
+export function buildVolumeDots(
+  trades: { price: number; qty: number; isBuyerMaker: boolean; time: number }[],
+  bucketMs: number = 5000,
+): VolumeDot[] {
+  const buckets: Record<string, { time: number; price: number; buy: number; sell: number; count: number }> = {};
+  for (const t of trades) {
+    const bucket = Math.floor(t.time / bucketMs) * bucketMs;
+    const key = `${bucket}-${t.price.toFixed(4)}`;
+    if (!buckets[key]) buckets[key] = { time: bucket, price: t.price, buy: 0, sell: 0, count: 0 };
+    if (t.isBuyerMaker) buckets[key].sell += t.qty;
+    else buckets[key].buy += t.qty;
+    buckets[key].count++;
+  }
+  const maxVol = Math.max(...Object.values(buckets).map(b => b.buy + b.sell), 0.001);
+  return Object.values(buckets).map(b => ({
+    time: b.time,
+    price: b.price,
+    volume: b.buy + b.sell,
+    buyVolume: b.buy,
+    sellVolume: b.sell,
+    isBuy: b.buy > b.sell,
+    size: (b.buy + b.sell) / maxVol,
+  }));
+}
+
+// ── Absorption Detection ─────────────────────────────────────────
+export function detectAbsorption(
+  trades: { price: number; qty: number; isBuyerMaker: boolean; time: number }[],
+  orderBook: { bids: { price: number; qty: number }[]; asks: { price: number; qty: number }[] },
+): { price: number; side: "buy" | "sell"; aggressedVolume: number; passiveLiquidity: number; confidence: number }[] {
+  const result: { price: number; side: "buy" | "sell"; aggressedVolume: number; passiveLiquidity: number; confidence: number }[] = [];
+  const tradeMap: Record<string, { buy: number; sell: number }> = {};
+  for (const t of trades) {
+    const key = t.price.toFixed(4);
+    if (!tradeMap[key]) tradeMap[key] = { buy: 0, sell: 0 };
+    if (t.isBuyerMaker) tradeMap[key].sell += t.qty;
+    else tradeMap[key].buy += t.qty;
+  }
+  for (const bid of orderBook.bids) {
+    const key = bid.price.toFixed(4);
+    const traded = tradeMap[key];
+    if (traded && traded.sell > bid.qty * 0.5 && traded.sell > 1) {
+      const confidence = Math.min(100, (traded.sell / (bid.qty || 0.001)) * 50);
+      result.push({
+        price: bid.price, side: "sell",
+        aggressedVolume: traded.sell, passiveLiquidity: bid.qty, confidence,
+      });
+    }
+  }
+  for (const ask of orderBook.asks) {
+    const key = ask.price.toFixed(4);
+    const traded = tradeMap[key];
+    if (traded && traded.buy > ask.qty * 0.5 && traded.buy > 1) {
+      const confidence = Math.min(100, (traded.buy / (ask.qty || 0.001)) * 50);
+      result.push({
+        price: ask.price, side: "buy",
+        aggressedVolume: traded.buy, passiveLiquidity: ask.qty, confidence,
+      });
+    }
+  }
+  return result.sort((a, b) => b.confidence - a.confidence).slice(0, 5);
+}
