@@ -811,7 +811,7 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
                 </button>
               )}
               <div className={cn(
-                "space-y-1 overflow-y-auto px-1 no-scrollbar transition-all",
+                "space-y-1 overflow-y-auto px-1 transition-all",
                 savedListExpanded ? "max-h-[60vh]" : "max-h-72"
               )}>
                 {savedSongs.length === 0 ? (
@@ -996,7 +996,7 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
               </div>
 
               {/* Bottom half — scrollable side panel */}
-              <div className="mt-3 max-h-64 overflow-y-auto no-scrollbar">
+              <div className="mt-3 max-h-64 overflow-y-auto">
                 {/* Two-column layout: stations on left, saved songs on right */}
                 <div className="grid grid-cols-2 gap-2">
                   {/* Left column — Stations */}
@@ -1143,7 +1143,7 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
                         )}
                       </button>
                       <div className={cn(
-                        "space-y-1 overflow-y-auto no-scrollbar transition-all",
+                        "space-y-1 overflow-y-auto transition-all",
                         savedListExpanded ? "max-h-[50vh]" : "max-h-40"
                       )}>
                         {savedSongs.length === 0 ? (
