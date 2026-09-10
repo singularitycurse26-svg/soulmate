@@ -202,6 +202,16 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // ── One-station-at-a-time coordination ──────────────────────────────
+  // Each RadioPlayer instance gets a unique ID. When any instance starts
+  // playing, it broadcasts a "play" message on a shared BroadcastChannel.
+  // All other instances receive the message and pause their audio, so only
+  // one station plays at a time across all widgets on the same machine.
+  const widgetIdRef = useRef(`radio-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  const radioChannelRef = useRef<BroadcastChannel | null>(null);
+  // Track which widget is currently the "active" player so we don't pause ourselves
+  const activePlayerRef = useRef<string | null>(null);
+
   const [savedSongs, setSavedSongs] = useState<SavedSong[]>(() => loadSavedSongs());
   const [showSaved, setShowSaved] = useState(false);
 
@@ -286,7 +296,7 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
     audio.volume = muted ? 0 : volume;
 
     const onPlaying = () => { setLoading(false); setError(null); };
-    const onError = () => { setLoading(false); setError("Stream unavailable. Try another station."); setIsPlaying(false); };
+    const onError = () => { setLoading(false); setError("Stream unavailable. Try another station."); setIsPlaying(false); announceStop(); };
     const onWaiting = () => setLoading(true);
     const onEnded = () => {
       if (currentStation.type === "podcast" && podcastEpisodes.length > 0) {
@@ -309,6 +319,63 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
     };
   }, [volume, muted, currentStation, episodeIndex, podcastEpisodes]);
 
+  // ── BroadcastChannel: one station at a time across all widgets ─────
+  // Listen for "play" messages from other RadioPlayer instances.
+  // When another widget starts playing, pause this one.
+  useEffect(() => {
+    let channel: BroadcastChannel | null = null;
+    try {
+      channel = new BroadcastChannel("soulmate_radio");
+      radioChannelRef.current = channel;
+      channel.onmessage = (e) => {
+        const msg = e.data;
+        if (msg?.type === "play" && msg.widgetId !== widgetIdRef.current) {
+          // Another widget started playing — pause this one
+          if (audioRef.current && !audioRef.current.paused) {
+            audioRef.current.pause();
+            setIsPlaying(false);
+          }
+          activePlayerRef.current = msg.widgetId;
+        } else if (msg?.type === "stopped" && msg.widgetId === activePlayerRef.current) {
+          // The active player stopped — clear the active marker
+          activePlayerRef.current = null;
+        }
+      };
+    } catch {
+      // BroadcastChannel not supported (older browsers) — skip coordination
+    }
+    return () => {
+      if (channel) channel.close();
+      radioChannelRef.current = null;
+    };
+  }, []);
+
+  // Broadcast a "play" message whenever this widget starts playing
+  const announcePlay = useCallback(() => {
+    try {
+      radioChannelRef.current?.postMessage({
+        type: "play",
+        widgetId: widgetIdRef.current,
+        stationId: currentStation.id,
+        stationName: currentStation.name,
+      });
+      activePlayerRef.current = widgetIdRef.current;
+    } catch {}
+  }, [currentStation]);
+
+  // Broadcast a "stopped" message whenever this widget pauses
+  const announceStop = useCallback(() => {
+    try {
+      radioChannelRef.current?.postMessage({
+        type: "stopped",
+        widgetId: widgetIdRef.current,
+      });
+      if (activePlayerRef.current === widgetIdRef.current) {
+        activePlayerRef.current = null;
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     const autoPlay = localStorage.getItem("radio_autoplay_disabled");
     if (autoPlay !== "true") {
@@ -329,6 +396,7 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
       audioRef.current.src = station.streamUrl;
       audioRef.current.play().then(() => {
         setIsPlaying(true);
+        announcePlay();
       }).catch(() => {
         setError("Could not play stream. The station may be geo-restricted.");
         setLoading(false);
@@ -338,6 +406,7 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
       audioRef.current.pause();
       audioRef.current.removeAttribute("src");
       setIsPlaying(false);
+      announceStop();
       setLoading(false);
       if (station.externalUrl) {
         window.open(station.externalUrl, "_blank", "noopener,noreferrer");
@@ -345,7 +414,7 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
     } else if (station.type === "podcast") {
       fetchPodcastEpisodes(station.streamUrl);
     }
-  }, []);
+  }, [announcePlay, announceStop]);
 
   const fetchPodcastEpisodes = async (feedUrl: string) => {
     setLoading(true);
@@ -424,6 +493,7 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
     audioRef.current.src = episode.audioUrl;
     audioRef.current.play().then(() => {
       setIsPlaying(true);
+      announcePlay();
     }).catch(() => {
       setError("Could not play episode.");
       setLoading(false);
@@ -436,9 +506,13 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
+      announceStop();
     } else {
       if (audioRef.current.src) {
-        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+        audioRef.current.play().then(() => {
+          setIsPlaying(true);
+          announcePlay();
+        }).catch(() => {});
       } else {
         playStation(currentStation);
       }
