@@ -2,20 +2,48 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <meta name="theme-color" content="#0a0a0f" />
     <meta name="description" content="Incentives Inc. — Soulmate OS, the world's first AI operating system. Powered by INC token." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Soulmate OS" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-touch-fullscreen" content="yes" />
+    <meta property="og:title" content="Soulmate OS — Your AI Operating System" />
+    <meta property="og:description" content="Wallet, email, phone, games, dating, AI assistant, and more — all in one platform." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/incentives-coin.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/png" href="/incentives-coin.png" />
+    <link rel="apple-touch-icon" href="/incentives-coin.png" />
+    <link rel="manifest" href="/manifest.json" />
     <title>Incentives Inc. — Soulmate OS</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+      // PWA Install Prompt
+      let _deferredPrompt = null;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        _deferredPrompt = e;
+      });
+      window.addEventListener('appinstalled', () => {
+        _deferredPrompt = null;
+        console.log('Soulmate OS installed as PWA');
+      });
+    </script>
   </body>
 </html>
