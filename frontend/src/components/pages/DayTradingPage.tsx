@@ -163,6 +163,18 @@ const ORDERS_KEY = "daytrading_orders_v3";
 const DCA_BOTS_KEY = "daytrading_dca_bots_v3";
 const DRAWINGS_KEY = "daytrading_drawings_v3";
 const LAYOUT_KEY = "daytrading_layout_v3";
+const ALERTS_KEY = "daytrading_alerts_v3";
+
+interface PriceAlert {
+  id: string;
+  symbol: string;
+  condition: "above" | "below";
+  targetPrice: number;
+  createdAt: number;
+  triggered: boolean;
+  triggeredAt?: number;
+  note?: string;
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // Utilities
@@ -251,6 +263,15 @@ function saveDrawings(d: Record<string, Drawing[]>) {
 function saveLayout(l: LayoutKey) {
   try { localStorage.setItem(LAYOUT_KEY, l); } catch {}
 }
+function loadAlerts(): PriceAlert[] {
+  try {
+    const raw = localStorage.getItem(ALERTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+function saveAlerts(a: PriceAlert[]) {
+  try { localStorage.setItem(ALERTS_KEY, JSON.stringify(a)); } catch {}
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // Main Component
@@ -272,8 +293,15 @@ export function DayTradingPage() {
   const [symbolSearch, setSymbolSearch] = useState("");
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [layout, setLayout] = useState<LayoutKey>(() => loadLayout());
-  const [activeTab, setActiveTab] = useState<"trade" | "portfolio" | "orders" | "bots">("trade");
+  const [activeTab, setActiveTab] = useState<"trade" | "portfolio" | "orders" | "bots" | "alerts">("trade");
   const [watchlistTab, setWatchlistTab] = useState<"all" | "gainers" | "losers">("all");
+
+  // Price alerts
+  const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>(() => loadAlerts());
+  const [showAddAlert, setShowAddAlert] = useState(false);
+  const [alertCondition, setAlertCondition] = useState<"above" | "below">("above");
+  const [alertTargetPrice, setAlertTargetPrice] = useState("");
+  const [alertNote, setAlertNote] = useState("");
 
   // Chart settings
   const [chartType, setChartType] = useState<ChartType>("candle");
@@ -395,6 +423,107 @@ export function DayTradingPage() {
     }, 10000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [autoRefresh, fetchTickers, fetchCandles, selectedSymbol, candleInterval]);
+
+  // ── WebSocket real-time price streaming ──────────────────────────
+  const wsRef = useRef<WebSocket | null>(null);
+  const [livePrices, setLivePrices] = useState<Record<string, number>>({});
+  const [liveCandle, setLiveCandle] = useState<Candle | null>(null);
+
+  // Stream all watchlist tickers via Binance combined WebSocket
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const binanceSymbols = watchlist.filter(s => s !== INC_SYMBOL);
+    if (binanceSymbols.length === 0) return;
+
+    const streams = binanceSymbols.map(s => `${s.toLowerCase()}@ticker`).join("/");
+    const ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
+    wsRef.current = ws;
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        const d = msg.data;
+        if (!d || !d.c) return;
+        const symbol = d.s;
+        const price = parseFloat(d.c);
+        const priceChangePercent = parseFloat(d.P);
+        const priceChange = parseFloat(d.p);
+        const high = parseFloat(d.h);
+        const low = parseFloat(d.l);
+        const volume = parseFloat(d.v);
+        const quoteVolume = parseFloat(d.q);
+
+        setLivePrices(prev => ({ ...prev, [symbol]: price }));
+        setTickers(prev => ({
+          ...prev,
+          [symbol]: { symbol, price, priceChange, priceChangePercent, high, low, volume, quoteVolume },
+        }));
+      } catch {}
+    };
+
+    ws.onerror = () => {};
+    ws.onclose = () => {};
+
+    return () => {
+      ws.close();
+      wsRef.current = null;
+    };
+  }, [watchlist, autoRefresh]);
+
+  // Stream live kline updates for selected symbol
+  useEffect(() => {
+    if (!autoRefresh || selectedSymbol === INC_SYMBOL) return;
+    const stream = `${selectedSymbol.toLowerCase()}@kline_${candleInterval}`;
+    const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${stream}`);
+
+    ws.onmessage = (event) => {
+      try {
+        const d = JSON.parse(event.data);
+        const k = d.k;
+        if (!k) return;
+        const candle: Candle = {
+          time: k.t,
+          open: parseFloat(k.o),
+          high: parseFloat(k.h),
+          low: parseFloat(k.l),
+          close: parseFloat(k.c),
+          volume: parseFloat(k.v),
+        };
+        setLiveCandle(candle);
+
+        // Update last candle in candles array
+        setCandles(prev => {
+          if (prev.length === 0) return [candle];
+          const last = prev[prev.length - 1];
+          if (last.time === candle.time) {
+            return [...prev.slice(0, -1), candle];
+          } else if (candle.time > last.time) {
+            return [...prev.slice(-199), candle];
+          }
+          return prev;
+        });
+      } catch {}
+    };
+
+    ws.onerror = () => {};
+    ws.onclose = () => {};
+
+    return () => ws.close();
+  }, [selectedSymbol, candleInterval, autoRefresh]);
+
+  // Simulated INC price updates (since not on Binance WebSocket)
+  useEffect(() => {
+    if (!autoRefresh || !watchlist.includes(INC_SYMBOL)) return;
+    const interval = setInterval(() => {
+      const price = generateINCPrice();
+      setLivePrices(prev => ({ ...prev, [INC_SYMBOL]: price }));
+      setTickers(prev => ({
+        ...prev,
+        [INC_SYMBOL]: generateINCTicker(),
+      }));
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [autoRefresh, watchlist]);
 
   // ── DCA Bot auto-execution ───────────────────────────────────────
   useEffect(() => {
@@ -524,6 +653,60 @@ export function DayTradingPage() {
     setWatchlist(updated);
     saveWatchlist(updated);
   };
+
+  // ── Price alert management ───────────────────────────────────────
+  const addPriceAlert = () => {
+    const target = parseFloat(alertTargetPrice);
+    if (isNaN(target) || target <= 0) { showAlert("danger", "Enter a valid price"); return; }
+    const alert: PriceAlert = {
+      id: `alert-${Date.now()}`,
+      symbol: selectedSymbol,
+      condition: alertCondition,
+      targetPrice: target,
+      createdAt: Date.now(),
+      triggered: false,
+      note: alertNote.trim() || undefined,
+    };
+    const updated = [...priceAlerts, alert];
+    setPriceAlerts(updated);
+    saveAlerts(updated);
+    setShowAddAlert(false);
+    setAlertTargetPrice("");
+    setAlertNote("");
+    showAlert("success", `Alert set: ${selectedSymbol.replace("USDT", "")} ${alertCondition} $${target}`);
+  };
+
+  const deletePriceAlert = (id: string) => {
+    const updated = priceAlerts.filter(a => a.id !== id);
+    setPriceAlerts(updated);
+    saveAlerts(updated);
+  };
+
+  // Check alerts on price updates
+  useEffect(() => {
+    for (const alert of priceAlerts) {
+      if (alert.triggered) continue;
+      const ticker = tickers[alert.symbol];
+      if (!ticker) continue;
+      const triggered =
+        (alert.condition === "above" && ticker.price >= alert.targetPrice) ||
+        (alert.condition === "below" && ticker.price <= alert.targetPrice);
+      if (triggered) {
+        const updated = priceAlerts.map(a =>
+          a.id === alert.id ? { ...a, triggered: true, triggeredAt: Date.now() } : a
+        );
+        setPriceAlerts(updated);
+        saveAlerts(updated);
+        showAlert("info", `🔔 ${alert.symbol.replace("USDT", "")} ${alert.condition} $${alert.targetPrice} — TRIGGERED`);
+        // Browser notification
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification(`${alert.symbol.replace("USDT", "")} alert triggered`, {
+            body: `Price ${alert.condition} $${alert.targetPrice} (now $${formatPrice(ticker.price)})`,
+          });
+        }
+      }
+    }
+  }, [tickers, priceAlerts, showAlert]);
 
   // ── Drawing management ──────────────────────────────────────────
   const handleDrawingsChange = (newDrawings: Drawing[]) => {
@@ -752,6 +935,7 @@ export function DayTradingPage() {
           { key: "portfolio" as const, label: "Portfolio", icon: Wallet },
           { key: "orders" as const, label: "Orders", icon: Activity },
           { key: "bots" as const, label: "Bots", icon: Bot },
+          { key: "alerts" as const, label: `Alerts${priceAlerts.some(a => !a.triggered) ? " •" : ""}`, icon: AlertTriangle },
         ].map(tab => {
           const Icon = tab.icon;
           return (
@@ -842,6 +1026,12 @@ export function DayTradingPage() {
                   {selectedTicker && (
                     <div className="flex items-center gap-2">
                       <span className="text-lg font-bold font-mono">${formatPrice(selectedTicker.price)}</span>
+                      {livePrices[selectedSymbol] && (
+                        <span className="flex items-center gap-1 text-[10px] text-success">
+                          <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                          LIVE
+                        </span>
+                      )}
                       <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full font-mono",
                         selectedTicker.priceChangePercent >= 0 ? "bg-success/15 text-success" : "bg-danger/15 text-danger")}>
                         {selectedTicker.priceChangePercent >= 0 ? "+" : ""}{selectedTicker.priceChangePercent.toFixed(2)}%
@@ -860,6 +1050,23 @@ export function DayTradingPage() {
                       {iv.label}
                     </button>
                   ))}
+                  <button
+                    onClick={() => {
+                      if ("Notification" in window && Notification.permission === "default") {
+                        Notification.requestPermission();
+                      }
+                      setAlertCondition("above");
+                      setAlertTargetPrice(selectedTicker ? selectedTicker.price.toString() : "");
+                      setAlertNote("");
+                      setShowAddAlert(true);
+                      setActiveTab("alerts");
+                    }}
+                    className="px-2 py-0.5 rounded text-[10px] font-medium bg-warning/15 text-warning hover:bg-warning/25 flex items-center gap-1"
+                    title="Set price alert"
+                  >
+                    <AlertTriangle className="w-2.5 h-2.5" />
+                    Alert
+                  </button>
                 </div>
               </div>
 
@@ -1144,6 +1351,124 @@ export function DayTradingPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Alerts Tab */}
+      {activeTab === "alerts" && (
+        <div className="space-y-3">
+          <div className="card p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-warning" />
+                  Price Alerts
+                </h3>
+                <p className="text-[10px] text-muted mt-0.5">
+                  Get notified when {selectedSymbol.replace("USDT", "")} crosses your target price
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  if ("Notification" in window && Notification.permission === "default") {
+                    Notification.requestPermission();
+                  }
+                  setShowAddAlert(!showAddAlert);
+                  setAlertTargetPrice(selectedTicker ? selectedTicker.price.toString() : "");
+                }}
+                className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1"
+              >
+                <Plus className="w-3 h-3" />
+                New Alert
+              </button>
+            </div>
+
+            {/* Add alert form */}
+            {showAddAlert && (
+              <div className="space-y-2 p-3 rounded-lg bg-bg-alt mb-3">
+                <div className="flex gap-2">
+                  <select
+                    value={alertCondition}
+                    onChange={(e) => setAlertCondition(e.target.value as "above" | "below")}
+                    className="bg-bg-card text-xs rounded-lg px-2 py-1.5 outline-none border border-border"
+                  >
+                    <option value="above">Price goes ABOVE</option>
+                    <option value="below">Price goes BELOW</option>
+                  </select>
+                  <input
+                    type="number"
+                    value={alertTargetPrice}
+                    onChange={(e) => setAlertTargetPrice(e.target.value)}
+                    placeholder="Target price ($)"
+                    className="flex-1 bg-bg-card text-xs rounded-lg px-2 py-1.5 outline-none border border-border font-mono"
+                  />
+                </div>
+                <input
+                  value={alertNote}
+                  onChange={(e) => setAlertNote(e.target.value)}
+                  placeholder="Note (optional)"
+                  className="w-full bg-bg-card text-xs rounded-lg px-2 py-1.5 outline-none border border-border"
+                />
+                <div className="flex gap-2">
+                  <button onClick={addPriceAlert} className="flex-1 btn-primary text-xs py-1.5">Create Alert</button>
+                  <button onClick={() => setShowAddAlert(false)} className="flex-1 btn-secondary text-xs py-1.5">Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {/* Active alerts list */}
+            {priceAlerts.length === 0 ? (
+              <p className="text-xs text-muted text-center py-6">
+                No alerts yet. Create one to get notified when price hits your target.
+              </p>
+            ) : (
+              <div className="space-y-1.5">
+                {priceAlerts.map(alert => {
+                  const ticker = tickers[alert.symbol];
+                  const currentPrice = ticker?.price || 0;
+                  const distance = alert.targetPrice - currentPrice;
+                  const distancePercent = currentPrice > 0 ? (distance / currentPrice) * 100 : 0;
+                  return (
+                    <div
+                      key={alert.id}
+                      className={cn(
+                        "flex items-center gap-3 p-2.5 rounded-lg transition-colors",
+                        alert.triggered ? "bg-warning/10 border border-warning/20" : "bg-bg-alt hover:bg-white/5"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
+                        alert.triggered ? "bg-warning/20 text-warning" :
+                          alert.condition === "above" ? "bg-success/15 text-success" : "bg-danger/15 text-danger"
+                      )}>
+                        {alert.triggered ? <AlertTriangle className="w-4 h-4" /> :
+                          alert.condition === "above" ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium font-mono">
+                          {alert.symbol.replace("USDT", "")} {alert.condition} ${formatPrice(alert.targetPrice)}
+                        </p>
+                        <p className="text-[10px] text-muted">
+                          {alert.triggered ? (
+                            `Triggered ${alert.triggeredAt ? new Date(alert.triggeredAt).toLocaleString() : ""}`
+                          ) : (
+                            <>Current: ${formatPrice(currentPrice)} · {distancePercent >= 0 ? "+" : ""}{distancePercent.toFixed(2)}% away</>
+                          )}
+                          {alert.note && <span className="ml-1">· {alert.note}</span>}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => deletePriceAlert(alert.id)}
+                        className="text-muted hover:text-danger flex-shrink-0"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
