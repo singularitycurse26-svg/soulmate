@@ -32,6 +32,7 @@ import {
   Zap,
   Shield,
   Database,
+  Heart,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -162,6 +163,12 @@ export function WakkiiLinks({
 
         {/* Social panel — accessible before joining a room */}
         <WakkiiSocial userName={userName} />
+
+        {/* Aceline Blind Date — accessible before joining a room */}
+        <AcelineBlindDate
+          userName={userName}
+          onJoinRoom={(roomId) => { joinRoom(roomId, "speaker"); setStarted(true); }}
+        />
       </div>
     );
   }
@@ -485,6 +492,12 @@ export function WakkiiLinks({
       {/* Social panel — messaging, contacts, following */}
       <WakkiiSocial userName={userName} />
 
+      {/* Aceline Blind Date — voice-only worldwide matching */}
+      <AcelineBlindDate
+        userName={userName}
+        onJoinRoom={(roomId) => { joinRoom(roomId, "speaker"); }}
+      />
+
       {/* Leave */}
       <button
         onClick={handleLeave}
@@ -563,6 +576,51 @@ const socialApi = {
   async getDMMessages(userId: string, otherId: string) {
     const res = await fetch(`${WAKKII_API}/social/dm/${userId}/${otherId}`);
     return res.json();
+  },
+};
+
+// --- Aceline Blind Date API ---
+const blindDateApi = {
+  async optIn(userId: string, gender: string, ageRange: string, city: string, country: string) {
+    return fetch(`${WAKKII_API}/blinddate/optin`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ user_id: userId, gender, age_range: ageRange, city, country }),
+    });
+  },
+  async optOut(userId: string) {
+    return fetch(`${WAKKII_API}/blinddate/optout`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ user_id: userId }),
+    });
+  },
+  async findMatch(userId: string) {
+    const res = await fetch(`${WAKKII_API}/blinddate/find`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ user_id: userId }),
+    });
+    return res.json();
+  },
+  async getActive(userId: string) {
+    const res = await fetch(`${WAKKII_API}/blinddate/active/${userId}`);
+    return res.json();
+  },
+  async endMatch(matchId: string, userId: string, choice: string) {
+    const res = await fetch(`${WAKKII_API}/blinddate/end`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ match_id: matchId, user_id: userId, choice }),
+    });
+    return res.json();
+  },
+  async getContacts(userId: string) {
+    const res = await fetch(`${WAKKII_API}/blinddate/contacts/${userId}`);
+    return res.json();
+  },
+  async deleteContact(contactId: string) {
+    return fetch(`${WAKKII_API}/blinddate/contacts/${contactId}`, { method: "DELETE" });
   },
 };
 
@@ -1061,6 +1119,196 @@ function WakkiiSocial({ userName }: { userName: string }) {
           ) : (
             !searchQuery && <p className="text-muted text-xs text-center py-4">Not following anyone yet. Search above.</p>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AcelineBlindDate({ userName, onJoinRoom }: { userName: string; onJoinRoom: (roomId: string) => void }) {
+  const [optedIn, setOptedIn] = useState(false);
+  const [activeMatch, setActiveMatch] = useState<any>(null);
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [waiting, setWaiting] = useState(false);
+  const [waitMsg, setWaitMsg] = useState("");
+  const userId = userName;
+
+  const refresh = useCallback(async () => {
+    const status = await blindDateApi.getActive(userId);
+    if (status.status === "active") {
+      setActiveMatch(status);
+      setWaiting(false);
+    } else {
+      setActiveMatch(null);
+    }
+    const contactsData = await blindDateApi.getContacts(userId);
+    setContacts(contactsData.contacts || []);
+  }, [userId]);
+
+  useEffect(() => {
+    refresh();
+    const interval = setInterval(refresh, 5000);
+    return () => clearInterval(interval);
+  }, [refresh]);
+
+  const handleOptIn = async () => {
+    const gender = prompt("Your gender (male/female/other):", "");
+    if (!gender) return;
+    const ageRange = prompt("Your age range (18-25, 26-35, 36-45, 46-55, 55+):", "");
+    if (!ageRange) return;
+    const city = prompt("Your city:", "") || "";
+    const country = prompt("Your country:", "US") || "US";
+
+    setLoading(true);
+    await blindDateApi.optIn(userId, gender, ageRange, city, country);
+    setOptedIn(true);
+    setLoading(false);
+    refresh();
+  };
+
+  const handleOptOut = async () => {
+    if (!confirm("Leave blind date?")) return;
+    await blindDateApi.optOut(userId);
+    setOptedIn(false);
+    setActiveMatch(null);
+    refresh();
+  };
+
+  const handleFindMatch = async () => {
+    setLoading(true);
+    const result = await blindDateApi.findMatch(userId);
+    setLoading(false);
+    if (result.status === "matched") {
+      setActiveMatch({ match_id: result.match_id, room_id: result.room_id, status: "active" });
+      onJoinRoom(result.room_id);
+    } else {
+      alert(result.message || "No blind date users available right now.");
+    }
+  };
+
+  const handleChoice = async (choice: "keep_talking" | "move_on" | "reveal") => {
+    if (!activeMatch) return;
+    const choiceText = { keep_talking: "Keep Talking", move_on: "Move On", reveal: "Reveal Identity" }[choice];
+    if (!confirm(`Are you sure you want to "${choiceText}"?`)) return;
+
+    const result = await blindDateApi.endMatch(activeMatch.match_id, userId, choice);
+    if (result.status === "ended") {
+      alert(result.message);
+      setActiveMatch(null);
+      setWaiting(false);
+      refresh();
+    } else if (result.status === "waiting") {
+      setWaiting(true);
+      setWaitMsg(result.message);
+    } else {
+      alert(result.detail || "Could not end match");
+    }
+  };
+
+  const handleDeleteContact = async (contactId: string) => {
+    if (!confirm("Remove this blind date contact?")) return;
+    await blindDateApi.deleteContact(contactId);
+    refresh();
+  };
+
+  return (
+    <div className="card">
+      <div className="flex items-center gap-2 mb-3">
+        <Heart className="w-4 h-4 text-pink-500" />
+        <h4 className="font-semibold text-sm">Aceline Blind Date</h4>
+        <span className="text-xs text-muted ml-auto">voice only · worldwide</span>
+      </div>
+
+      {!optedIn && !activeMatch && (
+        <div className="text-center py-4">
+          <p className="text-sm text-muted mb-4">
+            Get matched with someone worldwide. Talk via voice only — no profiles, no photos.
+            After each conversation: keep talking or move on. Save up to 5 blind date contacts.
+          </p>
+          <button onClick={handleOptIn} disabled={loading} className="btn-primary mx-auto">
+            <Heart className="w-4 h-4 inline mr-2" />
+            Opt In to Blind Date
+          </button>
+        </div>
+      )}
+
+      {optedIn && !activeMatch && (
+        <div className="text-center py-4">
+          <p className="text-sm text-muted mb-4">You're opted in! Find your blind date match.</p>
+          <button onClick={handleFindMatch} disabled={loading} className="btn-primary mx-auto mb-2">
+            <Heart className="w-4 h-4 inline mr-2" />
+            {loading ? "Finding..." : "Find a Blind Date"}
+          </button>
+          <button onClick={handleOptOut} className="text-xs text-danger block mx-auto mt-2">
+            Leave Blind Date
+          </button>
+        </div>
+      )}
+
+      {activeMatch && !waiting && (
+        <div className="py-2">
+          <div className="bg-bg-alt rounded-xl p-3 mb-3 text-center">
+            <p className="text-sm font-semibold">Blind Date Active</p>
+            <p className="text-xs text-muted">Room: #{activeMatch.room_id}</p>
+          </div>
+          <button
+            onClick={() => onJoinRoom(activeMatch.room_id)}
+            className="btn-primary w-full mb-2"
+          >
+            <Radio className="w-4 h-4 inline mr-2" />
+            Join Voice Room
+          </button>
+          <button
+            onClick={() => handleChoice("keep_talking")}
+            className="w-full px-4 py-2 rounded-xl bg-success/15 text-success text-sm font-medium mb-2"
+          >
+            Keep Talking
+          </button>
+          <button
+            onClick={() => handleChoice("reveal")}
+            className="w-full px-4 py-2 rounded-xl bg-accent/15 text-accent text-sm font-medium mb-2"
+          >
+            Reveal Identity
+          </button>
+          <button
+            onClick={() => handleChoice("move_on")}
+            className="w-full px-4 py-2 rounded-xl bg-danger/15 text-danger text-sm font-medium"
+          >
+            Move On
+          </button>
+        </div>
+      )}
+
+      {waiting && (
+        <div className="text-center py-4">
+          <Loader2 className="w-6 h-6 animate-spin text-accent mx-auto mb-2" />
+          <p className="text-sm text-muted">{waitMsg}</p>
+        </div>
+      )}
+
+      {contacts.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-white/5">
+          <p className="text-xs font-semibold text-muted mb-2">Saved Blind Dates (up to 5)</p>
+          <div className="space-y-2">
+            {contacts.map((c, i) => (
+              <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-bg-alt">
+                <div className="w-8 h-8 rounded-full bg-pink-500/20 flex items-center justify-center text-xs font-bold text-pink-400">
+                  {c.slot}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{c.name || "Blind Date"}</p>
+                  <p className="text-xs text-muted">Slot {c.slot}</p>
+                </div>
+                <button
+                  onClick={() => handleDeleteContact(c.id)}
+                  className="text-xs text-danger px-2 py-1"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
