@@ -63,9 +63,71 @@ interface Order {
 
 const BINANCE_API = "https://api.binance.com/api/v3";
 
+// ── Incentives Inc. stablecoin (INC) ─────────────────────────────
+// INC is the native stablecoin of the Incentives Inc. ecosystem.
+// It's not listed on Binance, so we generate simulated price data
+// pegged to $1.00 with small realistic fluctuations.
+const INC_SYMBOL = "INCUSDT";
+const INC_BASE_PRICE = 1.00;
+const INC_VOLATILITY = 0.005; // 0.5% max fluctuation per tick
+
+// Simulated INC price history (seeded for consistency)
+let incPriceHistory: number[] = [];
+let incLastPrice = INC_BASE_PRICE;
+
+function generateINCPrice(): number {
+  // Random walk around $1.00 with mean reversion
+  const drift = (INC_BASE_PRICE - incLastPrice) * 0.1; // mean reversion
+  const noise = (Math.random() - 0.5) * INC_VOLATILITY * 2;
+  incLastPrice = Math.max(0.95, Math.min(1.05, incLastPrice + drift + noise));
+  return incLastPrice;
+}
+
+function generateINCCandles(interval: string, count: number = 200): Candle[] {
+  const intervalMs: Record<string, number> = {
+    "1m": 60000, "5m": 300000, "15m": 900000, "30m": 1800000,
+    "1h": 3600000, "4h": 14400000, "1d": 86400000,
+  };
+  const ms = intervalMs[interval] || 900000;
+  const now = Date.now();
+  const candles: Candle[] = [];
+  let price = INC_BASE_PRICE;
+
+  for (let i = count - 1; i >= 0; i--) {
+    const time = now - i * ms;
+    const open = price;
+    const change = (Math.random() - 0.5) * INC_VOLATILITY * 2;
+    const close = Math.max(0.95, Math.min(1.05, open + change));
+    const high = Math.max(open, close) + Math.random() * INC_VOLATILITY;
+    const low = Math.min(open, close) - Math.random() * INC_VOLATILITY;
+    const volume = 100000 + Math.random() * 500000;
+    candles.push({ time, open, high, low, close, volume });
+    price = close;
+  }
+
+  incLastPrice = price;
+  return candles;
+}
+
+function generateINCTicker(): Ticker {
+  const price = generateINCPrice();
+  const change = price - INC_BASE_PRICE;
+  const changePercent = (change / INC_BASE_PRICE) * 100;
+  return {
+    symbol: INC_SYMBOL,
+    price,
+    priceChange: change,
+    priceChangePercent: changePercent,
+    high: Math.max(price, INC_BASE_PRICE) + 0.002,
+    low: Math.min(price, INC_BASE_PRICE) - 0.002,
+    volume: 1000000 + Math.random() * 5000000,
+    quoteVolume: 1000000 + Math.random() * 5000000,
+  };
+}
+
 const DEFAULT_WATCHLIST = [
   "BNBUSDT", "BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT",
-  "ADAUSDT", "DOGEUSDT", "AVAXUSDT",
+  "ADAUSDT", "DOGEUSDT", "AVAXUSDT", INC_SYMBOL,
 ];
 
 const AVAILABLE_SYMBOLS = [
@@ -74,6 +136,7 @@ const AVAILABLE_SYMBOLS = [
   "NEARUSDT", "APTUSDT", "FILUSDT", "ARBUSDT", "OPUSDT",
   "INCHUSDT", "PEPEUSDT", "SHIBUSDT", "TRXUSDT", "LDOUSDT",
 ];
+// Note: INC (Incentives stablecoin) is already in DEFAULT_WATCHLIST
 
 const INTERVALS = [
   { label: "1m", value: "1m" },
@@ -235,8 +298,10 @@ export function DayTradingPage() {
   // ── Data fetching ────────────────────────────────────────────────
   const fetchTickers = useCallback(async () => {
     setLoadingTickers(true);
+    // Filter out INC (not on Binance) — handle separately
+    const binanceSymbols = watchlist.filter(s => s !== INC_SYMBOL);
     try {
-      const symbolsParam = JSON.stringify(watchlist);
+      const symbolsParam = JSON.stringify(binanceSymbols);
       const resp = await fetch(`${BINANCE_API}/ticker/24hr?symbols=${encodeURIComponent(symbolsParam)}`);
       if (resp.ok) {
         const data = await resp.json();
@@ -252,6 +317,10 @@ export function DayTradingPage() {
             volume: parseFloat(t.volume),
             quoteVolume: parseFloat(t.quoteVolume),
           };
+        }
+        // Add INC stablecoin simulated data
+        if (watchlist.includes(INC_SYMBOL)) {
+          map[INC_SYMBOL] = generateINCTicker();
         }
         setTickers(map);
       }
@@ -277,6 +346,10 @@ export function DayTradingPage() {
               volume: c.total_volume || 0, quoteVolume: c.total_volume || 0,
             };
           }
+          // Add INC stablecoin simulated data
+          if (watchlist.includes(INC_SYMBOL)) {
+            map[INC_SYMBOL] = generateINCTicker();
+          }
           setTickers(map);
         }
       } catch {}
@@ -287,6 +360,13 @@ export function DayTradingPage() {
 
   const fetchCandles = useCallback(async (symbol: string, interval: string) => {
     setLoadingChart(true);
+    // INC stablecoin — generate simulated candles
+    if (symbol === INC_SYMBOL) {
+      const simulated = generateINCCandles(interval, 200);
+      setCandles(simulated);
+      setLoadingChart(false);
+      return;
+    }
     try {
       const resp = await fetch(`${BINANCE_API}/klines?symbol=${symbol}&interval=${interval}&limit=200`);
       if (resp.ok) {
@@ -593,7 +673,7 @@ export function DayTradingPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold">Incentives Day Trading Pro</h1>
-            <p className="text-xs text-muted">Kraken × Pyonix × 3Commas hybrid · Order flow extreme · AI indicators</p>
+            <p className="text-xs text-muted">Kraken × Pyonix × 3Commas hybrid · INC stablecoin · Order flow · AI indicators</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -728,7 +808,10 @@ export function DayTradingPage() {
                     selectedSymbol === t.symbol ? "bg-accent/10" : "hover:bg-bg-alt")}
                 >
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="text-xs font-medium font-mono">{t.symbol.replace("USDT", "")}</p>
+                    <p className="text-xs font-medium font-mono flex items-center gap-1">
+                      {t.symbol.replace("USDT", "")}
+                      {t.symbol === INC_SYMBOL && <span className="text-[7px] px-1 py-0.5 rounded bg-pink-500/20 text-pink-400 font-bold">INC</span>}
+                    </p>
                     <p className={cn("text-[9px] font-mono", t.priceChangePercent >= 0 ? "text-success" : "text-danger")}>
                       {t.priceChangePercent >= 0 ? "+" : ""}{t.priceChangePercent.toFixed(2)}%
                     </p>
@@ -751,6 +834,11 @@ export function DayTradingPage() {
               <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                 <div className="flex items-center gap-3">
                   <h3 className="text-lg font-bold font-mono">{selectedSymbol.replace("USDT", "")}/USDT</h3>
+                  {selectedSymbol === INC_SYMBOL && (
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-pink-400 border border-pink-500/30">
+                      INCENTIVES STABLECOIN
+                    </span>
+                  )}
                   {selectedTicker && (
                     <div className="flex items-center gap-2">
                       <span className="text-lg font-bold font-mono">${formatPrice(selectedTicker.price)}</span>
