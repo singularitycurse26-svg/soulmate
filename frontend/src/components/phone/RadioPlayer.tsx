@@ -216,6 +216,7 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
 
   const [savedSongs, setSavedSongs] = useState<SavedSong[]>(() => loadSavedSongs());
   const [showSaved, setShowSaved] = useState(false);
+  const [savedListExpanded, setSavedListExpanded] = useState(false);
 
   const saveCurrentSong = useCallback(() => {
     const song: SavedSong = {
@@ -662,48 +663,69 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
             {showSaved ? "Hide Saved" : `Saved Songs (${savedSongs.length})`}
           </button>
 
-          {/* Saved songs list — scrollable with detailed info */}
+          {/* Saved songs list — scrollable with toggle */}
           {showSaved && (
-            <div className="space-y-1 max-h-72 overflow-y-auto px-1 border-t border-white/5 pt-2">
-              {savedSongs.length === 0 ? (
-                <p className="text-[10px] text-muted text-center py-4">
-                  No saved songs yet. Tap "Save Current" to add songs here.
-                </p>
-              ) : (
-                savedSongs.map((song) => (
-                  <div
-                    key={song.id}
-                    className="flex items-center gap-2 p-2 rounded-lg bg-bg-alt hover:bg-white/5 transition-colors group"
-                  >
-                    <button
-                      onClick={() => playSavedSong(song)}
-                      className="flex items-center gap-2 flex-1 min-w-0 text-left"
-                    >
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ background: `${song.color}30`, color: song.color }}
-                      >
-                        {song.stationType === "podcast" ? <Mic className="w-4 h-4" /> : <Music className="w-4 h-4" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium truncate">
-                          {song.episodeTitle || song.stationName}
-                        </p>
-                        <p className="text-[10px] text-muted truncate flex items-center gap-1">
-                          <Clock className="w-2.5 h-2.5" />
-                          {new Date(song.savedAt).toLocaleDateString()} · {song.stationName}
-                        </p>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => deleteSavedSong(song.id)}
-                      className="text-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))
+            <div className="border-t border-white/5 pt-2">
+              {/* Scroll toggle header */}
+              {savedSongs.length > 0 && (
+                <button
+                  onClick={() => setSavedListExpanded(!savedListExpanded)}
+                  className="w-full flex items-center justify-between text-[10px] text-muted px-1 pb-1 hover:text-text"
+                >
+                  <span className="flex items-center gap-1">
+                    <Heart className="w-2.5 h-2.5" />
+                    {savedSongs.length} saved
+                  </span>
+                  <span className="flex items-center gap-1">
+                    {savedListExpanded ? "Collapse" : "Expand"}
+                    {savedListExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
+                  </span>
+                </button>
               )}
+              <div className={cn(
+                "space-y-1 overflow-y-auto px-1 no-scrollbar transition-all",
+                savedListExpanded ? "max-h-[60vh]" : "max-h-72"
+              )}>
+                {savedSongs.length === 0 ? (
+                  <p className="text-[10px] text-muted text-center py-4">
+                    No saved songs yet. Tap "Save Current" to add songs here.
+                  </p>
+                ) : (
+                  savedSongs.map((song) => (
+                    <div
+                      key={song.id}
+                      className="flex items-center gap-2 p-2 rounded-lg bg-bg-alt hover:bg-white/5 transition-colors group"
+                    >
+                      <button
+                        onClick={() => playSavedSong(song)}
+                        className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                      >
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                          style={{ background: `${song.color}30`, color: song.color }}
+                        >
+                          {song.stationType === "podcast" ? <Mic className="w-4 h-4" /> : <Music className="w-4 h-4" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate">
+                            {song.episodeTitle || song.stationName}
+                          </p>
+                          <p className="text-[10px] text-muted truncate flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5" />
+                            {new Date(song.savedAt).toLocaleDateString()} · {song.stationName}
+                          </p>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => deleteSavedSong(song.id)}
+                        className="text-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -907,50 +929,63 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
 
                   {/* Right column — Saved songs */}
                   {showSaved && (
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-semibold text-pink-400 px-1 pb-1 sticky top-0 bg-bg-card z-10 flex items-center gap-1">
-                        <Heart className="w-2.5 h-2.5" />
-                        Saved Songs
-                      </p>
-                      {savedSongs.length === 0 ? (
-                        <p className="text-[10px] text-muted text-center py-6 px-2">
-                          No saved songs yet. Tap "Save" to add songs here.
-                        </p>
-                      ) : (
-                        savedSongs.map((song) => (
-                          <div
-                            key={song.id}
-                            className="flex items-center gap-1.5 p-1.5 rounded-lg bg-bg-alt hover:bg-white/5 transition-colors group"
-                          >
-                            <button
-                              onClick={() => playSavedSong(song)}
-                              className="flex items-center gap-1.5 flex-1 min-w-0 text-left"
+                    <div className="flex flex-col">
+                      <button
+                        onClick={() => setSavedListExpanded(!savedListExpanded)}
+                        className="text-[10px] font-semibold text-pink-400 px-1 pb-1 sticky top-0 bg-bg-card z-10 flex items-center gap-1 w-full justify-between hover:text-pink-300"
+                      >
+                        <span className="flex items-center gap-1">
+                          <Heart className="w-2.5 h-2.5" />
+                          Saved Songs ({savedSongs.length})
+                        </span>
+                        {savedSongs.length > 0 && (
+                          savedListExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />
+                        )}
+                      </button>
+                      <div className={cn(
+                        "space-y-1 overflow-y-auto no-scrollbar transition-all",
+                        savedListExpanded ? "max-h-[50vh]" : "max-h-40"
+                      )}>
+                        {savedSongs.length === 0 ? (
+                          <p className="text-[10px] text-muted text-center py-6 px-2">
+                            No saved songs yet. Tap "Save" to add songs here.
+                          </p>
+                        ) : (
+                          savedSongs.map((song) => (
+                            <div
+                              key={song.id}
+                              className="flex items-center gap-1.5 p-1.5 rounded-lg bg-bg-alt hover:bg-white/5 transition-colors group"
                             >
-                              <div
-                                className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{ background: `${song.color}30`, color: song.color }}
+                              <button
+                                onClick={() => playSavedSong(song)}
+                                className="flex items-center gap-1.5 flex-1 min-w-0 text-left"
                               >
-                                {song.stationType === "podcast" ? <Mic className="w-3.5 h-3.5" /> : <Music className="w-3.5 h-3.5" />}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[11px] font-medium truncate">
-                                  {song.episodeTitle || song.stationName}
-                                </p>
-                                <p className="text-[9px] text-muted truncate flex items-center gap-0.5">
-                                  <Clock className="w-2 h-2" />
-                                  {new Date(song.savedAt).toLocaleDateString()}
-                                </p>
-                              </div>
-                            </button>
-                            <button
-                              onClick={() => deleteSavedSong(song.id)}
-                              className="text-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))
-                      )}
+                                <div
+                                  className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                                  style={{ background: `${song.color}30`, color: song.color }}
+                                >
+                                  {song.stationType === "podcast" ? <Mic className="w-3.5 h-3.5" /> : <Music className="w-3.5 h-3.5" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[11px] font-medium truncate">
+                                    {song.episodeTitle || song.stationName}
+                                  </p>
+                                  <p className="text-[9px] text-muted truncate flex items-center gap-0.5">
+                                    <Clock className="w-2 h-2" />
+                                    {new Date(song.savedAt).toLocaleDateString()}
+                                  </p>
+                                </div>
+                              </button>
+                              <button
+                                onClick={() => deleteSavedSong(song.id)}
+                                className="text-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
                   )}
 
