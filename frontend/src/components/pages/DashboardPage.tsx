@@ -9,6 +9,7 @@ import {
   Radio, ChevronUp,
 } from "lucide-react";
 import { WakkiiLinks } from "@/components/phone/WakkiiLinks";
+import { RadioPlayer } from "@/components/phone/RadioPlayer";
 
 function getYouTubeId(url: string): string | null {
   const patterns = [
@@ -547,6 +548,16 @@ export function DashboardPage() {
           {hasMore && posts.length > 0 && (
             <button onClick={loadMore} className="w-full py-3 bg-white rounded-lg shadow-sm text-sm font-medium text-gray-600 hover:bg-gray-50">Load More</button>
           )}
+
+          {/* Radio & Podcasts — single widget, fully customizable */}
+          <div className="card p-4 space-y-3">
+            <div className="flex items-center gap-2 pb-2 border-b border-white/5">
+              <Radio className="w-5 h-5 text-accent" />
+              <h3 className="font-bold text-base">Radio & Podcasts</h3>
+              <span className="text-xs text-muted ml-auto">add your own stations · save songs</span>
+            </div>
+            <RadioPlayer embedded />
+          </div>
 
           {/* Wakkii Social Section — refined design in home category */}
           {showWakkiiSocial && (

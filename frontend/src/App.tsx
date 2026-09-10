@@ -29,7 +29,6 @@ import { SessionJournalPage } from "@/components/pages/SessionJournalPage";
 import { SoulTubePage } from "@/components/pages/SoulTubePage";
 import { SoulIllusionsPage } from "@/components/pages/SoulIllusionsPage";
 import { WakkiiLinks } from "@/components/phone/WakkiiLinks";
-import { RadioPlayer } from "@/components/phone/RadioPlayer";
 import { initVaultSessionTracker, logWork } from "@/lib/vault";
 import { hasPlatformAuthenticator } from "@/lib/utils";
 
@@ -323,7 +322,6 @@ export default function App() {
         </div>
       </main>
       <MobileNav />
-      <RadioPlayer />
     </>
   );
 

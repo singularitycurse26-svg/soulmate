@@ -21,6 +21,7 @@ import {
   Heart,
   Trash2,
   Clock,
+  Plus,
 } from "lucide-react";
 
 interface Station {
@@ -168,6 +169,7 @@ interface SavedSong {
 }
 
 const SAVED_SONGS_KEY = "soulmate_saved_songs";
+const CUSTOM_STATIONS_KEY = "soulmate_custom_stations";
 
 function loadSavedSongs(): SavedSong[] {
   try {
@@ -184,8 +186,51 @@ function saveSavedSongs(songs: SavedSong[]) {
   } catch {}
 }
 
+interface CustomStation {
+  id: string;
+  name: string;
+  streamUrl: string;
+  description: string;
+  color: string;
+}
+
+function loadCustomStations(): CustomStation[] {
+  try {
+    const raw = localStorage.getItem(CUSTOM_STATIONS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomStations(stations: CustomStation[]) {
+  try {
+    localStorage.setItem(CUSTOM_STATIONS_KEY, JSON.stringify(stations));
+  } catch {}
+}
+
 export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
-  const [currentStation, setCurrentStation] = useState<Station>(STATIONS[0]);
+  const [customStations, setCustomStations] = useState<CustomStation[]>(() => loadCustomStations());
+  const [showAddStation, setShowAddStation] = useState(false);
+  const [newStationName, setNewStationName] = useState("");
+  const [newStationUrl, setNewStationUrl] = useState("");
+  const [newStationDesc, setNewStationDesc] = useState("");
+
+  // Merge default + custom stations
+  const allStations: Station[] = [
+    ...STATIONS,
+    ...customStations.map(cs => ({
+      id: cs.id,
+      name: cs.name,
+      type: "radio" as const,
+      streamUrl: cs.streamUrl,
+      description: cs.description || "Custom station",
+      color: cs.color || "#6366f1",
+      icon: <Radio className="w-5 h-5" />,
+    })),
+  ];
+
+  const [currentStation, setCurrentStation] = useState<Station>(allStations[0]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.5);
   const [muted, setMuted] = useState(false);
@@ -237,7 +282,7 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
   }, [currentStation, currentEpisode, savedSongs]);
 
   const playSavedSong = useCallback((song: SavedSong) => {
-    const station = STATIONS.find((s) => s.id === song.stationId) || {
+    const station = allStations.find((s) => s.id === song.stationId) || {
       id: song.stationId,
       name: song.stationName,
       type: song.stationType,
@@ -345,7 +390,7 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
     const autoPlay = localStorage.getItem("radio_autoplay_disabled");
     if (autoPlay !== "true") {
       const timer = setTimeout(() => {
-        playStation(STATIONS[0]);
+        playStation(allStations[0]);
       }, 1500);
       return () => clearTimeout(timer);
     }
@@ -620,7 +665,7 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
           {/* Station list — scrollable */}
           {showStations && (
             <div className="space-y-1 max-h-48 overflow-y-auto px-1">
-              {STATIONS.map((station) => (
+              {allStations.map((station) => (
                 <button
                   key={station.id}
                   onClick={() => {
@@ -649,8 +694,91 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
                       <span className="w-0.5 h-2 bg-success rounded-full animate-pulse" style={{ animationDelay: "300ms" }} />
                     </span>
                   )}
+                  {/* Delete custom station */}
+                  {customStations.some(cs => cs.id === station.id) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const updated = customStations.filter(cs => cs.id !== station.id);
+                        setCustomStations(updated);
+                        saveCustomStations(updated);
+                        if (currentStation.id === station.id) {
+                          playStation(allStations[0]);
+                        }
+                      }}
+                      className="text-muted hover:text-danger flex-shrink-0"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* Add custom station */}
+          {showStations && (
+            <div className="border-t border-white/5 pt-2">
+              {!showAddStation ? (
+                <button
+                  onClick={() => setShowAddStation(true)}
+                  className="w-full text-xs px-3 py-2 rounded-lg bg-bg-alt flex items-center justify-center gap-2 hover:bg-white/5"
+                >
+                  <Plus className="w-3 h-3" />
+                  Add Custom Station
+                </button>
+              ) : (
+                <div className="space-y-2 p-2 rounded-lg bg-bg-alt">
+                  <input
+                    value={newStationName}
+                    onChange={(e) => setNewStationName(e.target.value)}
+                    placeholder="Station name"
+                    className="w-full px-2 py-1.5 rounded-lg bg-bg-card text-xs outline-none focus:ring-1 focus:ring-accent"
+                  />
+                  <input
+                    value={newStationUrl}
+                    onChange={(e) => setNewStationUrl(e.target.value)}
+                    placeholder="Stream URL (https://...)"
+                    className="w-full px-2 py-1.5 rounded-lg bg-bg-card text-xs outline-none focus:ring-1 focus:ring-accent font-mono"
+                  />
+                  <input
+                    value={newStationDesc}
+                    onChange={(e) => setNewStationDesc(e.target.value)}
+                    placeholder="Description (optional)"
+                    className="w-full px-2 py-1.5 rounded-lg bg-bg-card text-xs outline-none focus:ring-1 focus:ring-accent"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        if (!newStationName.trim() || !newStationUrl.trim()) return;
+                        const newStation: CustomStation = {
+                          id: `custom-${Date.now()}`,
+                          name: newStationName.trim(),
+                          streamUrl: newStationUrl.trim(),
+                          description: newStationDesc.trim() || "Custom station",
+                          color: "#6366f1",
+                        };
+                        const updated = [...customStations, newStation];
+                        setCustomStations(updated);
+                        saveCustomStations(updated);
+                        setNewStationName("");
+                        setNewStationUrl("");
+                        setNewStationDesc("");
+                        setShowAddStation(false);
+                      }}
+                      className="flex-1 py-1.5 rounded-lg bg-accent text-white text-xs font-medium hover:bg-accent/90"
+                    >
+                      Add
+                    </button>
+                    <button
+                      onClick={() => { setShowAddStation(false); setNewStationName(""); setNewStationUrl(""); setNewStationDesc(""); }}
+                      className="flex-1 py-1.5 rounded-lg bg-bg-card text-muted text-xs font-medium hover:bg-white/5"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -875,7 +1003,7 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
                   {showStations && (
                     <div className="space-y-1">
                       <p className="text-[10px] font-semibold text-muted px-1 pb-1 sticky top-0 bg-bg-card z-10">Stations</p>
-                      {STATIONS.map((station) => (
+                      {allStations.map((station) => (
                         <button
                           key={station.id}
                           onClick={() => {
@@ -902,8 +1030,80 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
                               <span className="w-0.5 h-3 bg-success rounded-full animate-pulse" style={{ animationDelay: "150ms" }} />
                             </span>
                           )}
+                          {/* Delete custom station */}
+                          {customStations.some(cs => cs.id === station.id) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const updated = customStations.filter(cs => cs.id !== station.id);
+                                setCustomStations(updated);
+                                saveCustomStations(updated);
+                                if (currentStation.id === station.id) {
+                                  playStation(allStations[0]);
+                                }
+                              }}
+                              className="text-muted hover:text-danger flex-shrink-0"
+                            >
+                              <Trash2 className="w-2.5 h-2.5" />
+                            </button>
+                          )}
                         </button>
                       ))}
+
+                      {/* Add custom station (floating mode) */}
+                      {!showAddStation ? (
+                        <button
+                          onClick={() => setShowAddStation(true)}
+                          className="w-full flex items-center gap-2 p-1.5 rounded-lg hover:bg-white/5 text-muted text-[10px]"
+                        >
+                          <Plus className="w-3 h-3" />
+                          Add Custom
+                        </button>
+                      ) : (
+                        <div className="space-y-1 p-1.5 rounded-lg bg-bg-alt">
+                          <input
+                            value={newStationName}
+                            onChange={(e) => setNewStationName(e.target.value)}
+                            placeholder="Name"
+                            className="w-full px-1.5 py-1 rounded bg-bg-card text-[10px] outline-none focus:ring-1 focus:ring-accent"
+                          />
+                          <input
+                            value={newStationUrl}
+                            onChange={(e) => setNewStationUrl(e.target.value)}
+                            placeholder="Stream URL"
+                            className="w-full px-1.5 py-1 rounded bg-bg-card text-[10px] outline-none focus:ring-1 focus:ring-accent font-mono"
+                          />
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => {
+                                if (!newStationName.trim() || !newStationUrl.trim()) return;
+                                const newStation: CustomStation = {
+                                  id: `custom-${Date.now()}`,
+                                  name: newStationName.trim(),
+                                  streamUrl: newStationUrl.trim(),
+                                  description: "Custom station",
+                                  color: "#6366f1",
+                                };
+                                const updated = [...customStations, newStation];
+                                setCustomStations(updated);
+                                saveCustomStations(updated);
+                                setNewStationName("");
+                                setNewStationUrl("");
+                                setShowAddStation(false);
+                              }}
+                              className="flex-1 py-1 rounded bg-accent text-white text-[9px] font-medium"
+                            >
+                              Add
+                            </button>
+                            <button
+                              onClick={() => { setShowAddStation(false); setNewStationName(""); setNewStationUrl(""); }}
+                              className="flex-1 py-1 rounded bg-bg-card text-muted text-[9px] font-medium"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Podcast episodes under selected station */}
                       {currentStation.type === "podcast" && podcastEpisodes.length > 0 && (
