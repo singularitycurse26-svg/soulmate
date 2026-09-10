@@ -3,10 +3,15 @@ import { cn } from "@/lib/utils";
 import {
   Activity, Loader2, Eye, AlertTriangle, Settings, Layers,
   TrendingUp, TrendingDown, Zap, Target, Flame, Grid3x3,
+  BarChart3, DollarSign, Circle,
 } from "lucide-react";
 import {
   valueArea, detectIcebergs, buildFootprint, buildVolumeDots,
-  detectAbsorption, type Candle, type FootprintCandle, type VolumeDot,
+  detectAbsorption, detectPowerTrades, detectStops, detectExhaustion,
+  buildClusterStats, buildTradeSizeDistribution,
+  type Candle, type FootprintCandle, type VolumeDot,
+  type PowerTrade, type StopRun, type ExhaustionEvent, type ClusterStats,
+  type TradeSizeBucket,
 } from "@/lib/indicators";
 
 const BINANCE_API = "https://api.binance.com/api/v3";
@@ -31,7 +36,7 @@ interface OrderBookData {
 
 type FootprintMode = "bid_ask" | "delta" | "volume" | "delta_profile";
 type ColorScheme = "delta" | "heatmap_volume" | "heatmap_delta" | "solid";
-type ViewTab = "footprint" | "heatmap" | "profile" | "tape";
+type ViewTab = "footprint" | "heatmap" | "profile" | "tape" | "dots" | "stats" | "power" | "distribution";
 
 function formatPrice(n: number): string {
   if (n >= 1000) return n.toFixed(2);
@@ -55,6 +60,8 @@ export function OrderFlowWidget({ symbol, candles }: { symbol: string; candles: 
   const deltaCanvasRef = useRef<HTMLCanvasElement>(null);
   const footprintCanvasRef = useRef<HTMLCanvasElement>(null);
   const heatmapCanvasRef = useRef<HTMLCanvasElement>(null);
+  const dotsCanvasRef = useRef<HTMLCanvasElement>(null);
+  const deltaBarsCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // ── Data fetching ───────────────────────────────────────────────
   const fetchTrades = useCallback(async () => {
@@ -150,6 +157,21 @@ export function OrderFlowWidget({ symbol, candles }: { symbol: string; candles: 
 
   // ── Volume dots ────────────────────────────────────────────────
   const volumeDots = useMemo(() => buildVolumeDots(trades, 5000), [trades]);
+
+  // ── Power trades ────────────────────────────────────────────────
+  const powerTrades = useMemo(() => detectPowerTrades(trades, 5, 3000), [trades]);
+
+  // ── Stop runs ───────────────────────────────────────────────────
+  const stopRuns = useMemo(() => detectStops(trades, 0.003), [trades]);
+
+  // ── Exhaustion ──────────────────────────────────────────────────
+  const exhaustions = useMemo(() => detectExhaustion(trades), [trades]);
+
+  // ── Cluster statistics ──────────────────────────────────────────
+  const clusterStats = useMemo(() => buildClusterStats(candles, trades), [candles, trades]);
+
+  // ── Trade size distribution ─────────────────────────────────────
+  const tradeSizeDist = useMemo(() => buildTradeSizeDistribution(trades), [trades]);
 
   // ── Trade flow classification ──────────────────────────────────
   const blockTrades = trades.filter(t => t.qty > 1).length;
@@ -417,6 +439,122 @@ export function OrderFlowWidget({ symbol, candles }: { symbol: string; candles: 
     }
   }, [heatmapSnapshots]);
 
+  // ── Draw volume dots (Bookmap-style) ───────────────────────────
+  useEffect(() => {
+    const canvas = dotsCanvasRef.current;
+    if (!canvas || volumeDots.length === 0) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = 200 * dpr;
+    ctx.scale(dpr, dpr);
+
+    const w = rect.width, h = 200;
+    const padL = 4, padR = 4, padT = 4, padB = 4;
+    const chartW = w - padL - padR;
+    const chartH = h - padT - padB;
+
+    ctx.clearRect(0, 0, w, h);
+
+    const allPrices = volumeDots.map(d => d.price);
+    const minP = Math.min(...allPrices);
+    const maxP = Math.max(...allPrices);
+    const pRange = maxP - minP || 1;
+    const minTime = Math.min(...volumeDots.map(d => d.time));
+    const maxTime = Math.max(...volumeDots.map(d => d.time));
+    const tRange = maxTime - minTime || 1;
+    const maxDotSize = 12;
+
+    // Price axis labels
+    ctx.fillStyle = "rgba(255,255,255,0.3)";
+    ctx.font = "8px 'JetBrains Mono', monospace";
+    for (let i = 0; i <= 4; i++) {
+      const price = maxP - (pRange / 4) * i;
+      const y = padT + (chartH / 4) * i;
+      ctx.fillText(formatPrice(price), 2, y + 8);
+    }
+
+    // Draw dots
+    for (const dot of volumeDots) {
+      const x = padL + ((dot.time - minTime) / tRange) * chartW;
+      const y = padT + ((maxP - dot.price) / pRange) * chartH;
+      const radius = Math.max(2, dot.size * maxDotSize);
+
+      // Color: green for buy, red for sell, intensity by dominance
+      const buyRatio = dot.buyVolume / (dot.volume || 1);
+      const r = Math.floor(255 * (1 - buyRatio));
+      const g = Math.floor(255 * buyRatio);
+      const alpha = 0.3 + dot.size * 0.5;
+
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${r}, ${g}, 50, ${alpha})`;
+      ctx.fill();
+
+      // Outline for large dots
+      if (dot.size > 0.5) {
+        ctx.strokeStyle = dot.isBuy ? "#00e676" : "#ff1744";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+  }, [volumeDots]);
+
+  // ── Draw delta bars per candle ─────────────────────────────────
+  useEffect(() => {
+    const canvas = deltaBarsCanvasRef.current;
+    if (!canvas || clusterStats.length === 0) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = 120 * dpr;
+    ctx.scale(dpr, dpr);
+
+    const w = rect.width, h = 120;
+    const padL = 4, padR = 4, padT = 4, padB = 4;
+    const chartW = w - padL - padR;
+    const chartH = h - padT - padB;
+
+    ctx.clearRect(0, 0, w, h);
+
+    const maxAbsDelta = Math.max(...clusterStats.map(s => Math.abs(s.delta)), 0.001);
+    const barW = chartW / clusterStats.length;
+    const zeroY = padT + chartH / 2;
+
+    // Zero line
+    ctx.strokeStyle = "rgba(255,255,255,0.1)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, zeroY);
+    ctx.lineTo(padL + chartW, zeroY);
+    ctx.stroke();
+
+    clusterStats.forEach((stat, i) => {
+      const x = padL + i * barW;
+      const barH = (Math.abs(stat.delta) / maxAbsDelta) * (chartH / 2);
+      const isPositive = stat.delta >= 0;
+      ctx.fillStyle = isPositive ? "#00e676" : "#ff1744";
+      ctx.fillRect(x + 1, isPositive ? zeroY - barH : zeroY, barW - 2, barH);
+
+      // POC marker
+      if (stat.pocPrice > 0) {
+        ctx.fillStyle = "#f59e0b";
+        ctx.fillRect(x + barW / 2 - 1, padT, 2, chartH);
+      }
+    });
+
+    // Label
+    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    ctx.font = "9px 'JetBrains Mono', monospace";
+    ctx.fillText("Delta per Candle", padL, padT + 10);
+  }, [clusterStats]);
+
   // ── Alerts ─────────────────────────────────────────────────────
   const alerts = useMemo(() => {
     const list: { type: string; message: string; severity: "info" | "warning" | "danger" }[] = [];
@@ -425,6 +563,15 @@ export function OrderFlowWidget({ symbol, candles }: { symbol: string; candles: 
     }
     if (absorptions.length > 0) {
       list.push({ type: "absorption", message: `${absorptions.length} absorption events`, severity: "info" });
+    }
+    if (powerTrades.length > 0) {
+      list.push({ type: "power", message: `${powerTrades.length} power trades detected`, severity: "warning" });
+    }
+    if (stopRuns.length > 0) {
+      list.push({ type: "stops", message: `${stopRuns.length} stop runs detected`, severity: "danger" });
+    }
+    if (exhaustions.length > 0) {
+      list.push({ type: "exhaustion", message: `${exhaustions.length} exhaustion events`, severity: "info" });
     }
     for (const fc of footprintCandles) {
       if (fc.hasStacking) {
@@ -438,8 +585,8 @@ export function OrderFlowWidget({ symbol, candles }: { symbol: string; candles: 
     if (whaleTrades > 5) {
       list.push({ type: "whale", message: `${whaleTrades} whale trades (>10 qty)`, severity: "warning" });
     }
-    return list.slice(0, 5);
-  }, [icebergs, absorptions, footprintCandles, whaleTrades]);
+    return list.slice(0, 8);
+  }, [icebergs, absorptions, powerTrades, stopRuns, exhaustions, footprintCandles, whaleTrades]);
 
   return (
     <div className="card p-3">
@@ -578,12 +725,16 @@ export function OrderFlowWidget({ symbol, candles }: { symbol: string; candles: 
       </div>
 
       {/* View tabs */}
-      <div className="flex gap-0.5 p-0.5 rounded-lg bg-bg-alt mb-2">
+      <div className="flex gap-0.5 p-0.5 rounded-lg bg-bg-alt mb-2 flex-wrap">
         {([
           { key: "footprint" as const, label: "Footprint", icon: Grid3x3 },
           { key: "heatmap" as const, label: "Heatmap", icon: Flame },
           { key: "profile" as const, label: "Profile", icon: Layers },
           { key: "tape" as const, label: "Tape", icon: Eye },
+          { key: "dots" as const, label: "Dots", icon: Circle },
+          { key: "stats" as const, label: "Stats", icon: BarChart3 },
+          { key: "power" as const, label: "Power", icon: Zap },
+          { key: "distribution" as const, label: "Dist", icon: DollarSign },
         ]).map(t => {
           const Icon = t.icon;
           return (
@@ -685,6 +836,195 @@ export function OrderFlowWidget({ symbol, candles }: { symbol: string; candles: 
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Volume Dots view (Bookmap-style) */}
+      {viewTab === "dots" && (
+        <div className="mb-3">
+          <div className="flex justify-between text-[8px] text-muted mb-1 font-mono">
+            <span>Volume Dots (Bookmap-style)</span>
+            <span>
+              <span className="text-success">● Buy</span>{" "}
+              <span className="text-danger">● Sell</span> · Size = Volume
+            </span>
+          </div>
+          {volumeDots.length > 0 ? (
+            <canvas ref={dotsCanvasRef} style={{ width: "100%", height: 200 }} />
+          ) : (
+            <div className="flex items-center justify-center h-48 text-muted text-[10px]">
+              No volume dot data available
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Cluster Statistics view (ATAS-style) */}
+      {viewTab === "stats" && (
+        <div className="mb-3">
+          <p className="text-[9px] font-semibold text-muted mb-1">Cluster Statistics (last 12 candles)</p>
+          {/* Delta bars chart */}
+          <canvas ref={deltaBarsCanvasRef} style={{ width: "100%", height: 120 }} className="mb-2" />
+          {/* Stats table */}
+          {clusterStats.length > 0 ? (
+            <div className="overflow-x-auto no-scrollbar">
+              <table className="w-full text-[9px] font-mono">
+                <thead>
+                  <tr className="text-muted border-b border-white/5">
+                    <th className="text-left py-1 px-1">#</th>
+                    <th className="text-right py-1 px-1">Volume</th>
+                    <th className="text-right py-1 px-1">Buy</th>
+                    <th className="text-right py-1 px-1">Sell</th>
+                    <th className="text-right py-1 px-1">Delta</th>
+                    <th className="text-right py-1 px-1">Δ%</th>
+                    <th className="text-right py-1 px-1">B/S</th>
+                    <th className="text-right py-1 px-1">Trd</th>
+                    <th className="text-right py-1 px-1">POC</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clusterStats.map((s, i) => (
+                    <tr key={i} className="border-b border-white/3 hover:bg-white/5">
+                      <td className="py-0.5 px-1 text-muted">{i + 1}</td>
+                      <td className="py-0.5 px-1 text-right">{s.totalVolume.toFixed(2)}</td>
+                      <td className="py-0.5 px-1 text-right text-success">{s.buyVolume.toFixed(2)}</td>
+                      <td className="py-0.5 px-1 text-right text-danger">{s.sellVolume.toFixed(2)}</td>
+                      <td className={cn("py-0.5 px-1 text-right font-bold", s.delta >= 0 ? "text-success" : "text-danger")}>
+                        {s.delta >= 0 ? "+" : ""}{s.delta.toFixed(3)}
+                      </td>
+                      <td className={cn("py-0.5 px-1 text-right", s.deltaPercent >= 0 ? "text-success" : "text-danger")}>
+                        {s.deltaPercent >= 0 ? "+" : ""}{s.deltaPercent.toFixed(1)}%
+                      </td>
+                      <td className="py-0.5 px-1 text-right text-muted">{s.buySellRatio.toFixed(2)}</td>
+                      <td className="py-0.5 px-1 text-right text-muted">{s.tradeCount}</td>
+                      <td className="py-0.5 px-1 text-right text-warning">{s.pocPrice > 0 ? formatPrice(s.pocPrice) : "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-32 text-muted text-[10px]">
+              No cluster data available
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Power Trades view (Quantower-style) */}
+      {viewTab === "power" && (
+        <div className="mb-3 space-y-2">
+          <p className="text-[9px] font-semibold text-muted mb-1 flex items-center gap-1">
+            <Zap className="w-3 h-3 text-warning" />
+            Power Trades — Large aggressive orders in short time windows
+          </p>
+          {powerTrades.length > 0 ? (
+            <div className="space-y-1">
+              {powerTrades.map((pt, i) => (
+                <div key={i} className={cn(
+                  "p-2 rounded-lg border",
+                  pt.side === "buy" ? "bg-success/5 border-success/20" : "bg-danger/5 border-danger/20"
+                )}>
+                  <div className="flex items-center justify-between text-[10px] font-mono">
+                    <span className={cn("font-bold", pt.side === "buy" ? "text-success" : "text-danger")}>
+                      {pt.side === "buy" ? "BUY" : "SELL"} POWER
+                    </span>
+                    <span className="text-warning">{pt.intensity.toFixed(0)}% intensity</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1 mt-1 text-[9px] font-mono text-muted">
+                    <div><p>Volume</p><p className="text-text font-bold">{pt.totalVolume.toFixed(2)}</p></div>
+                    <div><p>Trades</p><p className="text-text font-bold">{pt.tradeCount}</p></div>
+                    <div><p>Price</p><p className="text-text font-bold">{formatPrice(pt.priceStart)}→{formatPrice(pt.priceEnd)}</p></div>
+                    <div><p>Move</p><p className={cn("font-bold", pt.priceMove >= 0 ? "text-success" : "text-danger")}>
+                      {pt.priceMove >= 0 ? "+" : ""}{(pt.priceMove * 100).toFixed(3)}%
+                    </p></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[10px] text-muted text-center py-4">No power trades detected</p>
+          )}
+
+          {/* Stop runs */}
+          <p className="text-[9px] font-semibold text-muted mt-2 mb-1 flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3 text-warning" />
+            Stop Runs Detected
+          </p>
+          {stopRuns.length > 0 ? (
+            <div className="space-y-1">
+              {stopRuns.map((sr, i) => (
+                <div key={i} className="flex items-center justify-between p-1.5 rounded-lg bg-bg-alt text-[10px] font-mono">
+                  <span className={cn("font-bold", sr.side === "buy" ? "text-success" : "text-danger")}>
+                    {sr.side === "buy" ? "↑ BUY STOP" : "↓ SELL STOP"}
+                  </span>
+                  <span className="text-muted">@ {formatPrice(sr.price)}</span>
+                  <span className="text-muted">Vol: {sr.volume.toFixed(2)}</span>
+                  <span className={cn(sr.priceMove >= 0 ? "text-success" : "text-danger")}>
+                    {(sr.priceMove * 100).toFixed(3)}%
+                  </span>
+                  <span className="text-warning">{sr.confidence.toFixed(0)}%</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[10px] text-muted text-center py-2">No stop runs detected</p>
+          )}
+
+          {/* Exhaustion */}
+          <p className="text-[9px] font-semibold text-muted mt-2 mb-1 flex items-center gap-1">
+            <TrendingDown className="w-3 h-3 text-purple-400" />
+            Exhaustion — Aggressive orders failing to move price
+          </p>
+          {exhaustions.length > 0 ? (
+            <div className="space-y-1">
+              {exhaustions.map((ex, i) => (
+                <div key={i} className="flex items-center justify-between p-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-[10px] font-mono">
+                  <span className={cn("font-bold", ex.side === "buy" ? "text-success" : "text-danger")}>
+                    {ex.side === "buy" ? "BUY" : "SELL"} EXHAUSTION
+                  </span>
+                  <span className="text-muted">@ {formatPrice(ex.price)}</span>
+                  <span className="text-muted">Vol: {ex.volume.toFixed(2)}</span>
+                  <span className="text-purple-400">{ex.confidence.toFixed(0)}%</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[10px] text-muted text-center py-2">No exhaustion detected</p>
+          )}
+        </div>
+      )}
+
+      {/* Trade Size Distribution view */}
+      {viewTab === "distribution" && (
+        <div className="mb-3">
+          <p className="text-[9px] font-semibold text-muted mb-1">Trade Size Distribution</p>
+          {tradeSizeDist.length > 0 ? (
+            <div className="space-y-1">
+              {tradeSizeDist.map((bucket, i) => {
+                const maxCount = Math.max(...tradeSizeDist.map(b => b.count), 1);
+                const buyPercent = bucket.count > 0 ? (bucket.buyCount / bucket.count) * 100 : 50;
+                return (
+                  <div key={i} className="space-y-0.5">
+                    <div className="flex justify-between text-[10px] font-mono">
+                      <span className="text-muted">{bucket.label} qty</span>
+                      <span className="text-text">{bucket.count} trades · {bucket.volume.toFixed(2)} vol</span>
+                    </div>
+                    <div className="flex h-3 rounded-full overflow-hidden bg-bg-alt">
+                      <div className="bg-success" style={{ width: `${(bucket.buyCount / maxCount) * 100}%` }} />
+                      <div className="bg-danger" style={{ width: `${(bucket.sellCount / maxCount) * 100}%` }} />
+                    </div>
+                    <div className="flex justify-between text-[8px] font-mono text-muted">
+                      <span className="text-success">{bucket.buyCount} buy</span>
+                      <span className="text-danger">{bucket.sellCount} sell</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-[10px] text-muted text-center py-4">No trade data available</p>
+          )}
         </div>
       )}
 

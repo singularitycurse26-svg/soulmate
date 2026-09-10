@@ -570,3 +570,281 @@ export function detectAbsorption(
   }
   return result.sort((a, b) => b.confidence - a.confidence).slice(0, 5);
 }
+
+// ── Power Trades (Quantower-style: large aggressive orders in short time) ──
+export interface PowerTrade {
+  startTime: number;
+  endTime: number;
+  side: "buy" | "sell";
+  totalVolume: number;
+  tradeCount: number;
+  priceStart: number;
+  priceEnd: number;
+  priceMove: number;
+  intensity: number;
+}
+
+export function detectPowerTrades(
+  trades: { price: number; qty: number; isBuyerMaker: boolean; time: number }[],
+  minVolume: number = 5,
+  timeWindowMs: number = 3000,
+): PowerTrade[] {
+  if (trades.length === 0) return [];
+  const sorted = [...trades].sort((a, b) => a.time - b.time);
+  const results: PowerTrade[] = [];
+  let windowStart = 0;
+  let windowTrades: typeof sorted = [];
+
+  for (let i = 0; i < sorted.length; i++) {
+    while (sorted[i].time - sorted[windowStart].time > timeWindowMs) {
+      windowStart++;
+    }
+    windowTrades = sorted.slice(windowStart, i + 1);
+    const buyVol = windowTrades.filter(t => !t.isBuyerMaker).reduce((s, t) => s + t.qty, 0);
+    const sellVol = windowTrades.filter(t => t.isBuyerMaker).reduce((s, t) => s + t.qty, 0);
+    const totalVol = buyVol + sellVol;
+    const dominantSide = buyVol > sellVol ? "buy" : "sell";
+    const dominantVol = Math.max(buyVol, sellVol);
+
+    if (totalVol >= minVolume && dominantVol / totalVol > 0.7) {
+      const priceStart = windowTrades[0].price;
+      const priceEnd = windowTrades[windowTrades.length - 1].price;
+      const priceMove = dominantSide === "buy" ? priceEnd - priceStart : priceStart - priceEnd;
+      results.push({
+        startTime: windowTrades[0].time,
+        endTime: windowTrades[windowTrades.length - 1].time,
+        side: dominantSide,
+        totalVolume: totalVol,
+        tradeCount: windowTrades.length,
+        priceStart,
+        priceEnd,
+        priceMove,
+        intensity: Math.min(100, (totalVol / minVolume) * 30),
+      });
+    }
+  }
+  // Deduplicate overlapping windows — keep highest intensity
+  const seen: PowerTrade[] = [];
+  for (const pt of results.sort((a, b) => b.intensity - a.intensity)) {
+    if (!seen.some(s => Math.abs(s.startTime - pt.startTime) < timeWindowMs)) {
+      seen.push(pt);
+    }
+  }
+  return seen.slice(0, 10);
+}
+
+// ── Stops Detection (stop run patterns: rapid price movement + high volume) ──
+export interface StopRun {
+  time: number;
+  side: "buy" | "sell";
+  price: number;
+  volume: number;
+  priceMove: number;
+  duration: number;
+  confidence: number;
+}
+
+export function detectStops(
+  trades: { price: number; qty: number; isBuyerMaker: boolean; time: number }[],
+  threshold: number = 0.003,
+): StopRun[] {
+  if (trades.length < 10) return [];
+  const sorted = [...trades].sort((a, b) => a.time - b.time);
+  const results: StopRun[] = [];
+  const windowSize = 5;
+
+  for (let i = windowSize; i < sorted.length; i++) {
+    const window = sorted.slice(i - windowSize, i + 1);
+    const firstPrice = window[0].price;
+    const lastPrice = window[window.length - 1].price;
+    const priceMove = Math.abs(lastPrice - firstPrice) / firstPrice;
+    const totalVol = window.reduce((s, t) => s + t.qty, 0);
+    const buyVol = window.filter(t => !t.isBuyerMaker).reduce((s, t) => s + t.qty, 0);
+    const sellVol = totalVol - buyVol;
+    const avgVol = totalVol / window.length;
+
+    if (priceMove > threshold && totalVol > avgVol * 1.5) {
+      const side = lastPrice > firstPrice ? "buy" : "sell";
+      const dominantVol = side === "buy" ? buyVol : sellVol;
+      const confidence = Math.min(100, (priceMove / threshold) * 30 + (dominantVol / totalVol) * 50);
+      results.push({
+        time: window[window.length - 1].time,
+        side,
+        price: lastPrice,
+        volume: totalVol,
+        priceMove,
+        duration: window[window.length - 1].time - window[0].time,
+        confidence,
+      });
+    }
+  }
+
+  // Deduplicate — merge stop runs within 2 seconds
+  const seen: StopRun[] = [];
+  for (const sr of results.sort((a, b) => b.confidence - a.confidence)) {
+    if (!seen.some(s => Math.abs(s.time - sr.time) < 2000 && s.side === sr.side)) {
+      seen.push(sr);
+    }
+  }
+  return seen.slice(0, 8);
+}
+
+// ── Exhaustion Detection (aggressive orders failing to move price) ──
+export interface ExhaustionEvent {
+  price: number;
+  side: "buy" | "sell";
+  volume: number;
+  priceMove: number;
+  confidence: number;
+}
+
+export function detectExhaustion(
+  trades: { price: number; qty: number; isBuyerMaker: boolean; time: number }[],
+): ExhaustionEvent[] {
+  if (trades.length < 20) return [];
+  const sorted = [...trades].sort((a, b) => a.time - b.time);
+  const results: ExhaustionEvent[] = [];
+  const windowSize = 10;
+
+  for (let i = windowSize; i < sorted.length; i += 3) {
+    const window = sorted.slice(i - windowSize, i + 1);
+    const buyVol = window.filter(t => !t.isBuyerMaker).reduce((s, t) => s + t.qty, 0);
+    const sellVol = window.filter(t => t.isBuyerMaker).reduce((s, t) => s + t.qty, 0);
+    const totalVol = buyVol + sellVol;
+    if (totalVol < 2) continue;
+
+    const side = buyVol > sellVol ? "buy" : "sell";
+    const dominantVol = side === "buy" ? buyVol : sellVol;
+    const dominanceRatio = dominantVol / totalVol;
+
+    const firstPrice = window[0].price;
+    const lastPrice = window[window.length - 1].price;
+    const priceMove = side === "buy"
+      ? (lastPrice - firstPrice) / firstPrice
+      : (firstPrice - lastPrice) / firstPrice;
+
+    // Exhaustion: dominant side has high volume but price moved AGAINST them (or barely moved)
+    if (dominanceRatio > 0.65 && priceMove < 0.001) {
+      const avgPrice = window.reduce((s, t) => s + t.price * t.qty, 0) / totalVol;
+      const confidence = Math.min(100, dominanceRatio * 60 + (1 - Math.abs(priceMove) * 1000) * 20);
+      results.push({
+        price: avgPrice,
+        side,
+        volume: dominantVol,
+        priceMove,
+        confidence,
+      });
+    }
+  }
+
+  // Deduplicate by price level
+  const seen: ExhaustionEvent[] = [];
+  for (const ex of results.sort((a, b) => b.confidence - a.confidence)) {
+    if (!seen.some(s => Math.abs(s.price - ex.price) / ex.price < 0.002 && s.side === ex.side)) {
+      seen.push(ex);
+    }
+  }
+  return seen.slice(0, 6);
+}
+
+// ── Cluster Statistics (ATAS-style per-candle metrics) ──
+export interface ClusterStats {
+  index: number;
+  totalVolume: number;
+  buyVolume: number;
+  sellVolume: number;
+  delta: number;
+  deltaPercent: number;
+  buySellRatio: number;
+  tradeCount: number;
+  maxDelta: number;
+  maxDeltaPrice: number;
+  minDelta: number;
+  minDeltaPrice: number;
+  pocPrice: number;
+}
+
+export function buildClusterStats(
+  candles: Candle[],
+  trades: { price: number; qty: number; isBuyerMaker: boolean; time: number }[],
+): ClusterStats[] {
+  if (candles.length === 0 || trades.length === 0) return [];
+  const recentCandles = candles.slice(-12);
+  const interval = recentCandles.length > 1
+    ? recentCandles[1].time - recentCandles[0].time
+    : 60000;
+  return recentCandles.map((c, idx) => {
+    const candleTrades = trades.filter(t =>
+      t.time >= c.time && t.time < c.time + interval
+    );
+    const buyVol = candleTrades.filter(t => !t.isBuyerMaker).reduce((s, t) => s + t.qty, 0);
+    const sellVol = candleTrades.filter(t => t.isBuyerMaker).reduce((s, t) => s + t.qty, 0);
+    const totalVol = buyVol + sellVol;
+    const delta = buyVol - sellVol;
+
+    // Per-price delta
+    const priceDeltas: Record<string, { delta: number; volume: number }> = {};
+    for (const t of candleTrades) {
+      const key = t.price.toFixed(4);
+      if (!priceDeltas[key]) priceDeltas[key] = { delta: 0, volume: 0 };
+      priceDeltas[key].delta += t.isBuyerMaker ? -t.qty : t.qty;
+      priceDeltas[key].volume += t.qty;
+    }
+    const deltas = Object.entries(priceDeltas).map(([price, d]) => ({
+      price: parseFloat(price), ...d,
+    }));
+    const maxDelta = deltas.length > 0 ? Math.max(...deltas.map(d => d.delta)) : 0;
+    const minDelta = deltas.length > 0 ? Math.min(...deltas.map(d => d.delta)) : 0;
+    const maxDeltaEntry = deltas.find(d => d.delta === maxDelta);
+    const minDeltaEntry = deltas.find(d => d.delta === minDelta);
+    const pocEntry = deltas.length > 0 ? deltas.sort((a, b) => b.volume - a.volume)[0] : null;
+
+    return {
+      index: idx,
+      totalVolume: totalVol,
+      buyVolume: buyVol,
+      sellVolume: sellVol,
+      delta,
+      deltaPercent: totalVol > 0 ? (delta / totalVol) * 100 : 0,
+      buySellRatio: sellVol > 0 ? buyVol / sellVol : buyVol > 0 ? 99 : 1,
+      tradeCount: candleTrades.length,
+      maxDelta,
+      maxDeltaPrice: maxDeltaEntry?.price || 0,
+      minDelta,
+      minDeltaPrice: minDeltaEntry?.price || 0,
+      pocPrice: pocEntry?.price || 0,
+    };
+  });
+}
+
+// ── Trade Size Distribution ──
+export interface TradeSizeBucket {
+  label: string;
+  count: number;
+  volume: number;
+  buyCount: number;
+  sellCount: number;
+}
+
+export function buildTradeSizeDistribution(
+  trades: { price: number; qty: number; isBuyerMaker: boolean; time: number }[],
+): TradeSizeBucket[] {
+  const buckets = [
+    { label: "<0.1", min: 0, max: 0.1 },
+    { label: "0.1-0.5", min: 0.1, max: 0.5 },
+    { label: "0.5-1", min: 0.5, max: 1 },
+    { label: "1-5", min: 1, max: 5 },
+    { label: "5-10", min: 5, max: 10 },
+    { label: "10+", min: 10, max: Infinity },
+  ];
+  return buckets.map(b => {
+    const matching = trades.filter(t => t.qty >= b.min && t.qty < b.max);
+    return {
+      label: b.label,
+      count: matching.length,
+      volume: matching.reduce((s, t) => s + t.qty, 0),
+      buyCount: matching.filter(t => !t.isBuyerMaker).length,
+      sellCount: matching.filter(t => t.isBuyerMaker).length,
+    };
+  });
+}

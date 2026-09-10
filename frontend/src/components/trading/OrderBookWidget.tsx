@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Layers, Settings, Loader2 } from "lucide-react";
 
@@ -30,6 +30,8 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
   const [volMode, setVolMode] = useState<"cumulative" | "step">("cumulative");
   const [grouping, setGrouping] = useState<number>(0);
   const [showDepth, setShowDepth] = useState(true);
+  const [showTrades, setShowTrades] = useState(false);
+  const [trades, setTrades] = useState<{ id: number; price: number; qty: number; time: number; isBuyerMaker: boolean }[]>([]);
   const depthCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const fetchOrderBook = useCallback(async () => {
@@ -56,33 +58,79 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
     }
   }, [symbol]);
 
+  const fetchTrades = useCallback(async () => {
+    try {
+      const resp = await fetch(`${BINANCE_API}/trades?symbol=${symbol}&limit=30`);
+      if (resp.ok) {
+        const data = await resp.json();
+        setTrades(data.map((t: any) => ({
+          id: t.id, price: parseFloat(t.price), qty: parseFloat(t.qty),
+          time: t.time, isBuyerMaker: t.isBuyerMaker,
+        })));
+      }
+    } catch {
+      // Silently fail
+    }
+  }, [symbol]);
+
   useEffect(() => {
     setLoading(true);
     fetchOrderBook();
-    const interval = setInterval(fetchOrderBook, 2000);
-    return () => clearInterval(interval);
-  }, [fetchOrderBook]);
+    fetchTrades();
+    const bookInterval = setInterval(fetchOrderBook, 2000);
+    const tradeInterval = setInterval(fetchTrades, 1500);
+    return () => { clearInterval(bookInterval); clearInterval(tradeInterval); };
+  }, [fetchOrderBook, fetchTrades]);
 
-  const maxBidTotal = orderBook ? Math.max(...orderBook.bids.map(b => b.total)) : 1;
-  const maxAskTotal = orderBook ? Math.max(...orderBook.asks.map(a => a.total)) : 1;
+  // ── Grouping: aggregate levels by price precision ───────────────
+  const groupedBook = useMemo(() => {
+    if (!orderBook) return null;
+    if (grouping === 0) return orderBook;
+    const groupLevels = (levels: OrderBookLevel[], side: "bid" | "ask") => {
+      const map: Record<string, { price: number; qty: number }> = {};
+      for (const lvl of levels) {
+        const groupedPrice = side === "bid"
+          ? Math.floor(lvl.price / grouping) * grouping
+          : Math.ceil(lvl.price / grouping) * grouping;
+        const key = groupedPrice.toFixed(8);
+        if (!map[key]) map[key] = { price: groupedPrice, qty: 0 };
+        map[key].qty += lvl.qty;
+      }
+      let total = 0;
+      return Object.values(map)
+        .sort((a, b) => side === "bid" ? b.price - a.price : a.price - b.price)
+        .map(l => { total += l.qty; return { ...l, total }; });
+    };
+    return { bids: groupLevels(orderBook.bids, "bid"), asks: groupLevels(orderBook.asks, "ask") };
+  }, [orderBook, grouping]);
+
+  // ── Large order detection ───────────────────────────────────────
+  const avgOrderSize = useMemo(() => {
+    if (!groupedBook) return 1;
+    const allQtys = [...groupedBook.bids.map(b => b.qty), ...groupedBook.asks.map(a => a.qty)];
+    return allQtys.length > 0 ? allQtys.reduce((s, q) => s + q, 0) / allQtys.length : 1;
+  }, [groupedBook]);
+
+  const maxBidTotal = groupedBook ? Math.max(...groupedBook.bids.map(b => b.total)) : 1;
+  const maxAskTotal = groupedBook ? Math.max(...groupedBook.asks.map(a => a.total)) : 1;
   const maxTotal = Math.max(maxBidTotal, maxAskTotal);
-  const maxStepVol = orderBook
-    ? Math.max(...orderBook.bids.map(b => b.qty), ...orderBook.asks.map(a => a.qty))
+  const maxStepVol = groupedBook
+    ? Math.max(...groupedBook.bids.map(b => b.qty), ...groupedBook.asks.map(a => a.qty))
     : 1;
-  const bidVolume = orderBook ? orderBook.bids.reduce((s, b) => s + b.qty, 0) : 0;
-  const askVolume = orderBook ? orderBook.asks.reduce((s, a) => s + a.qty, 0) : 0;
+  const bidVolume = groupedBook ? groupedBook.bids.reduce((s, b) => s + b.qty, 0) : 0;
+  const askVolume = groupedBook ? groupedBook.asks.reduce((s, a) => s + a.qty, 0) : 0;
   const imbalance = bidVolume + askVolume > 0 ? ((bidVolume - askVolume) / (bidVolume + askVolume)) * 100 : 0;
-  const spread = orderBook && orderBook.asks[0] && orderBook.bids[0]
-    ? orderBook.asks[0].price - orderBook.bids[0].price
+  const spread = groupedBook && groupedBook.asks[0] && groupedBook.bids[0]
+    ? groupedBook.asks[0].price - groupedBook.bids[0].price
     : 0;
-  const midPrice = orderBook && orderBook.asks[0] && orderBook.bids[0]
-    ? (orderBook.asks[0].price + orderBook.bids[0].price) / 2
+  const midPrice = groupedBook && groupedBook.asks[0] && groupedBook.bids[0]
+    ? (groupedBook.asks[0].price + groupedBook.bids[0].price) / 2
     : currentPrice;
 
   // ── Depth chart drawing ─────────────────────────────────────────
   useEffect(() => {
     if (!showDepth && viewMode !== "depth") return;
-    if (!orderBook) return;
+    if (!groupedBook) return;
     const canvas = depthCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -101,7 +149,7 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
 
     ctx.clearRect(0, 0, w, h);
 
-    const allPrices = [...orderBook.bids.map(b => b.price), ...orderBook.asks.map(a => a.price)];
+    const allPrices = [...groupedBook.bids.map(b => b.price), ...groupedBook.asks.map(a => a.price)];
     const minP = Math.min(...allPrices);
     const maxP = Math.max(...allPrices);
     const pRange = maxP - minP || 1;
@@ -113,7 +161,7 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(padL, h);
-    for (const b of orderBook.bids) {
+    for (const b of groupedBook.bids) {
       const x = padL + ((b.price - minP) / pRange) * chartW;
       const y = h - (b.total / maxDepth) * h;
       ctx.lineTo(x, y);
@@ -122,7 +170,7 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
     ctx.closePath();
     ctx.fill();
     ctx.beginPath();
-    for (const b of orderBook.bids) {
+    for (const b of groupedBook.bids) {
       const x = padL + ((b.price - minP) / pRange) * chartW;
       const y = h - (b.total / maxDepth) * h;
       ctx.lineTo(x, y);
@@ -134,7 +182,7 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
     ctx.fillStyle = "rgba(255, 23, 68, 0.1)";
     ctx.beginPath();
     ctx.moveTo(padL + chartW, h);
-    for (const a of orderBook.asks) {
+    for (const a of groupedBook.asks) {
       const x = padL + ((a.price - minP) / pRange) * chartW;
       const y = h - (a.total / maxDepth) * h;
       ctx.lineTo(x, y);
@@ -143,7 +191,7 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
     ctx.closePath();
     ctx.fill();
     ctx.beginPath();
-    for (const a of orderBook.asks) {
+    for (const a of groupedBook.asks) {
       const x = padL + ((a.price - minP) / pRange) * chartW;
       const y = h - (a.total / maxDepth) * h;
       ctx.lineTo(x, y);
@@ -168,10 +216,10 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
       ctx.fillText(formatPrice(maxP), padL + chartW - 40, h - 2);
       ctx.fillText(formatPrice(midPrice), midX - 20, 10);
     }
-  }, [orderBook, showDepth, viewMode, midPrice]);
+  }, [groupedBook, showDepth, viewMode, midPrice]);
 
-  const displayBids = orderBook?.bids.slice(0, 15) || [];
-  const displayAsks = orderBook?.asks.slice(-15).reverse() || [];
+  const displayBids = groupedBook?.bids.slice(0, 15) || [];
+  const displayAsks = groupedBook?.asks.slice(-15).reverse() || [];
 
   return (
     <div className="card p-3">
@@ -213,6 +261,32 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
             <span className="text-muted">Depth Chart</span>
             <button onClick={() => setShowDepth(!showDepth)} className={cn("px-2 py-0.5 rounded", showDepth ? "bg-accent/20 text-accent" : "text-muted")}>
               {showDepth ? "On" : "Off"}
+            </button>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-muted">Grouping</span>
+            <div className="flex gap-0.5">
+              {[
+                { label: "None", val: 0 },
+                { label: "0.1", val: 0.1 },
+                { label: "1", val: 1 },
+                { label: "10", val: 10 },
+              ].map(g => (
+                <button
+                  key={g.val}
+                  onClick={() => setGrouping(g.val)}
+                  className={cn("px-1.5 py-0.5 rounded text-[9px]",
+                    grouping === g.val ? "bg-accent/20 text-accent" : "text-muted")}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-muted">Trades Tape</span>
+            <button onClick={() => setShowTrades(!showTrades)} className={cn("px-2 py-0.5 rounded", showTrades ? "bg-accent/20 text-accent" : "text-muted")}>
+              {showTrades ? "On" : "Off"}
             </button>
           </div>
         </div>
@@ -258,11 +332,13 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
       <div className="space-y-0.5">
         {displayAsks.map((ask, i) => {
           const volBar = volMode === "cumulative" ? ask.total / maxTotal : ask.qty / maxStepVol;
+          const isLarge = ask.qty > avgOrderSize * 3;
           return (
-            <div key={i} className="relative flex justify-between text-[10px] py-0.5 px-1 rounded font-mono group">
+            <div key={i} className={cn("relative flex justify-between text-[10px] py-0.5 px-1 rounded font-mono group", isLarge && "bg-warning/5")}>
               <div className="absolute right-0 top-0 bottom-0 bg-danger/10 rounded" style={{ width: `${volBar * 100}%` }} />
-              <span className="relative text-danger">{formatPrice(ask.price)}</span>
-              <span className="relative text-muted">{ask.qty.toFixed(4)}</span>
+              {isLarge && <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-warning" />}
+              <span className={cn("relative text-danger", isLarge && "font-bold")}>{formatPrice(ask.price)}</span>
+              <span className={cn("relative", isLarge ? "text-warning font-bold" : "text-muted")}>{ask.qty.toFixed(4)}</span>
               <span className="relative text-muted">{ask.total.toFixed(2)}</span>
             </div>
           );
@@ -282,17 +358,37 @@ export function OrderBookWidget({ symbol, currentPrice }: { symbol: string; curr
       <div className="space-y-0.5">
         {displayBids.map((bid, i) => {
           const volBar = volMode === "cumulative" ? bid.total / maxTotal : bid.qty / maxStepVol;
+          const isLarge = bid.qty > avgOrderSize * 3;
           return (
-            <div key={i} className="relative flex justify-between text-[10px] py-0.5 px-1 rounded font-mono group">
+            <div key={i} className={cn("relative flex justify-between text-[10px] py-0.5 px-1 rounded font-mono group", isLarge && "bg-warning/5")}>
               <div className="absolute left-0 top-0 bottom-0 bg-success/10 rounded" style={{ width: `${volBar * 100}%` }} />
-              <span className="relative text-success">{formatPrice(bid.price)}</span>
-              <span className="relative text-muted">{bid.qty.toFixed(4)}</span>
+              {isLarge && <span className="absolute left-0 top-0 bottom-0 w-0.5 bg-warning" />}
+              <span className={cn("relative text-success", isLarge && "font-bold")}>{formatPrice(bid.price)}</span>
+              <span className={cn("relative", isLarge ? "text-warning font-bold" : "text-muted")}>{bid.qty.toFixed(4)}</span>
               <span className="relative text-muted">{bid.total.toFixed(2)}</span>
             </div>
           );
         })}
       </div>
         </>
+      )}
+
+      {/* Recent trades tape (Kraken-style) */}
+      {showTrades && (
+        <div className="mt-2 pt-2 border-t border-white/5">
+          <p className="text-[9px] font-semibold text-muted mb-1">Recent Trades</p>
+          <div className="space-y-0.5 max-h-32 overflow-y-auto no-scrollbar">
+            {trades.slice(-20).reverse().map((t) => (
+              <div key={t.id} className="flex justify-between text-[9px] font-mono py-0.5 px-1 rounded hover:bg-white/5">
+                <span className={t.isBuyerMaker ? "text-danger" : "text-success"}>
+                  {t.isBuyerMaker ? "SELL" : "BUY "}
+                </span>
+                <span className="text-muted">{formatPrice(t.price)}</span>
+                <span className={cn(t.qty > avgOrderSize * 2 ? "text-warning font-bold" : "text-muted")}>{t.qty.toFixed(4)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
