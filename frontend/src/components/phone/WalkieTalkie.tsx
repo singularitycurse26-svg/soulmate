@@ -2,15 +2,18 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useStore } from "@/lib/store";
 import { voiceApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useAudioCoordinator } from "@/hooks/useAudioCoordinator";
 import {
   Mic,
   MicOff,
   Radio,
   Play,
+  Pause,
   Trash2,
   Loader2,
   Users,
   Volume2,
+  VolumeX,
   AlertCircle,
   Crown,
 } from "lucide-react";
@@ -46,6 +49,23 @@ export function WalkieTalkie() {
   const [onlineCount, setOnlineCount] = useState(0);
   const [pttActive, setPttActive] = useState(false);
   const [playing, setPlaying] = useState<number | null>(null);
+  const [muted, setMuted] = useState(false);
+
+  // Universal audio coordinator — only one audio source plays at a time
+  const {
+    announcePlay: coordAnnouncePlay,
+    announceStop: coordAnnounceStop,
+    shouldPause,
+  } = useAudioCoordinator("voice_message", "Walkie Talkie");
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Pause voice message when another source starts playing
+  useEffect(() => {
+    if (shouldPause() && currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      setPlaying(null);
+    }
+  }, [shouldPause]);
 
   // Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -264,6 +284,11 @@ export function WalkieTalkie() {
   // Play voice message
   const playMessage = async (msgId: number) => {
     try {
+      // Stop any currently playing audio
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current = null;
+      }
       setPlaying(msgId);
       const data = await voiceApi.audio(msgId);
       const byteChars = atob(data.audio_data);
@@ -274,14 +299,39 @@ export function WalkieTalkie() {
       const blob = new Blob([byteArray], { type: "audio/webm" });
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
+      audio.volume = muted ? 0 : 1;
+      currentAudioRef.current = audio;
       audio.onended = () => {
         setPlaying(null);
+        coordAnnounceStop();
         URL.revokeObjectURL(url);
+        currentAudioRef.current = null;
       };
+      coordAnnouncePlay(`Voice message #${msgId}`);
       audio.play();
     } catch (e: any) {
       showAlert("danger", "Failed to play message: " + e.message);
       setPlaying(null);
+      coordAnnounceStop();
+    }
+  };
+
+  // Stop currently playing voice message
+  const stopMessage = () => {
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current = null;
+    }
+    setPlaying(null);
+    coordAnnounceStop();
+  };
+
+  // Toggle mute for voice messages
+  const toggleMute = () => {
+    const newMuted = !muted;
+    setMuted(newMuted);
+    if (currentAudioRef.current) {
+      currentAudioRef.current.volume = newMuted ? 0 : 1;
     }
   };
 
@@ -394,6 +444,14 @@ export function WalkieTalkie() {
                "Premium walkie-talkie"}
             </p>
           </div>
+          <button
+            onClick={toggleMute}
+            className={cn("w-9 h-9 rounded-lg flex items-center justify-center transition-colors",
+              muted ? "bg-danger/15 text-danger" : "bg-bg-alt text-muted hover:text-text")}
+            title={muted ? "Unmute voice messages" : "Mute voice messages"}
+          >
+            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
         </div>
       )}
 
@@ -501,11 +559,10 @@ export function WalkieTalkie() {
                   className="flex items-center gap-3 bg-bg-alt rounded-lg p-3"
                 >
                   <button
-                    onClick={() => playMessage(msg.id)}
-                    disabled={playing === msg.id}
+                    onClick={() => playing === msg.id ? stopMessage() : playMessage(msg.id)}
                     className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent hover:bg-accent/20"
                   >
-                    {playing === msg.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
+                    {playing === msg.id ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
                   </button>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{msg.from_name}</p>
@@ -513,6 +570,15 @@ export function WalkieTalkie() {
                       {msg.duration > 0 ? `${msg.duration.toFixed(0)}s` : "Voice"} · {msg.created_at?.slice(11, 16) || ""}
                     </p>
                   </div>
+                  {playing === msg.id && (
+                    <button
+                      onClick={toggleMute}
+                      className="p-2 text-muted hover:text-text"
+                      title={muted ? "Unmute" : "Mute"}
+                    >
+                      {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                    </button>
+                  )}
                   <button
                     onClick={() => deleteMessage(msg.id)}
                     className="p-2 text-muted hover:text-danger"
