@@ -1,0 +1,504 @@
+:root {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #252525;
+    --bg-tertiary: #303030;
+    --text-primary: #f0f0f0;
+    --text-secondary: #b0b0b0;
+    --accent: #007acc;
+    --accent-hover: #0099ff;
+    --success: #4caf50;
+    --warning: #ff9800;
+    --danger: #f44336;
+    --border: #404040;
+    --border-color: #404040;
+    --track-bg: #2d2d2d;
+    --accent-primary: #007acc;
+    --accent-secondary: #005a9e;
+    --success-color: #4caf50;
+    --warning-color: #ff9800;
+    --danger-color: #f44336;
+    --waveform-color: #007acc;
+    --grid-color: #3a3a3a;
+    --grid-major: #505050;
+    --ruler-bg: #1e1e1e;
+    --meter-bg: #1a1a1a;
+    --meter-green: #4caf50;
+    --meter-yellow: #ff9800;
+    --meter-red: #f44336;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 16px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 100vh;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.header {
+    background: var(--bg-secondary);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.logo-icon {
+    font-size: 1.5rem;
+}
+
+.logo-text {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.header-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.main-nav {
+    background: var(--bg-tertiary);
+    padding: 0.5rem 1rem;
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.nav-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.nav-btn:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.nav-btn.active {
+    background: var(--accent);
+    color: white;
+}
+
+.main-content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.view {
+    display: none;
+}
+
+.view.active {
+    display: block;
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+    font-size: 15px;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+.btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-secondary);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-warning {
+    background: var(--warning);
+    color: #1a1a2e;
+}
+
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+}
+
+.btn-toggle {
+    min-width: 60px;
+}
+
+.btn-toggle.effect-active {
+    background: var(--success);
+    color: white;
+}
+
+.btn-toggle:not(.effect-active) {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+}
+
+.empty-state p {
+    margin-bottom: 1rem;
+}
+
+.transport-bar {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.transport-info {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    margin-left: auto;
+}
+
+.bpm-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.bpm-control input {
+    width: 80px;
+    padding: 0.5rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    color: var(--text-primary);
+}
+
+.time-display {
+    font-family: monospace;
+    font-size: 1.25rem;
+    color: var(--accent);
+}
+
+.track-list {
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    min-height: 200px;
+}
+
+.track-item {
+    background: var(--track-bg);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.track-info {
+    flex: 1;
+}
+
+.track-name {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.track-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.timeline {
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    min-height: 300px;
+}
+
+.timeline-ruler {
+    height: 30px;
+    background: var(--bg-tertiary);
+    border-radius: 0.375rem;
+    margin-bottom: 0.5rem;
+}
+
+.timeline-tracks {
+    min-height: 250px;
+}
+
+.effects-panel {
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    padding: 2rem;
+}
+
+.effects-panel h2 {
+    margin-bottom: 1.5rem;
+}
+
+.effects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.effect-module {
+    background: var(--track-bg);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+}
+
+.effect-module h3 {
+    margin-bottom: 1rem;
+    color: var(--accent);
+}
+
+.effect-controls {
+    margin-bottom: 1rem;
+}
+
+.effect-controls label {
+    display: block;
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.effect-slider {
+    width: 100%;
+    margin-bottom: 0.75rem;
+    accent-color: var(--accent);
+}
+
+.autotune-panel {
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    padding: 2rem;
+}
+
+.autotune-panel h2 {
+    margin-bottom: 1.5rem;
+}
+
+.autotune-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.control-group label {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.control-group select,
+.control-group input[type="number"] {
+    padding: 0.5rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    color: var(--text-primary);
+}
+
+.pitch-indicator {
+    background: var(--track-bg);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+}
+
+.pitch-indicator h3 {
+    margin-bottom: 1rem;
+}
+
+.pitch-display {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: var(--bg-tertiary);
+    border-radius: 0.375rem;
+    margin-bottom: 0.5rem;
+}
+
+.pitch-label {
+    color: var(--text-secondary);
+}
+
+.sequencer-panel {
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    padding: 2rem;
+}
+
+.sequencer-panel h2 {
+    margin-bottom: 1.5rem;
+}
+
+.sequencer-controls {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.pattern-list {
+    background: var(--track-bg);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    min-height: 150px;
+}
+
+.piano-roll {
+    background: var(--track-bg);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.piano-roll-header {
+    margin-bottom: 0.5rem;
+}
+
+.step-numbers {
+    display: flex;
+    height: 25px;
+}
+
+.piano-roll-grid {
+    min-height: 200px;
+}
+
+.sequencer-settings {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+.settings-panel {
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    padding: 2rem;
+}
+
+.settings-panel h2 {
+    margin-bottom: 1.5rem;
+}
+
+.settings-section {
+    background: var(--track-bg);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.settings-section h3 {
+    margin-bottom: 1rem;
+    color: var(--accent);
+}
+
+.status-bar {
+    background: var(--bg-tertiary);
+    padding: 0.75rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+}

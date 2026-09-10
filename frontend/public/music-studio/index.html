@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Studio Pro - Authentic DAW</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="ui/ui.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Slide-out Menu -->
+        <div id="slideMenu" class="slide-menu">
+            <div class="slide-menu-header">
+                <h2>Music Studio Pro</h2>
+                <button id="closeMenuBtn" class="btn btn-secondary">✕</button>
+            </div>
+            <div class="slide-menu-section">
+                <h3>Program Mode</h3>
+                <button class="menu-btn active" data-mode="protools">ProTools</button>
+                <button class="menu-btn" data-mode="autotune">Auto-Tune Pro</button>
+                <button class="menu-btn" data-mode="acid">ACID Pro</button>
+                <button class="menu-btn" data-mode="suno">Suno Studio</button>
+            </div>
+            <div class="slide-menu-section">
+                <h3>ProTools Windows</h3>
+                <button class="menu-btn" data-window="edit">Edit Window</button>
+                <button class="menu-btn" data-window="mix">Mix Window</button>
+                <button class="menu-btn" data-window="transport">Transport</button>
+            </div>
+            <div class="slide-menu-section">
+                <h3>Auto-Tune Mode</h3>
+                <button class="menu-btn" data-autotune-mode="auto">Auto Mode</button>
+                <button class="menu-btn" data-autotune-mode="graph">Graph Mode</button>
+            </div>
+            <div class="slide-menu-section">
+                <h3>ACID Pro Tools</h3>
+                <button class="menu-btn" data-acid-tool="timeline">Timeline</button>
+                <button class="menu-btn" data-acid-tool="chopper">Chopper</button>
+                <button class="menu-btn" data-acid-tool="explorer">Explorer</button>
+                <button class="menu-btn" data-acid-tool="morph-pads">Morph Pads</button>
+                <button class="menu-btn" data-acid-tool="mixing">Mixing Console</button>
+            </div>
+            <div class="slide-menu-section">
+                <h3>Suno Studio Windows</h3>
+                <button class="menu-btn" data-suno-window="generation">Generation</button>
+                <button class="menu-btn" data-suno-window="timeline">Timeline</button>
+                <button class="menu-btn" data-suno-window="piano-roll">Piano Roll</button>
+                <button class="menu-btn" data-suno-window="synth">Synth</button>
+                <button class="menu-btn" data-suno-window="effects">Effects</button>
+                <button class="menu-btn" data-suno-window="automation">Automation</button>
+                <button class="menu-btn" data-suno-window="stems">Stems</button>
+                <button class="menu-btn" data-suno-window="export">Export</button>
+            </div>
+            <div class="slide-menu-section">
+                <h3>Project</h3>
+                <button id="newProjectBtn" class="menu-btn">New Project</button>
+                <button id="saveProjectBtn" class="menu-btn">Save Project</button>
+                <button id="loadProjectBtn" class="menu-btn">Load Project</button>
+                <button id="exportBtn" class="menu-btn">Export Audio</button>
+            </div>
+            <div class="slide-menu-section">
+                <h3>Settings</h3>
+                <button id="openSettingsBtn" class="menu-btn">Settings</button>
+                <button id="openShortcutsBtn" class="menu-btn">Keyboard Shortcuts</button>
+            </div>
+        </div>
+
+        <!-- Menu Toggle Button -->
+        <button id="menuToggleBtn" class="menu-toggle">☰</button>
+
+        <!-- Main Content Area -->
+        <div id="mainContent" class="main-content">
+            <!-- ProTools Edit Window -->
+            <div id="protools-edit-window" class="program-window active">
+                <div class="window-header">
+                    <h3>ProTools - Edit Window</h3>
+                    <div class="window-controls">
+                        <button class="window-btn" data-action="minimize">_</button>
+                        <button class="window-btn" data-action="maximize">□</button>
+                    </div>
+                </div>
+                <div class="edit-toolbar">
+                    <div class="edit-tools">
+                        <button class="tool-btn active" data-tool="selector" title="Selector">↖</button>
+                        <button class="tool-btn" data-tool="trim" title="Trim">✂</button>
+                        <button class="tool-btn" data-tool="grabber" title="Grabber">✋</button>
+                        <button class="tool-btn" data-tool="smart" title="Smart Tool">★</button>
+                        <button class="tool-btn" data-tool="zoom" title="Zoom">🔍</button>
+                        <button class="tool-btn" data-tool="scrubber" title="Scrubber">⏮</button>
+                    </div>
+                    <div class="edit-modes">
+                        <button class="mode-btn" data-mode="shuffle">Shuffle</button>
+                        <button class="mode-btn active" data-mode="slip">Slip</button>
+                        <button class="mode-btn" data-mode="spot">Spot</button>
+                        <button class="mode-btn" data-mode="grid">Grid</button>
+                    </div>
+                    <div class="edit-options">
+                        <button class="option-btn" data-option="tab-to-transient">Tab to Transient</button>
+                        <button class="option-btn" data-option="link-timeline">Link Timeline</button>
+                        <button class="option-btn" data-option="link-track">Link Track</button>
+                        <button class="option-btn" data-option="input-quantize">Input Quantize</button>
+                        <span class="midi-led midi-in" title="MIDI In">●</span>
+                        <span class="midi-led midi-out" title="MIDI Out">●</span>
+                    </div>
+                    <div class="edit-filters">
+                        <input type="text" id="pt-clip-search" placeholder="Search clips..." class="clip-search">
+                        <button class="option-btn" data-option="show-clips-only">Tracks with Clips Only</button>
+                        <button class="option-btn" data-option="show-automation-only">Lanes with Automation</button>
+                    </div>
+                </div>
+                <div class="edit-rulers">
+                    <div class="ruler-bars-beats">Bars|Beats</div>
+                    <div class="ruler-timecode">Timecode</div>
+                    <div class="ruler-tempo">Tempo</div>
+                    <div class="ruler-markers">Markers</div>
+                </div>
+                <div class="edit-tracks-container">
+                    <div class="track-list-header">
+                        <select id="pt-add-track-type">
+                            <option value="audio">Audio Track</option>
+                            <option value="midi">MIDI Track</option>
+                            <option value="instrument">Instrument Track</option>
+                            <option value="aux">Aux Input</option>
+                            <option value="master">Master Track</option>
+                        </select>
+                    </div>
+                    <div class="track-list" id="protools-track-list">
+                        <div class="empty-state">No tracks. Add tracks to begin.</div>
+                    </div>
+                    <button class="add-track-btn" id="pt-add-track">+ Add Track</button>
+                    <div class="timeline" id="protools-timeline">
+                        <div class="timeline-content"></div>
+                    </div>
+                    <div class="clips-list" id="protools-clips-list">
+                        <div class="empty-state">No clips</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ProTools Mix Window -->
+            <div id="protools-mix-window" class="program-window">
+                <div class="window-header">
+                    <h3>ProTools - Mix Window</h3>
+                    <div class="window-controls">
+                        <button class="window-btn" data-action="minimize">_</button>
+                        <button class="window-btn" data-action="maximize">□</button>
+                    </div>
+                </div>
+                <div class="mix-channel-strips" id="protools-channel-strips">
+                    <div class="empty-state">No tracks. Add tracks to see channel strips.</div>
+                </div>
+            </div>
+
+            <!-- ProTools Transport -->
+            <div id="protools-transport" class="program-window transport-window">
+                <div class="transport-controls">
+                    <button id="pt-play" class="transport-btn">▶</button>
+                    <button id="pt-stop" class="transport-btn">■</button>
+                    <button id="pt-record" class="transport-btn">●</button>
+                    <button id="pt-ff" class="transport-btn">⏩</button>
+                    <button id="pt-rw" class="transport-btn">⏪</button>
+                    <button id="pt-loop" class="transport-btn">↻</button>
+                </div>
+                <div class="transport-counter-group">
+                    <div class="transport-counter" id="pt-counter">00:00:00:00</div>
+                    <div class="transport-bpm" id="pt-bpm-display">120 BPM</div>
+                    <div class="transport-bbt" id="pt-bbt-display">1|1|000</div>
+                </div>
+                <div class="transport-rolls">
+                    <label>Pre-Roll</label>
+                    <input type="number" id="pt-pre-roll" value="0" min="0" max="16" class="roll-input">
+                    <label>Post-Roll</label>
+                    <input type="number" id="pt-post-roll" value="0" min="0" max="16" class="roll-input">
+                    <label>Countoff</label>
+                    <input type="number" id="pt-countoff" value="0" min="0" max="8" class="roll-input">
+                </div>
+                <div class="transport-options">
+                    <button class="transport-opt" data-opt="half-speed">½x</button>
+                    <button class="transport-opt" data-opt="dynamic">Dynamic</button>
+                    <button class="transport-opt" data-opt="midi-merge">MIDI Merge</button>
+                    <button class="transport-opt" data-opt="wait-for-note">Wait for Note</button>
+                </div>
+            </div>
+
+            <!-- Auto-Tune Auto Mode -->
+            <div id="autotune-auto-mode" class="program-window">
+                <div class="window-header">
+                    <h3>Auto-Tune Pro - Auto Mode</h3>
+                    <div class="window-controls">
+                        <button class="window-btn" data-action="minimize">_</button>
+                        <button class="window-btn" data-action="maximize">□</button>
+                    </div>
+                </div>
+                <div class="autotune-basic-controls">
+                    <div class="control-section">
+                        <h4>Input</h4>
+                        <label>Input Type</label>
+                        <select id="at-input-type">
+                            <option value="tenor">Tenor</option>
+                            <option value="alto">Alto</option>
+                            <option value="soprano">Soprano</option>
+                            <option value="bass">Bass</option>
+                            <option value="instrument">Instrument</option>
+                        </select>
+                    </div>
+                    <div class="control-section">
+                        <h4>Scale</h4>
+                        <label>Key</label>
+                        <select id="at-key">
+                            <option value="C">C</option>
+                            <option value="C#">C#</option>
+                            <option value="D">D</option>
+                            <option value="D#">D#</option>
+                            <option value="E">E</option>
+                            <option value="F">F</option>
+                            <option value="F#">F#</option>
+                            <option value="G">G</option>
+                            <option value="G#">G#</option>
+                            <option value="A">A</option>
+                            <option value="A#">A#</option>
+                            <option value="B">B</option>
+                        </select>
+                        <label>Scale</label>
+                        <select id="at-scale">
+                            <option value="chromatic">Chromatic</option>
+                            <option value="major">Major</option>
+                            <option value="minor">Minor</option>
+                            <option value="harmonic-minor">Harmonic Minor</option>
+                            <option value="pentatonic-major">Pentatonic Major</option>
+                            <option value="pentatonic-minor">Pentatonic Minor</option>
+                            <option value="blues">Blues</option>
+                        </select>
+                    </div>
+                    <div class="control-section">
+                        <h4>Pitch</h4>
+                        <label>Transpose</label>
+                        <input type="range" id="at-transpose" min="-12" max="12" value="0">
+                        <span id="at-transpose-val">0</span>
+                        <label>Detune</label>
+                        <input type="range" id="at-detune" min="-100" max="100" value="0">
+                        <span id="at-detune-val">0 cents</span>
+                    </div>
+                    <div class="control-section">
+                        <h4>Correction</h4>
+                        <label>Retune Speed</label>
+                        <input type="range" id="at-retune-speed" min="0" max="100" value="20">
+                        <span id="at-retune-val">20 ms</span>
+                        <label>Flex-Tune</label>
+                        <input type="range" id="at-flex-tune" min="0" max="100" value="0">
+                        <label>Humanize</label>
+                        <input type="range" id="at-humanize" min="0" max="100" value="0">
+                    </div>
+                    <div class="control-section">
+                        <h4>Vibrato</h4>
+                        <label>Natural Vibrato</label>
+                        <input type="range" id="at-natural-vibrato" min="0" max="100" value="0">
+                        <label>Throat Length</label>
+                        <input type="range" id="at-throat" min="0" max="100" value="0">
+                    </div>
+                    <div class="control-section">
+                        <h4>Formant</h4>
+                        <label>Formant Mode</label>
+                        <button id="at-formant-toggle" class="btn-toggle">OFF</button>
+                    </div>
+                </div>
+                <div class="autotune-keyboard" id="at-keyboard">
+                    <!-- Piano keyboard for target note selection -->
+                </div>
+                <div class="control-section">
+                    <h4>Mode</h4>
+                    <button id="at-classic-mode" class="btn-toggle">Classic Mode: OFF</button>
+                    <button id="at-low-latency" class="btn-toggle">Low Latency: OFF</button>
+                    <button id="at-conform-scale" class="btn-toggle">Conform to Scale: OFF</button>
+                    <button id="at-bypass" class="btn-toggle">Bypass: OFF</button>
+                </div>
+                <div class="control-section">
+                    <h4>I/O</h4>
+                    <label>Input Gain (dB)</label>
+                    <input type="range" id="at-input-gain" min="-24" max="24" value="0">
+                    <span id="at-input-gain-val">0 dB</span>
+                    <label>Output Gain (dB)</label>
+                    <input type="range" id="at-output-gain" min="-24" max="24" value="0">
+                    <span id="at-output-gain-val">0 dB</span>
+                    <label>Stereo Mode</label>
+                    <select id="at-stereo-mode">
+                        <option value="stereo">Stereo</option>
+                        <option value="mono">Mono</option>
+                    </select>
+                </div>
+                <div class="control-section">
+                    <h4>Presets</h4>
+                    <select id="at-preset-category">
+                        <option value="factory">Factory Presets</option>
+                        <option value="artist">Artist Presets</option>
+                        <option value="user">User Presets</option>
+                    </select>
+                    <select id="at-preset-list">
+                        <option value="default">Default</option>
+                        <option value="cher">Cher Effect</option>
+                        <option value="tpain">T-Pain Effect</option>
+                        <option value="natural">Natural Correction</option>
+                        <option value="subtle">Subtle Correction</option>
+                    </select>
+                </div>
+                <div class="control-section harmony-player-section">
+                    <h4>Harmony Player</h4>
+                    <button id="at-harmony-enable" class="btn-toggle">Harmony: OFF</button>
+                    <div id="at-harmony-voices-container">
+                        <div class="harmony-voice-row" data-voice="0">
+                            <label>Voice 1</label>
+                            <label>Interval</label>
+                            <input type="range" class="harmony-interval" data-voice="0" min="-24" max="24" value="3">
+                            <span class="harmony-interval-val">3 st</span>
+                            <label>Mix</label>
+                            <input type="range" class="harmony-mix" data-voice="0" min="0" max="100" value="80">
+                            <span class="harmony-mix-val">80%</span>
+                            <label>Pan</label>
+                            <input type="range" class="harmony-pan" data-voice="0" min="-50" max="50" value="-30">
+                            <button class="harmony-mute-btn btn-toggle" data-voice="0">M</button>
+                        </div>
+                        <div class="harmony-voice-row" data-voice="1">
+                            <label>Voice 2</label>
+                            <label>Interval</label>
+                            <input type="range" class="harmony-interval" data-voice="1" min="-24" max="24" value="5">
+                            <span class="harmony-interval-val">5 st</span>
+                            <label>Mix</label>
+                            <input type="range" class="harmony-mix" data-voice="1" min="0" max="100" value="80">
+                            <span class="harmony-mix-val">80%</span>
+                            <label>Pan</label>
+                            <input type="range" class="harmony-pan" data-voice="1" min="-50" max="50" value="30">
+                            <button class="harmony-mute-btn btn-toggle" data-voice="1">M</button>
+                        </div>
+                        <div class="harmony-voice-row" data-voice="2">
+                            <label>Voice 3</label>
+                            <label>Interval</label>
+                            <input type="range" class="harmony-interval" data-voice="2" min="-24" max="24" value="7">
+                            <span class="harmony-interval-val">7 st</span>
+                            <label>Mix</label>
+                            <input type="range" class="harmony-mix" data-voice="2" min="0" max="100" value="80">
+                            <span class="harmony-mix-val">80%</span>
+                            <label>Pan</label>
+                            <input type="range" class="harmony-pan" data-voice="2" min="-50" max="50" value="-50">
+                            <button class="harmony-mute-btn btn-toggle" data-voice="2">M</button>
+                        </div>
+                        <div class="harmony-voice-row" data-voice="3">
+                            <label>Voice 4</label>
+                            <label>Interval</label>
+                            <input type="range" class="harmony-interval" data-voice="3" min="-24" max="24" value="12">
+                            <span class="harmony-interval-val">12 st</span>
+                            <label>Mix</label>
+                            <input type="range" class="harmony-mix" data-voice="3" min="0" max="100" value="80">
+                            <span class="harmony-mix-val">80%</span>
+                            <label>Pan</label>
+                            <input type="range" class="harmony-pan" data-voice="3" min="-50" max="50" value="50">
+                            <button class="harmony-mute-btn btn-toggle" data-voice="3">M</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="autotune-advanced-toggle">
+                    <button id="at-advanced-btn">Advanced View ▼</button>
+                </div>
+                <div class="autotune-advanced-controls" id="at-advanced" style="display:none;">
+                    <div class="advanced-tabs">
+                        <button class="tab-btn active" data-tab="scale">Scale Controls</button>
+                        <button class="tab-btn" data-tab="vibrato">Vibrato Controls</button>
+                    </div>
+                    <div class="scale-controls" id="at-scale-controls">
+                        <label>Tracking</label>
+                        <input type="range" id="at-tracking" min="0" max="100" value="50">
+                        <label>Bypass Notes</label>
+                        <button id="at-bypass-toggle" class="btn-toggle">OFF</button>
+                    </div>
+                    <div class="vibrato-controls" id="at-vibrato-controls" style="display:none;">
+                        <label>Rate (Hz)</label>
+                        <input type="range" id="at-vibrato-rate" min="1" max="20" value="5">
+                        <label>Pitch Amount</label>
+                        <input type="range" id="at-vibrato-pitch" min="0" max="100" value="50">
+                        <label>Formant Amount</label>
+                        <input type="range" id="at-vibrato-formant" min="0" max="100" value="0">
+                        <label>Shape</label>
+                        <select id="at-vibrato-shape">
+                            <option value="sine">Sine</option>
+                            <option value="triangle">Triangle</option>
+                            <option value="square">Square</option>
+                            <option value="sawtooth">Sawtooth</option>
+                        </select>
+                        <label>Create Vibrato</label>
+                        <button id="at-create-vibrato" class="btn-toggle">OFF</button>
+                    </div>
+                </div>
+                <div class="autotune-enable">
+                    <button id="at-enable" class="btn btn-lg btn-primary">Enable Auto-Tune</button>
+                </div>
+            </div>
+
+            <!-- Auto-Tune Graph Mode -->
+            <div id="autotune-graph-mode" class="program-window">
+                <div class="window-header">
+                    <h3>Auto-Tune Pro - Graph Mode</h3>
+                    <div class="window-controls">
+                        <button class="window-btn" data-action="minimize">_</button>
+                        <button class="window-btn" data-action="maximize">□</button>
+                    </div>
+                </div>
+                <div class="graph-toolbar">
+                    <button id="at-track-pitch" class="graph-btn">Track Pitch</button>
+                    <button id="at-track-pitch-time" class="graph-btn">Track Pitch + Time</button>
+                    <button id="at-create-notes" class="graph-btn">Create Notes</button>
+                    <button id="at-create-curves" class="graph-btn">Create Curves</button>
+                    <button id="at-create-from-auto" class="graph-btn">Create from Auto</button>
+                    <button id="at-show-toolbar" class="graph-btn">Hide Toolbar</button>
+                    <button id="at-show-global" class="graph-btn">Hide Global Controls</button>
+                </div>
+                <div class="graph-editing-tools">
+                    <button class="graph-tool-btn active" data-tool="select">Select</button>
+                    <button class="graph-tool-btn" data-tool="draw">Draw</button>
+                    <button class="graph-tool-btn" data-tool="erase">Erase</button>
+                    <button class="graph-tool-btn" data-tool="move">Move</button>
+                    <button class="graph-tool-btn" data-tool="time">Time</button>
+                    <button class="graph-tool-btn" data-tool="time-stretch">Time Stretch</button>
+                    <button class="graph-tool-btn" data-tool="time-shift">Time Shift</button>
+                </div>
+                <div class="graph-main-container">
+                    <div class="graph-main" id="graph-main">
+                        <canvas id="at-pitch-canvas"></canvas>
+                    </div>
+                    <div class="graph-waveform" id="graph-waveform">
+                        <canvas id="at-waveform-canvas"></canvas>
+                    </div>
+                </div>
+                <div class="graph-per-object">
+                    <h4>Per Object Controls</h4>
+                    <label>Retune Speed</label>
+                    <input type="range" id="at-per-retune" min="0" max="100" value="20">
+                    <label>Vibrato</label>
+                    <input type="range" id="at-per-vibrato" min="0" max="100" value="0">
+                    <label>Formant</label>
+                    <input type="range" id="at-per-formant" min="0" max="100" value="0">
+                    <label>Preserve Formant</label>
+                    <button id="at-per-preserve-formant" class="btn-toggle">OFF</button>
+                </div>
+                <div class="graph-zoom">
+                    <button class="zoom-btn" data-zoom="in">+</button>
+                    <button class="zoom-btn" data-zoom="out">-</button>
+                    <button class="zoom-btn" data-zoom="fit">Fit</button>
+                </div>
+            </div>
+
+            <!-- ACID Pro Timeline -->
+            <div id="acid-timeline" class="program-window">
+                <div class="window-header">
+                    <h3>ACID Pro - Timeline</h3>
+                    <div class="window-controls">
+                        <button class="window-btn" data-action="minimize">_</button>
+                        <button class="window-btn" data-action="maximize">□</button>
+                    </div>
+                </div>
+                <div class="acid-project-settings">
+                    <label>Tempo</label>
+                    <input type="range" id="acid-tempo" min="60" max="200" value="120">
+                    <span id="acid-tempo-val">120 BPM</span>
+                    <label>Time Signature</label>
+                    <select id="acid-time-sig">
+                        <option value="4/4">4/4</option>
+                        <option value="3/4">3/4</option>
+                        <option value="6/8">6/8</option>
+                    </select>
+                    <label>Key</label>
+                    <select id="acid-key">
+                        <option value="C">C</option>
+                        <option value="C#">C#</option>
+                        <option value="D">D</option>
+                        <option value="D#">D#</option>
+                        <option value="E">E</option>
+                        <option value="F">F</option>
+                        <option value="F#">F#</option>
+                        <option value="G">G</option>
+                        <option value="G#">G#</option>
+                        <option value="A">A</option>
+                        <option value="A#">A#</option>
+                        <option value="B">B</option>
+                    </select>
+                </div>
+                <div style="display:flex; flex:1; overflow:auto; min-height:400px;">
+                    <div class="acid-track-list" id="acid-track-list">
+                        <div class="empty-state">No tracks. Add loops to create tracks.</div>
+                    </div>
+                    <div class="acid-timeline-area" id="acid-timeline-area">
+                        <div class="acid-timeline-content"></div>
+                    </div>
+                </div>
+                <div class="acid-tools">
+                    <button class="acid-tool-btn active" data-tool="pencil">Pencil</button>
+                    <button class="acid-tool-btn" data-tool="select">Select</button>
+                    <button class="acid-tool-btn" data-tool="eraser">Eraser</button>
+                    <button class="acid-tool-btn" data-tool="cluster">Cluster Edit</button>
+                    <button class="acid-tool-btn" data-tool="groove">Groove</button>
+                </div>
+                <div class="acid-advanced-tools">
+                    <div class="acid-track-folders">
+                        <button id="acid-add-folder" class="acid-tool-btn">+ Track Folder</button>
+                    </div>
+                    <div class="acid-punch-controls">
+                        <button id="acid-punch-in" class="btn-toggle">Punch-In: OFF</button>
+                        <input type="number" id="acid-punch-in-point" value="0" min="0" step="0.1" class="roll-input">
+                        <button id="acid-punch-out" class="btn-toggle">Punch-Out: OFF</button>
+                        <input type="number" id="acid-punch-out-point" value="0" min="0" step="0.1" class="roll-input">
+                    </div>
+                    <div class="acid-bus-routing">
+                        <label>Bus Routing</label>
+                        <select id="acid-bus-output">
+                            <option value="master">Master</option>
+                            <option value="bus1">Bus 1</option>
+                            <option value="bus2">Bus 2</option>
+                            <option value="bus3">Bus 3</option>
+                            <option value="bus4">Bus 4</option>
+                        </select>
+                    </div>
+                    <div class="acid-video-scoring">
+                        <button id="acid-video-score" class="btn-toggle">Video Scoring: OFF</button>
+                        <button id="acid-hit-points" class="btn-toggle">Hit Points: OFF</button>
+                        <button id="acid-tempo-map" class="btn-toggle">Tempo Map: OFF</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACID Pro Chopper -->
+            <div id="acid-chopper" class="program-window">
+                <div class="window-header">
+                    <h3>ACID Pro - Chopper</h3>
+                    <div class="window-controls">
+                        <button class="window-btn" data-action="minimize">_</button>
+                        <button class="window-btn" data-action="maximize">□</button>
+                    </div>
+                </div>
+                <div class="chopper-waveform" id="chopper-waveform">
+                    <canvas id="chopper-canvas"></canvas>
+                </div>
+                <div class="chopper-controls">
+                    <button class="chopper-btn" data-action="load">📁 Load Audio</button>
+                    <button class="chopper-btn" data-action="chop">✂ Chop</button>
+                    <button class="chopper-btn" data-action="play">▶ Play Selection</button>
+                    <button class="chopper-btn" data-action="stop">■ Stop</button>
+                    <button class="chopper-btn" data-action="export">💾 Export Slices</button>
+                    <button class="chopper-btn" data-action="clear">✕ Clear</button>
+                </div>
+                <div class="chopper-options">
+                    <label>Sensitivity</label>
+                    <input type="range" id="chop-sensitivity" min="0" max="100" value="50">
+                    <span id="chop-sensitivity-val">50</span>
+                    <label>Min Length (ms)</label>
+                    <input type="range" id="chop-min-length" min="10" max="500" value="50">
+                    <span id="chop-min-length-val">50 ms</span>
+                    <label>Pitch Shift (semitones)</label>
+                    <input type="range" id="chop-pitch-shift" min="-12" max="12" value="0">
+                    <span id="chop-pitch-val">0 st</span>
+                    <label>Tempo Match</label>
+                    <select id="chop-tempo-match">
+                        <option value="true">Enabled</option>
+                        <option value="false">Disabled</option>
+                    </select>
+                    <label>Link Arrow to Selection</label>
+                    <button id="chopper-link" class="btn-toggle">OFF</button>
+                    <label>Event Increment</label>
+                    <input type="range" id="chopper-increment" min="0" max="100" value="0">
+                    <label>MIDI Playable</label>
+                    <button id="chopper-midi" class="btn-toggle">OFF</button>
+                    <label>MIDI Channel</label>
+                    <input type="number" id="chopper-midi-channel" value="1" min="1" max="16" class="roll-input">
+                </div>
+                <div class="chopper-pads">
+                    <h4>Slice Pads (16-pad MPC-style)</h4>
+                    <div class="pad-grid" id="chopper-pad-grid">
+                        <button class="slice-pad" data-pad="0">1</button>
+                        <button class="slice-pad" data-pad="1">2</button>
+                        <button class="slice-pad" data-pad="2">3</button>
+                        <button class="slice-pad" data-pad="3">4</button>
+                        <button class="slice-pad" data-pad="4">5</button>
+                        <button class="slice-pad" data-pad="5">6</button>
+                        <button class="slice-pad" data-pad="6">7</button>
+                        <button class="slice-pad" data-pad="7">8</button>
+                        <button class="slice-pad" data-pad="8">9</button>
+                        <button class="slice-pad" data-pad="9">10</button>
+                        <button class="slice-pad" data-pad="10">11</button>
+                        <button class="slice-pad" data-pad="11">12</button>
+                        <button class="slice-pad" data-pad="12">13</button>
+                        <button class="slice-pad" data-pad="13">14</button>
+                        <button class="slice-pad" data-pad="14">15</button>
+                        <button class="slice-pad" data-pad="15">16</button>
+                    </div>
+                    <div class="pad-controls">
+                        <label>Per-Pad Pitch (selected pad)</label>
+                        <input type="range" id="pad-pitch" min="-12" max="12" value="0">
+                        <span id="pad-pitch-val">0 st</span>
+                        <button id="pad-export-individual" class="chopper-btn">💾 Export Pad</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACID Pro Explorer -->
+            <div id="acid-explorer" class="program-window">
+                <div class="window-header">
+                    <h3>ACID Pro - Explorer</h3>
+                    <div class="window-controls">
+                        <button class="window-btn" data-action="minimize">_</button>
+                        <button class="window-btn" data-action="maximize">□</button>
+                    </div>
+                </div>
+                <div class="explorer-toolbar">
+                    <button id="explorer-auto-preview" class="btn-toggle">Auto Preview</button>
+                    <input type="text" id="explorer-search" placeholder="Search loops...">
+                    <select id="explorer-genre-filter">
+                        <option value="all">All Genres</option>
+                        <option value="electronic">Electronic</option>
+                        <option value="hiphop">Hip Hop</option>
+                        <option value="rock">Rock</option>
+                        <option value="ambient">Ambient</option>
+                        <option value="world">World</option>
+                    </select>
+                    <select id="explorer-tempo-filter">
+                        <option value="all">All Tempos</option>
+                        <option value="60-90">60-90 BPM</option>
+                        <option value="90-120">90-120 BPM</option>
+                        <option value="120-140">120-140 BPM</option>
+                        <option value="140+">140+ BPM</option>
+                    </select>
+                </div>
+                <div class="explorer-browser" id="explorer-browser">
+                    <div class="empty-state">No loops loaded. Import audio files to browse.</div>
+                </div>
+                <div class="explorer-info" id="explorer-info">
+                    <div class="loop-info">
+                        <span>Tempo: </span>
+                        <span id="loop-tempo">--</span>
+                    </div>
+                    <div class="loop-info">
+                        <span>Key: </span>
+                        <span id="loop-key">--</span>
+                    </div>
+                    <div class="loop-info">
+                        <span>Length: </span>
+                        <span id="loop-length">--</span>
+                    </div>
+                    <div class="loop-info">
+                        <span>Beats: </span>
+                        <span id="loop-beats">--</span>
+                    </div>
+                    <div class="loop-info">
+                        <span>Root Note: </span>
+                        <span id="loop-root">--</span>
+                    </div>
+                    <div class="loop-info">
+                        <span>Original Tempo: </span>
+                        <span id="loop-original-tempo">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACID Pro Morph Pads -->
+            <div id="acid-morph-pads" class="program-window">
+                <div class="window-header">
+                    <h3>ACID Pro - Morph Pads</h3>
+                    <div class="window-controls">
+                        <button class="window-btn" data-action="minimize">_</button>
+                        <button class="window-btn" data-action="maximize">□</button>
+                    </div>
+                </div>
+                <div class="morph-pad-grid">
+                    <button class="morph-pad" data-pad="0">1</button>
+                    <button class="morph-pad" data-pad="1">2</button>
+                    <button class="morph-pad" data-pad="2">3</button>
+                    <button class="morph-pad" data-pad="3">4</button>
+                    <button class="morph-pad" data-pad="4">5</button>
+                    <button class="morph-pad" data-pad="5">6</button>
+                    <button class="morph-pad" data-pad="6">7</button>
+                    <button class="morph-pad" data-pad="7">8</button>
+                </div>
+                <div class="morph-xy-pad">
+                    <canvas id="morph-xy-canvas" width="300" height="300"></canvas>
+                </div>
+                <div class="morph-controls">
+                    <label>Selected Pad Target</label>
+                    <select id="morph-target">
+                        <option value="none">None</option>
+                        <option value="track1">Track 1</option>
+                        <option value="track2">Track 2</option>
+                        <option value="bus1">Bus 1</option>
+                        <option value="master">Master</option>
+                    </select>
+                    <label>Modulation</label>
+                    <input type="range" id="morph-modulation" min="0" max="100" value="50">
+                    <span id="morph-mod-val">50%</span>
+                </div>
+            </div>
+
+            <!-- ACID Pro Mixing Console -->
+            <div id="acid-mixing" class="program-window">
+                <div class="window-header">
+                    <h3>ACID Pro - Mixing Console</h3>
+                    <div class="window-controls">
+                        <button class="window-btn" data-action="minimize">_</button>
+                        <button class="window-btn" data-action="maximize">□</button>
+                    </div>
+                </div>
+                <div class="mixing-channel-strips" id="acid-channel-strips">
+                    <div class="empty-state">No tracks. Add tracks to see mixing console.</div>
+                </div>
+            </div>
+
+            <!-- Suno Studio - Generation Panel -->
+            <div id="suno-generation" class="program-window">
+                <div class="window-header">
+                    <h3>Suno Studio - Generation</h3>
+                    <div class="window-controls">
+                        <button class="window-btn" data-action="minimize">_</button>
+                        <button class="window-btn" data-action="maximize">□</button>
+                    </div>
+                </div>
+                <div class="suno-gen-layout">
+                    <div class="suno-chat-section">
+                        <div class="suno-chat-history" id="suno-chat-history"></div>
+                        <div class="suno-chat-input-row">
+                            <input type="text" id="suno-chat-input" placeholder="Describe what you want to create..." class="suno-chat-input">
+                            <button id="suno-chat-send" class="btn btn-primary">Send</button>
+                        </div>
+                    </div>
+                    <div class="suno-gen-controls">
+                        <div class="suno-gen-section">
+                            <h4>Prompt</h4>
+                            <textarea id="suno-gen-prompt" placeholder="Describe your song..." rows="3" class="suno-gen-textarea"></textarea>
+                        </div>
+                        <div class="suno-gen-section">
+                            <h4>Style Tags</h4>
+                            <div class="suno-gen-style-row">
+                                <input type="text" id="suno-gen-style-input" placeholder="Add style tag..." class="suno-gen-input">
+                                <button id="suno-gen-style-add" class="btn btn-secondary">Add</button>
+                            </div>
+                            <div id="suno-gen-style-tags" class="suno-style-tags-container"></div>
+                        </div>
+                        <div class="suno-gen-section">
+                            <h4>Lyrics</h4>
+                            <textarea id="suno-gen-lyrics" placeholder="Enter lyrics or leave empty for auto..." rows="4" class="suno-gen-textarea"></textarea>
+                            <select id="suno-gen-lyrics-mode" class="suno-gen-select">
+                                <option value="auto">Auto Lyrics</option>
+                                <option value="custom">Custom Lyrics</option>
+                                <option value="instrumental">Instrumental</option>
+                            </select>
+                        </div>
+                        <div class="suno-gen-section suno-gen-row">
+                            <div class="suno-gen-group">
+                                <label>Model</label>
+                                <select id="suno-gen-model" class="suno-gen-select">
+                                    <option value="v6">Suno v6</option>
+                                    <option value="v5">Suno v5</option>
+                                </select>
+                            </div>
+                            <div class="suno-gen-group">
+                                <label>Temperature: <span id="suno-gen-temperature-display">0.7</span></label>
+                                <input type="range" id="suno-gen-temperature" min="0" max="1" step="0.1" value="0.7" class="suno-gen-slider">
+                            </div>
+                            <div class="suno-gen-group">
+                                <label>Seed</label>
+                                <input type="number" id="suno-gen-seed" value="-1" class="suno-gen-input">
+                            </div>
+                            <div class="suno-gen-group">
+                                <label>Persona</label>
+                                <select id="suno-gen-persona" class="suno-gen-select">
+                                    <option value="none">None</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button id="suno-gen-generate" class="btn btn-primary suno-gen-generate-btn">Generate</button>
+                        <div id="suno-gen-status" class="suno-gen-status" style="display:none;"></div>
+                        <div class="suno-gen-section">
+                            <h4>Inspo Playlist</h4>
+                            <div class="suno-inspo-grid">
+                                <div class="suno-inspo-slot" data-index="0">+</div>
+                                <div class="suno-inspo-slot" data-index="1">+</div>
+                                <div class="suno-inspo-slot" data-index="2">+</div>
+                                <div class="suno-inspo-slot" data-index="3">+</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Suno Studio - Timeline -->
+            <div id="suno-timeline" class="program-window">
+                <div class="window-header">
+                    <h3>Suno Studio - Timeline</h3>
+                    <div class="window-controls">
+                        <button class="window-btn" data-action="minimize">_</button>
+                        <button class="window-btn" data-action="maximize">□</button>
+                    </div>
+                </div>
+                <div class="suno-transport-bar">
+                    <button id="suno-transport-play" class="suno-transport-btn" title="Play">▶</button>
+                    <button id="suno-transport-pause" class="suno-transport-btn" title="Pause">⏸</button>
+                    <button id="suno-transport-stop" class="suno-transport-btn" title="Stop">⏹</button>
+                    <button id="suno-transport-loop" class="suno-transport-btn" title="Loop">↻</button>
+                    <button id="suno-transport-follow" class="suno-transport-btn active" title="Follow Playhead">⇥</button>
+                    <button id="suno-transport-metronome" class="suno-transport-btn" title="Metronome">♩</button>
+                    <span id="suno-transport-time" class="suno-transport-time">0:00.00</span>
+                    <input type="number" id="suno-transport-tempo" value="120" min="20" max="300" class="suno-transport-tempo" title="BPM">
+                    <select id="suno-transport-timesig" class="suno-transport-select">
+                        <option value="4/4">4/4</option>
+                        <option value="3/4">3/4</option>
+                        <option value="6/8">6/8</option>
+                        <option value="5/4">5/4</option>
+                        <option value="7/8">7/8</option>
+                    </select>
+                </div>
+                <canvas id="suno-timeline-canvas" class="suno-timeline-canvas" width="1200" height="500"></canvas>
+            </div>
+
+            <!-- Suno Studio - Piano Roll -->
+            <div id="suno-piano-roll" class="program-window">
+                <div class="window-header">
+                    <h3>Suno Studio - Piano Roll</h3>
+                    <div class="window-controls">
+                        <button class="window-btn" data-action="minimize">_</button>
+                        <button class="window-btn" data-action="maximize">□</button>
+                    </div>
+                </div>
+                <div class="suno-pr-toolbar">
+                    <button class="suno-pr-tool active" data-tool="draw" title="Draw">✎</button>
+                    <button class="suno-pr-tool" data-tool="select" title="Select">↖</button>
+                    <button class="suno-pr-tool" data-tool="erase" title="Erase">⌫</button>
+                    <select id="suno-pr-quantize" class="suno-pr-select">
+                        <option value="1/4">1/4</option>
+                        <option value="1/8">1/8</option>
+                        <option value="1/16" selected>1/16</option>
+                        <option value="1/32">1/32</option>
+                        <option value="off">Off</option>
+                    </select>
+                    <label>Velocity: <span id="suno-pr-velocity-display">100</span></label>
+                    <input type="range" id="suno-pr-velocity" min="1" max="127" value="100" class="suno-pr-slider">
+                    <button id="suno-pr-play" class="btn btn-secondary">Play</button>
+                    <button id="suno-pr-clear" class="btn btn-secondary">Clear</button>
+                    <button id="suno-pr-chord-mode" class="btn btn-secondary">Chord</button>
+                    <button id="suno-pr-arpeggiator" class="btn btn-secondary">Arp</button>
+                </div>
+                <canvas id="suno-piano-roll-canvas" class="suno-piano-roll-canvas" width="1200" height="600"></canvas>
+            </div>
+
+            <!-- Suno Studio - Wavetable Synth -->
+            <div id="suno-synth" class="program-window">
+                <div class="window-header">
+                    <h3>Suno Studio - Wavetable Synth</h3>
+                    <div class="window-controls">
+                        <button class="window-btn" data-action="minimize">_</button>
+                        <button class="window-btn" data-action="maximize">□</button>
+                    </div>
+                </div>
+                <div class="suno-synth-layout">
+                    <div class="suno-synth-section">
+                        <h4>Preset</h4>
+                        <select id="suno-synth-preset" class="suno-synth-select"></select>
+                        <button id="suno-synth-save-preset" class="btn btn-secondary">Save</button>
+                    </div>
+                    <div class="suno-synth-section">
+                        <h4>Oscillator 1</h4>
+                        <label>Type</label>
+                        <select id="suno-synth-osc1-type" class="suno-synth-select">
+                            <option value="sawtooth">Saw</option>
+                            <option value="square">Square</option>
+                            <option value="triangle">Triangle</option>
+                            <option value="sine">Sine</option>
+                        </select>
+                        <label>Wavetable Pos: <span>0</span></label>
+                        <input type="range" id="suno-synth-osc1-wavetable" min="0" max="100" value="0" class="suno-synth-slider">
+                        <label>Detune: <span>0</span></label>
+                        <input type="range" id="suno-synth-osc1-detune" min="-50" max="50" value="0" class="suno-synth-slider">
+                        <label>Mix: <span>50</span></label>
+                        <input type="range" id="suno-synth-osc1-mix" min="0" max="100" value="50" class="suno-synth-slider">
+                    </div>
+                    <div class="suno-synth-section">
+                        <h4>Oscillator 2</h4>
+                        <label>Type</label>
+                        <select id="suno-synth-osc2-type" class="suno-synth-select">
+                            <option value="sawtooth">Saw</option>
+                            <option value="square">Square</option>
+                            <option value="triangle">Triangle</option>
+                            <option value="sine">Sine</option>
+                        </select>
+                        <label>Wavetable Pos: <span>0</span></label>
+                        <input type="range" id="suno-synth-osc2-wavetable" min="0" max="100" value="0" class="suno-synth-slider">
+                        <label>Detune: <span>7</span></label>
+                        <input type="range" id="suno-synth-osc2-detune" min="-50" max="50" value="7" class="suno-synth-slider">
+                        <label>Mix: <span>50</span></label>
+                        <input type="range" id="suno-synth-osc2-mix" min="0" max="100" value="50" class="suno-synth-slider">
+                        <label>Unison: <span>1</span></label>
+                        <input type="range" id="suno-synth-unison" min="1" max="7" value="1" class="suno-synth-slider">
+                    </div>
+                    <div class="suno-synth-section">
+                        <h4>Filter</h4>
+                        <label>Type</label>
+                        <select id="suno-synth-filter-type" class="suno-synth-select">
+                            <option value="lowpass">Lowpass</option>
+                            <option value="highpass">Highpass</option>
+                            <option value="bandpass">Bandpass</option>
+                            <option value="notch">Notch</option>
+                        </select>
+                        <label>Cutoff: <span>2000</span></label>
+                        <input type="range" id="suno-synth-filter-cutoff" min="20" max="20000" value="2000" class="suno-synth-slider">
+                        <label>Resonance: <span>1</span></label>
+                        <input type="range" id="suno-synth-filter-resonance" min="0" max="20" value="1" class="suno-synth-slider">
+                        <label>Drive: <span>0</span></label>
+                        <input type="range" id="suno-synth-filter-drive" min="0" max="100" value="0" class="suno-synth-slider">
+                    </div>
+                    <div class="suno-synth-section">
+                        <h4>Envelope (ADSR)</h4>
+                        <label>Attack: <span>0.01</span></label>
+                        <input type="range" id="suno-synth-env-attack" min="0" max="200" value="1" class="suno-synth-slider">
+                        <label>Decay: <span>0.2</span></label>
+                        <input type="range" id="suno-synth-env-decay" min="0" max="200" value="20" class="suno-synth-slider">
+                        <label>Sustain: <span>0.7</span></label>
+                        <input type="range" id="suno-synth-env-sustain" min="0" max="100" value="70" class="suno-synth-slider">
+                        <label>Release: <span>0.3</span></label>
+                        <input type="range" id="suno-synth-env-release" min="0" max="200" value="30" class="suno-synth-slider">
+                    </div>
+                    <div class="suno-synth-section">
+                        <h4>LFO</h4>
+                        <label>Rate: <span>4</span></label>
+                        <input type="range" id="suno-synth-lfo-rate" min="0" max="20" value="4" class="suno-synth-slider">
+                        <label>Depth: <span>0</span></label>
+                        <input type="range" id="suno-synth-lfo-depth" min="0" max="100" value="0" class="suno-synth-slider">
+                        <label>Target</label>
+                        <select id="suno-synth-lfo-target" class="suno-synth-select">
+                            <option value="pitch">Pitch</option>
+                            <option value="filter">Filter</option>
+                            <option value="amp">Amp</option>
+                            <option value="pan">Pan</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Suno Studio - Effects Rack -->
+            <div id="suno-effects" class="program-window">
+                <div class="window-header">
+                    <h3>Suno Studio - Effects Rack</h3>
+                    <div class="window-controls">
+                        <button class="window-btn" data-action="minimize">_</button>
+                        <button class="window-btn" data-action="maximize">□</button>
+                    </div>
+                </div>
+                <div class="suno-fx-controls">
+                    <select id="suno-fx-track" class="suno-fx-select">
+                        <option value="">Select Track...</option>
+                    </select>
+                    <select id="suno-fx-type" class="suno-fx-select"></select>
+                    <button id="suno-fx-add" class="btn btn-primary">Add Effect</button>
+                </div>
+                <div id="suno-fx-chain" class="suno-fx-chain">
+                    <p class="suno-fx-empty">Select a track and add effects.</p>
+                </div>
+            </div>
+
+            <!-- Suno Studio - Automation Lanes -->
+            <div id="suno-automation" class="program-window">
+                <div class="window-header">
+                    <h3>Suno Studio - Automation</h3>
+                    <div class="window-controls">
+                        <button class="window-btn" data-action="minimize">_</button>
+                        <button class="window-btn" data-action="maximize">□</button>
+                    </div>
+                </div>
+                <div class="suno-auto-controls">
+                    <select id="suno-auto-track" class="suno-auto-select">
+                        <option value="">Select Track...</option>
+                    </select>
+                    <select id="suno-auto-param" class="suno-auto-select">
+                        <option value="volume">Volume</option>
+                        <option value="pan">Pan</option>
+                        <option value="filterCutoff">Filter Cutoff</option>
+                        <option value="reverbWet">Reverb Wet</option>
+                        <option value="delayTime">Delay Time</option>
+                    </select>
+                    <select id="suno-auto-mode" class="suno-auto-select">
+                        <option value="draw">Draw</option>
+                        <option value="live">Live Record</option>
+                    </select>
+                    <select id="suno-auto-curve" class="suno-auto-select">
+                        <option value="linear">Linear</option>
+                        <option value="smooth">Smooth</option>
+                        <option value="stepped">Stepped</option>
+                    </select>
+                    <button id="suno-auto-midi-learn" class="btn btn-secondary">MIDI Learn</button>
+                    <button id="suno-auto-clear" class="btn btn-secondary">Clear</button>
+                </div>
+                <canvas id="suno-automation-canvas" class="suno-automation-canvas" width="1200" height="300"></canvas>
+            </div>
+
+            <!-- Suno Studio - Stem Separator -->
+            <div id="suno-stem-separator" class="program-window">
+                <div class="window-header">
+                    <h3>Suno Studio - Stem Separator</h3>
+                    <div class="window-controls">
+                        <button class="window-btn" data-action="minimize">_</button>
+                        <button class="window-btn" data-action="maximize">□</button>
+                    </div>
+                </div>
+                <div class="suno-stem-layout">
+                    <div id="suno-stem-dropzone" class="suno-stem-dropzone">
+                        <p>Drop audio file here or click to browse</p>
+                        <input type="file" id="suno-stem-file-input" accept="audio/*" style="display:none;">
+                    </div>
+                    <div id="suno-stem-source-info" class="suno-stem-info" style="display:none;"></div>
+                    <div class="suno-stem-controls">
+                        <select id="suno-stem-type" class="suno-stem-select">
+                            <option value="auto">Auto (Quick)</option>
+                            <option value="mix">Split from Mix</option>
+                            <option value="advanced">Advanced Split</option>
+                        </select>
+                        <button id="suno-stem-process" class="btn btn-primary" disabled>Process Stems</button>
+                    </div>
+                    <div class="suno-stem-progress">
+                        <div class="suno-stem-progress-bar-container">
+                            <div id="suno-stem-progress-bar" class="suno-stem-progress-bar"></div>
+                        </div>
+                        <span id="suno-stem-progress-text">Ready</span>
+                    </div>
+                    <div id="suno-stem-list" class="suno-stem-list"></div>
+                    <div id="suno-stem-status" class="suno-stem-status" style="display:none;"></div>
+                    <button id="suno-stem-add-timeline" class="btn btn-primary" disabled>Add Stems to Timeline</button>
+                </div>
+            </div>
+
+            <!-- Suno Studio - Export Panel -->
+            <div id="suno-export-panel" class="program-window">
+                <div class="window-header">
+                    <h3>Suno Studio - Export</h3>
+                    <div class="window-controls">
+                        <button class="window-btn" data-action="minimize">_</button>
+                        <button class="window-btn" data-action="maximize">□</button>
+                    </div>
+                </div>
+                <div class="suno-export-layout">
+                    <div class="suno-export-section">
+                        <h4>Format</h4>
+                        <select id="suno-export-format" class="suno-export-select">
+                            <option value="wav">WAV</option>
+                            <option value="mp3">MP3</option>
+                        </select>
+                        <label>Bit Depth</label>
+                        <select id="suno-export-bitdepth" class="suno-export-select">
+                            <option value="16">16-bit</option>
+                            <option value="24">24-bit</option>
+                            <option value="32" selected>32-bit float</option>
+                        </select>
+                        <label>Sample Rate</label>
+                        <select id="suno-export-samplerate" class="suno-export-select">
+                            <option value="44100">44100 Hz</option>
+                            <option value="48000" selected>48000 Hz</option>
+                            <option value="96000">96000 Hz</option>
+                        </select>
+                    </div>
+                    <div class="suno-export-section">
+                        <h4>Options</h4>
+                        <label><input type="checkbox" id="suno-export-multitrack"> Multitrack (separate WAV per track)</label>
+                        <label><input type="checkbox" id="suno-export-stems"> Export Stems</label>
+                        <label><input type="checkbox" id="suno-export-midi"> Include MIDI</label>
+                        <label><input type="checkbox" id="suno-export-range"> Export Selected Region Only</label>
+                    </div>
+                    <div class="suno-export-section">
+                        <button id="suno-export-btn" class="btn btn-primary suno-export-btn">Export</button>
+                    </div>
+                    <div class="suno-export-progress">
+                        <div class="suno-export-progress-bar-container">
+                            <div id="suno-export-progress-bar" class="suno-export-progress-bar"></div>
+                        </div>
+                        <span id="suno-export-progress-text">Ready</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Suno Clip Context Menu -->
+            <div id="suno-clip-context-menu" class="suno-context-menu" style="display:none;">
+                <button id="suno-ctx-split-auto">Split Stems - Auto</button>
+                <button id="suno-ctx-split-mix">Split Stems - Split from Mix</button>
+                <button id="suno-ctx-split-advanced">Split Stems - Advanced</button>
+                <button id="suno-ctx-remove-fx">Remove FX</button>
+                <button id="suno-ctx-commit">Commit to Timeline</button>
+                <button id="suno-ctx-dismiss">Dismiss</button>
+                <button id="suno-ctx-generate-alt">Generate Alternate</button>
+            </div>
+
+            <!-- Settings Panel -->
+            <div id="settings-panel" class="program-window settings-window">
+                <div class="window-header">
+                    <h3>Settings</h3>
+                    <div class="window-controls">
+                        <button class="window-btn" data-action="close">✕</button>
+                    </div>
+                </div>
+                <div class="settings-tabs">
+                    <button class="settings-tab-btn active" data-tab="audio">Audio</button>
+                    <button class="settings-tab-btn" data-tab="protools">ProTools</button>
+                    <button class="settings-tab-btn" data-tab="autotune">Auto-Tune</button>
+                    <button class="settings-tab-btn" data-tab="acid">ACID Pro</button>
+                    <button class="settings-tab-btn" data-tab="suno">Suno</button>
+                    <button class="settings-tab-btn" data-tab="project">Project</button>
+                    <button class="settings-tab-btn" data-tab="ui">UI/UX</button>
+                    <button class="settings-tab-btn" data-tab="export">Export</button>
+                    <button class="settings-tab-btn" data-tab="midi">MIDI</button>
+                    <button class="settings-tab-btn" data-tab="performance">Performance</button>
+                </div>
+                <div class="settings-content" id="settings-content">
+                    <!-- Settings content loaded dynamically -->
+                </div>
+                <div class="settings-footer">
+                    <button id="settings-save" class="btn btn-primary">Save Settings</button>
+                    <button id="settings-reset" class="btn btn-secondary">Reset to Defaults</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <span id="statusText">Ready</span>
+            <span id="cpuUsage">CPU: 0%</span>
+            <span id="memoryUsage">Memory: 0 MB</span>
+        </div>
+    </div>
+
+    <script src="utils/audio-utils.js"></script>
+    <script src="utils/file-utils.js"></script>
+    <script src="utils/math-utils.js"></script>
+    <script src="audio-engine.js"></script>
+    <script src="protools/edit-window.js"></script>
+    <script src="protools/mix-window.js"></script>
+    <script src="protools/transport.js"></script>
+    <script src="protools/automation.js"></script>
+    <script src="autotune/auto-mode.js"></script>
+    <script src="autotune/graph-mode.js"></script>
+    <script src="autotune/pitch-detection.js"></script>
+    <script src="autotune/correction-objects.js"></script>
+    <script src="acid/timeline.js"></script>
+    <script src="acid/chopper.js"></script>
+    <script src="acid/beatmapping.js"></script>
+    <script src="acid/explorer.js"></script>
+    <script src="acid/morph-pads.js"></script>
+    <script src="suno/chat-bar.js"></script>
+    <script src="suno/generation-panel.js"></script>
+    <script src="suno/suno-timeline.js"></script>
+    <script src="suno/piano-roll.js"></script>
+    <script src="suno/musical-typing.js"></script>
+    <script src="suno/wavetable-synth.js"></script>
+    <script src="suno/effects-rack.js"></script>
+    <script src="suno/automation-lanes.js"></script>
+    <script src="suno/stem-separator.js"></script>
+    <script src="suno/suno-export.js"></script>
+    <script src="ui/slide-menu.js"></script>
+    <script src="ui/settings-panel.js"></script>
+    <script src="ui/window-manager.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
