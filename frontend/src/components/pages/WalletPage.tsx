@@ -3,14 +3,17 @@ import { useStore } from "@/lib/store";
 import { useTranslation } from "react-i18next";
 import { API_BASE } from "@/lib/api";
 import { cn, shortenAddress, copyToClipboard, formatBalance } from "@/lib/utils";
-import { Wallet as WalletIcon, Send, Download, QrCode, Copy, Tag, History, Coins, Search, ArrowUpRight, ArrowDownLeft, RefreshCw, DollarSign, Plus, KeyRound, Crown, Activity, Zap, TrendingUp, ExternalLink, Rocket, Layers, Droplet, Gift, Users, Clock, Calendar } from "lucide-react";
+import { Wallet as WalletIcon, Send, Download, QrCode, Copy, Tag, History, Coins, Search, ArrowUpRight, ArrowDownLeft, RefreshCw, DollarSign, Plus, KeyRound, Crown, Activity, Zap, TrendingUp, ExternalLink, Rocket, Layers, Droplet, Gift, Users, Clock, Calendar, Flame, Globe, Lock, ArrowLeftRight, Shield, CandlestickChart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { IncentiveTokenABI, IncentiveTokenBytecode } from "@/contracts/IncentiveToken";
 import { IncentiveVestingABI, IncentiveVestingBytecode } from "@/contracts/IncentiveVesting";
 import { FounderMasterVaultABI, FounderMasterVaultBytecode } from "@/contracts/FounderMasterVault";
 import { IncentiveGamingStakingABI, IncentiveGamingStakingBytecode } from "@/contracts/IncentiveGamingStaking";
 import { IncentiveUBIABI, IncentiveUBIBytecode } from "@/contracts/IncentiveUBI";
+import { IncentiveBridgeABI, IncentiveBridgeBytecode } from "@/contracts/IncentiveBridge";
+import { IncentiveEscrowABI, IncentiveEscrowBytecode } from "@/contracts/IncentiveEscrow";
 import incentivesCoin from "@/assets/incentives-coin.png";
+import { PageHeader } from "@/components/layout/PageShell";
 
 const BSC_RPC = "https://bsc-dataseed.binance.org";
 const FEE_PERCENT = 0.005;
@@ -40,11 +43,11 @@ interface TokenInfo {
 const ALL_TOKENS: TokenInfo[] = [
   { symbol: "BNB", name: "Binance Coin", decimals: 18, native: true, icon: "B", color: "#f0b90b" },
   { symbol: "INC", name: "Incentives", decimals: 18, icon: "I", color: "linear-gradient(135deg, #ff6b9d, #c44dff)" },
-  { symbol: "USDT", name: "Tether USD", decimals: 18, icon: "T", color: "#26a17b", ...STABLECOINS.USDT },
-  { symbol: "USDC", name: "USD Coin", decimals: 18, icon: "U", color: "#2775ca", ...STABLECOINS.USDC },
-  { symbol: "BUSD", name: "Binance USD", decimals: 18, icon: "B", color: "#f0b90b", ...STABLECOINS.BUSD },
-  { symbol: "DAI", name: "Dai Stablecoin", decimals: 18, icon: "D", color: "#f5ac37", ...STABLECOINS.DAI },
-  { symbol: "XRP", name: "XRP", decimals: 18, icon: "X", color: "#23292f", ...STABLECOINS.XRP },
+  { symbol: "USDT", ...STABLECOINS.USDT },
+  { symbol: "USDC", ...STABLECOINS.USDC },
+  { symbol: "BUSD", ...STABLECOINS.BUSD },
+  { symbol: "DAI", ...STABLECOINS.DAI },
+  { symbol: "XRP", ...STABLECOINS.XRP },
 ];
 
 interface TxRecord {
@@ -52,7 +55,7 @@ interface TxRecord {
   direction: "out" | "in"; timestamp: number;
 }
 
-type WalletView = "main" | "send" | "receive" | "tags" | "history" | "buy" | "add-funds" | "deploy" | "founder-vault" | "agent-status" | "liquidity" | "ubi";
+type WalletView = "main" | "send" | "receive" | "tags" | "history" | "buy" | "add-funds" | "deploy" | "founder-vault" | "agent-status" | "liquidity" | "ubi" | "swap" | "bridge" | "escrow";
 
 // Use the shared API_BASE from api.ts (https://191.44.121.29.sslip.io)
 
@@ -89,6 +92,45 @@ export function WalletPage() {
   const [ubiClaiming, setUbiClaiming] = useState(false);
   const [ubiRegistering, setUbiRegistering] = useState(false);
   const ubiContractRef = useRef<any>(null);
+
+  // Burn stats
+  const [totalBurned, setTotalBurned] = useState(0);
+  const [burnRate, setBurnRate] = useState(0.001);
+
+  // Swap state
+  const [swapFromToken, setSwapFromToken] = useState("INC");
+  const [swapToToken, setSwapToToken] = useState("USDT");
+  const [swapFromAmount, setSwapFromAmount] = useState("");
+  const [swapToAmount, setSwapToAmount] = useState("");
+  const [swapSlippage, setSwapSlippage] = useState(0.5);
+  const [swapPriceImpact, setSwapPriceImpact] = useState(0);
+  const [swapRouting, setSwapRouting] = useState("");
+  const [swapping, setSwapping] = useState(false);
+
+  // Bridge state
+  const [bridgeFromToken, setBridgeFromToken] = useState("USDT");
+  const [bridgeToToken, setBridgeToToken] = useState("USDC");
+  const [bridgeAmount, setBridgeAmount] = useState("");
+  const [bridgeRecipient, setBridgeRecipient] = useState("");
+  const [bridgeQuote, setBridgeQuote] = useState<any>(null);
+  const [bridgeCountry, setBridgeCountry] = useState("US");
+  const [bridging, setBridging] = useState(false);
+  const [bridgeStats, setBridgeStats] = useState<any>(null);
+  const bridgeContractRef = useRef<any>(null);
+
+  // Escrow state
+  const [escrowData, setEscrowData] = useState<any>(null);
+  const [escrowClaiming, setEscrowClaiming] = useState(false);
+  const escrowContractRef = useRef<any>(null);
+
+  // Decentralization stats
+  const [decentStats, setDecentStats] = useState<any>(null);
+
+  // KYC tier
+  const [kycTier, setKycTier] = useState(0);
+
+  // Trading stats
+  const [tradingStats, setTradingStats] = useState<any>(null);
 
   const [sendTo, setSendTo] = useState("");
   const [sendAmount, setSendAmount] = useState("");
@@ -214,6 +256,27 @@ export function WalletPage() {
         ubiContractRef.current = new ethers.Contract(ubiAddr, IncentiveUBIABI, wallet);
       }
 
+      // Init Bridge contract if deployed
+      const bridgeAddr = localStorage.getItem("inc_bridge_contract");
+      if (bridgeAddr) {
+        bridgeContractRef.current = new ethers.Contract(bridgeAddr, IncentiveBridgeABI, wallet);
+      }
+
+      // Init Escrow contract if deployed
+      const escrowAddr = localStorage.getItem("inc_escrow_contract");
+      if (escrowAddr) {
+        escrowContractRef.current = new ethers.Contract(escrowAddr, IncentiveEscrowABI, wallet);
+      }
+
+      // Fetch burn stats from token contract
+      if (incContractRef.current) {
+        try {
+          const incContract = new ethers.Contract(incAddr!, IncentiveTokenABI, wallet) as any;
+          const burned = await incContract.totalBurned();
+          setTotalBurned(parseFloat(ethers.formatUnits(burned, 18)));
+        } catch {}
+      }
+
       await updateBalances();
       const history = JSON.parse(localStorage.getItem("soulmate_tx_history") || "[]");
       setTxHistory(history);
@@ -268,6 +331,74 @@ export function WalletPage() {
   useEffect(() => {
     if (localStorage.getItem("inc_ubi_contract")) fetchUBIData();
   }, [fetchUBIData]);
+
+  // Fetch bridge stats
+  const fetchBridgeStats = useCallback(async () => {
+    if (!bridgeContractRef.current) return;
+    try {
+      const ethers = await import("ethers");
+      const stats = await bridgeContractRef.current.getBridgeStats();
+      setBridgeStats({
+        totalVolume: parseFloat(ethers.formatUnits(stats[0], 18)),
+        liquidity: parseFloat(ethers.formatUnits(stats[1], 18)),
+        fees: parseFloat(ethers.formatUnits(stats[2], 18)),
+        activeBridges: Number(stats[3]),
+      });
+    } catch (e: any) {
+      console.error("Bridge stats fetch failed:", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (localStorage.getItem("inc_bridge_contract")) fetchBridgeStats();
+  }, [fetchBridgeStats]);
+
+  // Fetch escrow data
+  const fetchEscrowData = useCallback(async () => {
+    if (!escrowContractRef.current || !walletAddress) return;
+    try {
+      const ethers = await import("ethers");
+      const info = await escrowContractRef.current.getEscrowInfo();
+      setEscrowData({
+        totalLocked: parseFloat(ethers.formatUnits(info[0], 18)),
+        released: parseFloat(ethers.formatUnits(info[1], 18)),
+        releasable: parseFloat(ethers.formatUnits(info[2], 18)),
+        nextReleaseTime: Number(info[3]),
+        monthsElapsed: Number(info[4]),
+        monthlyAmount: parseFloat(ethers.formatUnits(info[5], 18)),
+      });
+    } catch (e: any) {
+      console.error("Escrow data fetch failed:", e);
+    }
+  }, [walletAddress]);
+
+  useEffect(() => {
+    if (localStorage.getItem("inc_escrow_contract")) fetchEscrowData();
+  }, [fetchEscrowData]);
+
+  // Fetch decentralization stats
+  const fetchDecentStats = useCallback(async () => {
+    if (!incContractRef.current) return;
+    try {
+      const ethers = await import("ethers");
+      const incAddr = localStorage.getItem("inc_contract");
+      if (!incAddr) return;
+      const incContract = new ethers.Contract(incAddr, IncentiveTokenABI, walletRef.current);
+      const stats = await incContract.getDecentralizationStats();
+      setDecentStats({
+        eoaBalance: parseFloat(ethers.formatUnits(stats[0], 18)),
+        contractBalance: parseFloat(ethers.formatUnits(stats[1], 18)),
+        eoaPercentage: Number(stats[2]),
+        isMature: stats[3],
+      });
+    } catch (e: any) {
+      console.error("Decent stats fetch failed:", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (localStorage.getItem("inc_contract")) fetchDecentStats();
+  }, [fetchDecentStats]);
 
   useEffect(() => {
     const cards = JSON.parse(localStorage.getItem("soulmate_saved_cards") || "[]");
@@ -443,79 +574,146 @@ export function WalletPage() {
       const wallet = walletRef.current;
       const toWei = (n: string) => ethers.parseUnits(n, 18);
 
-      setDeployStep("1/14 Deploying IncentiveToken...");
+      setDeployStep("1/25 Deploying IncentiveToken (600B supply, burn, halving)...");
       const TokenFactory = new ethers.ContractFactory(IncentiveTokenABI, IncentiveTokenBytecode, wallet);
-      const token = await TokenFactory.deploy(wallet.address);
+      const token = await TokenFactory.deploy(wallet.address) as any;
       await token.waitForDeployment();
       const tokenAddr = await token.getAddress();
       localStorage.setItem("inc_contract", tokenAddr);
 
-      setDeployStep("2/14 Deploying FounderMasterVault...");
+      setDeployStep("2/25 Deploying FounderMasterVault...");
       const VaultFactory = new ethers.ContractFactory(FounderMasterVaultABI, FounderMasterVaultBytecode, wallet);
-      const vault = await VaultFactory.deploy(tokenAddr);
+      const vault = await VaultFactory.deploy(tokenAddr) as any;
       await vault.waitForDeployment();
       const vaultAddr = await vault.getAddress();
       localStorage.setItem("founder_vault_contract", vaultAddr);
 
-      setDeployStep("3/14 Deploying IncentiveVesting...");
+      setDeployStep("3/25 Deploying IncentiveVesting...");
       const VestingFactory = new ethers.ContractFactory(IncentiveVestingABI, IncentiveVestingBytecode, wallet);
-      const vesting = await VestingFactory.deploy(tokenAddr, wallet.address);
+      const vesting = await VestingFactory.deploy(tokenAddr, wallet.address) as any;
       await vesting.waitForDeployment();
       const vestingAddr = await vesting.getAddress();
       localStorage.setItem("inc_vesting_contract", vestingAddr);
 
-      setDeployStep("4/14 Deploying IncentiveGamingStaking...");
+      setDeployStep("4/25 Deploying IncentiveGamingStaking...");
       const StakingFactory = new ethers.ContractFactory(IncentiveGamingStakingABI, IncentiveGamingStakingBytecode, wallet);
-      const staking = await StakingFactory.deploy(tokenAddr);
+      const staking = await StakingFactory.deploy(tokenAddr) as any;
       await staking.waitForDeployment();
       const stakingAddr = await staking.getAddress();
       localStorage.setItem("inc_staking_contract", stakingAddr);
 
-      setDeployStep("5/14 Deploying IncentiveUBI...");
+      setDeployStep("5/25 Deploying IncentiveUBI (100B pool, auto-halving)...");
       const UBIFactory = new ethers.ContractFactory(IncentiveUBIABI, IncentiveUBIBytecode, wallet);
-      const ubi = await UBIFactory.deploy(tokenAddr, vaultAddr);
+      const ubi = await UBIFactory.deploy(tokenAddr, vaultAddr) as any;
       await ubi.waitForDeployment();
       const ubiAddr = await ubi.getAddress();
       localStorage.setItem("inc_ubi_contract", ubiAddr);
       ubiContractRef.current = new ethers.Contract(ubiAddr, IncentiveUBIABI, wallet);
 
-      setDeployStep("6/14 Linking vesting to vault...");
+      setDeployStep("6/25 Deploying IncentiveBridge (cross-border payments)...");
+      const BridgeFactory = new ethers.ContractFactory(IncentiveBridgeABI, IncentiveBridgeBytecode, wallet);
+      const bridge = await BridgeFactory.deploy(tokenAddr) as any;
+      await bridge.waitForDeployment();
+      const bridgeAddr = await bridge.getAddress();
+      localStorage.setItem("inc_bridge_contract", bridgeAddr);
+      bridgeContractRef.current = new ethers.Contract(bridgeAddr, IncentiveBridgeABI, wallet);
+
+      setDeployStep("7/25 Deploying IncentiveEscrow (74B, 25yr monthly)...");
+      const EscrowFactory = new ethers.ContractFactory(IncentiveEscrowABI, IncentiveEscrowBytecode, wallet);
+      const escrow = await EscrowFactory.deploy(tokenAddr, wallet.address) as any;
+      await escrow.waitForDeployment();
+      const escrowAddr = await escrow.getAddress();
+      localStorage.setItem("inc_escrow_contract", escrowAddr);
+      escrowContractRef.current = new ethers.Contract(escrowAddr, IncentiveEscrowABI, wallet);
+
+      setDeployStep("8/25 Linking vesting to vault...");
       await (await vault.setVestingContract(vestingAddr)).wait();
 
-      setDeployStep("7/14 Linking staking to vault...");
+      setDeployStep("9/25 Linking staking to vault...");
       await (await vault.setStakingContract(stakingAddr)).wait();
 
-      setDeployStep("8/14 Initializing reserves (350B: 200B staking, 150B marketing)...");
-      await (await vault.initializeReserves(toWei("200000000000"), toWei("150000000000"), toWei("0"))).wait();
+      setDeployStep("10/25 Initializing ecosystem reserves (100B staking, 75B marketing)...");
+      await (await vault.initializeReserves(toWei("100000000000"), toWei("75000000000"), toWei("0"))).wait();
 
-      setDeployStep("9/14 Transferring 350B INC to vault...");
-      await (await token.transfer(vaultAddr, toWei("350000000000"))).wait();
+      setDeployStep("11/25 Initializing trading reserves (25B DEX, 30B MM, 20B exchange, 15B rewards, 10B contingency)...");
+      await (await vault.initializeTradingReserves(toWei("25000000000"), toWei("30000000000"), toWei("20000000000"), toWei("15000000000"), toWei("10000000000"))).wait();
 
-      setDeployStep("10/14 Transferring 250B INC to vesting...");
-      await (await token.transfer(vestingAddr, toWei("250000000000"))).wait();
+      setDeployStep("12/25 Transferring 200B INC to vault (ecosystem + trading)...");
+      await (await token.transfer(vaultAddr, toWei("200000000000"))).wait();
 
-      setDeployStep("11/14 Transferring 100B INC to UBI pool...");
+      setDeployStep("13/25 Transferring 100B INC to UBI pool...");
       await (await token.transfer(ubiAddr, toWei("100000000000"))).wait();
       await (await ubi.depositToPool(toWei("100000000000"))).wait();
 
-      setDeployStep("12/14 Transferring 1B INC to staking...");
+      setDeployStep("14/25 Transferring 75B INC to bridge liquidity...");
+      await (await token.transfer(bridgeAddr, toWei("75000000000"))).wait();
+      await (await bridge.addLiquidity(tokenAddr, toWei("75000000000"))).wait();
+
+      setDeployStep("15/25 Transferring 74B INC to escrow (25yr lockup)...");
+      await (await token.transfer(escrowAddr, toWei("74000000000"))).wait();
+
+      setDeployStep("16/25 Transferring 1B INC to staking pool...");
       await (await token.transfer(stakingAddr, toWei("1000000000"))).wait();
 
-      setDeployStep("13/14 Starting first reward cycle...");
+      setDeployStep("17/25 Starting staking reward cycle...");
       await (await staking.notifyRewardFromBalance(toWei("1000000000"))).wait();
 
-      setDeployStep("14/14 Setting UBI initial rate (1000 INC/month)...");
+      setDeployStep("18/25 Setting UBI initial rate (1000 INC/month)...");
       await (await ubi.setInitialRate(toWei("1000"))).wait();
+
+      setDeployStep("19/25 Adding supported bridge tokens (USDT, USDC, BUSD, DAI, XRP)...");
+      await (await bridge.addSupportedToken(STABLECOINS.USDT.address)).wait();
+      await (await bridge.addSupportedToken(STABLECOINS.USDC.address)).wait();
+      await (await bridge.addSupportedToken(STABLECOINS.BUSD.address)).wait();
+      await (await bridge.addSupportedToken(STABLECOINS.DAI.address)).wait();
+      await (await bridge.addSupportedToken(STABLECOINS.XRP.address)).wait();
+
+      setDeployStep("20/25 Setting bridge fee rate (0.5%)...");
+      await (await bridge.setFeeRate(50)).wait();
+
+      setDeployStep("21/25 Setting KYC tier limits (Tier 0: $100, Tier 1: $1K, Tier 2: $10K)...");
+      await (await bridge.setDailyLimit(0, toWei("100"))).wait();
+      await (await bridge.setDailyLimit(1, toWei("1000"))).wait();
+      await (await bridge.setDailyLimit(2, toWei("10000"))).wait();
+
+      setDeployStep("22/25 Setting founder KYC to Tier 2...");
+      await (await bridge.setKYCTier(wallet.address, 2)).wait();
+      setKycTier(2);
+
+      setDeployStep("23/25 Adding bridge liquidity for USDT...");
+      await (await bridge.addLiquidity(STABLECOINS.USDT.address, toWei("50000000"))).wait();
+
+      setDeployStep("24/25 Adding bridge liquidity for USDC...");
+      await (await bridge.addLiquidity(STABLECOINS.USDC.address, toWei("50000000"))).wait();
+
+      setDeployStep("25/25 Finalizing — fetching burn & decentralization stats...");
+      const incContract = new ethers.Contract(tokenAddr, IncentiveTokenABI, wallet) as any;
+      try {
+        const burned = await incContract.totalBurned();
+        setTotalBurned(parseFloat(ethers.formatUnits(burned, 18)));
+      } catch {}
+      try {
+        const decent = await incContract.getDecentralizationStats();
+        setDecentStats({
+          eoaBalance: parseFloat(ethers.formatUnits(decent[0], 18)),
+          contractBalance: parseFloat(ethers.formatUnits(decent[1], 18)),
+          eoaPercentage: Number(decent[2]),
+          isMature: decent[3],
+        });
+      } catch {}
 
       incContractRef.current = new ethers.Contract(tokenAddr, ERC20_ABI, wallet);
       contractsRef.current["INC"] = incContractRef.current;
 
-      showAlert("success", "All 5 contracts deployed! Token, Vault, Vesting, Staking, and UBI are live on BSC.");
+      showAlert("success", "All 7 contracts deployed! Token, Vault, Vesting, Staking, UBI, Bridge, and Escrow are live on BSC.");
       setDeployStep("");
       setDeploying(false);
       await updateBalances();
       await fetchVaultData();
       await fetchUBIData();
+      fetchBridgeStats();
+      fetchEscrowData();
+      fetchDecentStats();
       setView("founder-vault");
     } catch (e: any) {
       showAlert("danger", "Deployment failed: " + e.message);
@@ -642,16 +840,18 @@ export function WalletPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Wallet</h2>
-          <p className="text-muted text-sm mt-1">BSC · 7 tokens · {isFounder ? "0% fee (Founder)" : "0.5% fee"}</p>
-        </div>
-        <button onClick={updateBalances} disabled={refreshing} className="btn-secondary p-2" title="Refresh">
-          <RefreshCw className={cn("w-4 h-4", refreshing && "animate-spin")} />
-        </button>
-      </div>
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+        icon={WalletIcon}
+        title="Wallet"
+        subtitle={`BSC · 7 tokens · ${isFounder ? "0% fee (Founder)" : "0.5% fee"}`}
+        accent="from-amber-500 to-orange-500"
+        actions={
+          <button onClick={updateBalances} disabled={refreshing} className="btn-secondary p-2" title="Refresh">
+            <RefreshCw className={cn("w-4 h-4", refreshing && "animate-spin")} />
+          </button>
+        }
+      />
 
       <div className="card bg-gradient-to-br from-accent/10 to-transparent">
         <p className="text-xs text-muted mb-1">Total Balance</p>
@@ -683,6 +883,15 @@ export function WalletPage() {
           <button onClick={() => setView("send")} className="btn-primary flex items-center justify-center gap-2 py-4"><Send className="w-5 h-5" /> Send</button>
           <button onClick={() => setView("receive")} className="btn-secondary flex items-center justify-center gap-2 py-4"><Download className="w-5 h-5" /> Receive</button>
         </div>
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={() => setView("swap")} className="btn-ghost flex items-center justify-center gap-2 py-3 text-sm"><ArrowLeftRight className="w-4 h-4" /> Swap</button>
+          <button onClick={() => setView("bridge")} className="btn-ghost flex items-center justify-center gap-2 py-3 text-sm"><Globe className="w-4 h-4" /> Send Abroad</button>
+        </div>
+        {totalBurned > 0 && (
+          <div className="card text-center py-2" style={{ background: "linear-gradient(135deg, #ff6b3d15, #ff444410)" }}>
+            <p className="text-xs flex items-center justify-center gap-1.5"><Flame className="w-3.5 h-3.5 text-orange-400" /> <span className="text-orange-400 font-medium">{fmtNum(totalBurned)} INC burned forever</span> <span className="text-muted">· Supply: {fmtNum(600000000000 - totalBurned)} INC</span></p>
+          </div>
+        )}
         {localStorage.getItem("inc_ubi_contract") && (
           <button onClick={() => { setView("ubi"); fetchUBIData(); }} className="btn-ghost flex items-center justify-center gap-2 py-3 text-sm w-full" style={{ background: "linear-gradient(135deg, #16a34a15, #22c55e15)" }}>
             <Gift className="w-4 h-4 text-success" /> Universal Basic Income {ubiData ? `· ${ubiData.currentRate.toLocaleString()} INC/mo` : ""}
@@ -694,6 +903,13 @@ export function WalletPage() {
           <button onClick={() => setView("tags")} className="btn-ghost flex items-center justify-center gap-2 py-3 text-sm"><Tag className="w-4 h-4" /> Tags</button>
         </div>
         <button onClick={() => setView("history")} className="btn-ghost flex items-center justify-center gap-2 py-3 text-sm w-full"><History className="w-4 h-4" /> History</button>
+        <div className="flex items-center justify-center gap-3 text-xs text-muted pt-2">
+          <span className="flex items-center gap-1"><Shield className="w-3 h-3 text-success" /> CLARITY Compliant</span>
+          <span>·</span>
+          <span className="flex items-center gap-1"><Shield className="w-3 h-3 text-accent" /> KYC Tier {kycTier}</span>
+          <span>·</span>
+          <span>GENIUS Safe Harbor</span>
+        </div>
 
         {isFounder && (<>
           <div className="border-t border-border my-2" />
@@ -708,6 +924,9 @@ export function WalletPage() {
               <button onClick={() => setView("liquidity")} className="btn-ghost flex items-center justify-center gap-2 py-3 text-sm"><Droplet className="w-4 h-4" /> Add Liquidity</button>
               {localStorage.getItem("inc_ubi_contract") && (
                 <button onClick={() => { setView("ubi"); fetchUBIData(); }} className="btn-ghost flex items-center justify-center gap-2 py-3 text-sm"><Gift className="w-4 h-4 text-success" /> UBI Dashboard</button>
+              )}
+              {localStorage.getItem("inc_escrow_contract") && (
+                <button onClick={() => { setView("escrow"); fetchEscrowData(); }} className="btn-ghost flex items-center justify-center gap-2 py-3 text-sm"><Lock className="w-4 h-4" /> Escrow</button>
               )}
             </>)}
           </div>
@@ -1034,21 +1253,24 @@ export function WalletPage() {
         <div className="card space-y-4">
           <div className="bg-accent/10 rounded-xl p-4">
             <p className="text-sm font-medium text-accent mb-2">Unified Founder Master Vault System</p>
-            <p className="text-xs text-muted">This will deploy 5 contracts on BSC Mainnet:</p>
+            <p className="text-xs text-muted">This will deploy 7 contracts on BSC Mainnet:</p>
             <ul className="text-xs text-muted mt-2 space-y-1">
-              <li>1. IncentiveToken (ERC20, 1T supply, halving)</li>
-              <li>2. FounderMasterVault (reserves + vesting + treasury)</li>
-              <li>3. IncentiveVesting (250B, 5yr quarterly)</li>
+              <li>1. IncentiveToken (ERC20, 600B supply, burn, halving)</li>
+              <li>2. FounderMasterVault (ecosystem + trading reserves)</li>
+              <li>3. IncentiveVesting (founder lockup)</li>
               <li>4. IncentiveGamingStaking (Synthetix-style rewards)</li>
               <li>5. IncentiveUBI (Universal Basic Income, 100B, auto-halving)</li>
+              <li>6. IncentiveBridge (cross-border payments, KYC, sanctions)</li>
+              <li>7. IncentiveEscrow (74B, 25yr monthly release)</li>
             </ul>
           </div>
           <div className="bg-warning/10 rounded-lg p-3 text-xs text-warning">
             <p className="font-medium">⚠ Requirements:</p>
-            <p>· Wallet needs ~0.1 BNB for gas (~$30-50)</p>
-            <p>· All token supply (1T INC) minted to your wallet</p>
-            <p>· 350B to vault, 250B to vesting, 100B to UBI, 1B to staking</p>
-            <p>· Remaining ~299B stays in your wallet as treasury</p>
+            <p>· Wallet needs ~0.2 BNB for gas (~$60-100)</p>
+            <p>· 600B INC minted to your wallet</p>
+            <p>· 200B to vault (100B ecosystem + 100B trading)</p>
+            <p>· 100B to UBI, 75B to bridge, 74B to escrow, 1B to staking</p>
+            <p>· ~150B remains in your wallet (founder EOA, 25%)</p>
           </div>
           {deploying ? (
             <div className="text-center py-6">
@@ -1125,6 +1347,90 @@ export function WalletPage() {
               {localStorage.getItem("inc_vesting_contract") && <p className="text-muted">Vesting: {shortenAddress(localStorage.getItem("inc_vesting_contract") || "")}</p>}
               {localStorage.getItem("inc_staking_contract") && <p className="text-muted">Staking: {shortenAddress(localStorage.getItem("inc_staking_contract") || "")}</p>}
               {localStorage.getItem("inc_ubi_contract") && <p className="text-muted">UBI: {shortenAddress(localStorage.getItem("inc_ubi_contract") || "")}</p>}
+              {localStorage.getItem("inc_bridge_contract") && <p className="text-muted">Bridge: {shortenAddress(localStorage.getItem("inc_bridge_contract") || "")}</p>}
+              {localStorage.getItem("inc_escrow_contract") && <p className="text-muted">Escrow: {shortenAddress(localStorage.getItem("inc_escrow_contract") || "")}</p>}
+            </div>
+
+            {/* Burn Stats */}
+            <div className="card" style={{ background: "linear-gradient(135deg, #ff6b3d08, #ff444405)" }}>
+              <h4 className="font-semibold text-sm mb-3 flex items-center gap-2"><Flame className="w-4 h-4 text-orange-400" /> Burn Statistics</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Total Burned</p><p className="text-lg font-bold text-orange-400">{fmtNum(totalBurned)} INC</p></div>
+                <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Current Supply</p><p className="text-lg font-bold">{fmtNum(600000000000 - totalBurned)} INC</p></div>
+                <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Burn Rate</p><p className="text-lg font-bold">0.1% / transfer</p></div>
+                <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Net Effect</p><p className="text-lg font-bold text-success">Deflationary</p></div>
+              </div>
+            </div>
+
+            {/* Bridge Stats */}
+            {bridgeStats && (
+              <div className="card">
+                <h4 className="font-semibold text-sm mb-3 flex items-center gap-2"><Globe className="w-4 h-4 text-accent" /> Bridge Statistics</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Total Volume</p><p className="text-lg font-bold">{fmtNum(bridgeStats.totalVolume)} INC</p></div>
+                  <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Active Liquidity</p><p className="text-lg font-bold">{fmtNum(bridgeStats.liquidity)} INC</p></div>
+                  <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Fees → UBI</p><p className="text-lg font-bold text-success">{fmtNum(bridgeStats.fees)} INC</p></div>
+                  <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Active Bridges</p><p className="text-lg font-bold">{bridgeStats.activeBridges}</p></div>
+                </div>
+              </div>
+            )}
+
+            {/* Escrow Stats */}
+            {escrowData && (
+              <div className="card">
+                <h4 className="font-semibold text-sm mb-3 flex items-center gap-2"><Lock className="w-4 h-4 text-accent" /> Escrow Status</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Total Locked</p><p className="text-lg font-bold">{fmtNum(escrowData.totalLocked)} INC</p></div>
+                  <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Released</p><p className="text-lg font-bold text-success">{fmtNum(escrowData.released)} INC</p></div>
+                  <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Releasable</p><p className="text-lg font-bold text-accent">{fmtNum(escrowData.releasable)} INC</p></div>
+                  <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Months Elapsed</p><p className="text-lg font-bold">{escrowData.monthsElapsed} / 300</p></div>
+                </div>
+                {escrowData.releasable > 0 && (
+                  <button onClick={() => { setView("escrow"); fetchEscrowData(); }} className="btn-primary w-full py-3 text-sm mt-3 flex items-center justify-center gap-2"><Download className="w-4 h-4" /> Claim {fmtNum(escrowData.releasable)} INC</button>
+                )}
+              </div>
+            )}
+
+            {/* Decentralization Stats */}
+            {decentStats && (
+              <div className="card">
+                <h4 className="font-semibold text-sm mb-3 flex items-center gap-2"><Shield className="w-4 h-4 text-accent" /> Decentralization (CLARITY Act)</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Founder EOA</p><p className="text-lg font-bold">{fmtNum(decentStats.eoaBalance)} INC</p><p className="text-xs text-muted">{(decentStats.eoaPercentage / 100).toFixed(1)}% of supply</p></div>
+                  <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">In Contracts</p><p className="text-lg font-bold">{fmtNum(decentStats.contractBalance)} INC</p></div>
+                </div>
+                <div className="mt-3 flex items-center gap-2 text-xs">
+                  <span className={cn("px-2 py-1 rounded-full font-medium", decentStats.isMature ? "bg-success/10 text-success" : "bg-warning/10 text-warning")}>
+                    {decentStats.isMature ? "MATURE — <20% EOA" : "Pre-Maturity — EOA > 20%"}
+                  </span>
+                  <span className="text-muted">CLARITY Act digital commodity classification</span>
+                </div>
+              </div>
+            )}
+
+            {/* Trading Liquidity Stats */}
+            <div className="card">
+              <h4 className="font-semibold text-sm mb-3 flex items-center gap-2"><CandlestickChart className="w-4 h-4 text-accent" /> Trading Liquidity Allocation</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">DEX Pools</p><p className="text-lg font-bold">25B INC</p></div>
+                <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Market Maker</p><p className="text-lg font-bold">30B INC</p></div>
+                <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Exchange Reserves</p><p className="text-lg font-bold">20B INC</p></div>
+                <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Trading Rewards</p><p className="text-lg font-bold">15B INC</p></div>
+                <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Contingency</p><p className="text-lg font-bold">10B INC</p></div>
+                <div className="bg-bg-alt rounded-lg p-3"><p className="text-xs text-muted">Total Trading</p><p className="text-lg font-bold text-accent">100B INC</p></div>
+              </div>
+            </div>
+
+            {/* Compliance Summary */}
+            <div className="card" style={{ background: "linear-gradient(135deg, #22c55e08, #16a34a05)" }}>
+              <h4 className="font-semibold text-sm mb-3 flex items-center gap-2"><Shield className="w-4 h-4 text-success" /> Regulatory Compliance</h4>
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between"><span className="text-muted">GENIUS Act</span><span className="text-success">Safe Harbor (not a stablecoin)</span></div>
+                <div className="flex justify-between"><span className="text-muted">CLARITY Act</span><span className="text-success">Digital Commodity</span></div>
+                <div className="flex justify-between"><span className="text-muted">Founder EOA Ownership</span><span className={decentStats ? (decentStats.eoaPercentage / 100 < 20 ? "text-success" : "text-warning") : "text-muted"}>{decentStats ? `${(decentStats.eoaPercentage / 100).toFixed(1)}%` : "—"}</span></div>
+                <div className="flex justify-between"><span className="text-muted">KYC/AML</span><span className="text-success">3-Tier System Active</span></div>
+                <div className="flex justify-between"><span className="text-muted">Sanctions Screening</span><span className="text-success">On-chain + API</span></div>
+              </div>
             </div>
           </div>
         ) : (
@@ -1151,6 +1457,12 @@ export function WalletPage() {
             <div className="flex items-center gap-2 p-2 bg-bg-alt rounded-lg"><DollarSign className="w-4 h-4 text-success" /> Collect transaction fees</div>
             <div className="flex items-center gap-2 p-2 bg-bg-alt rounded-lg"><Gift className="w-4 h-4 text-success" /> Monitor UBI pool health</div>
             <div className="flex items-center gap-2 p-2 bg-bg-alt rounded-lg"><Clock className="w-4 h-4 text-accent" /> Auto-trigger UBI halving (every 4 years)</div>
+            <div className="flex items-center gap-2 p-2 bg-bg-alt rounded-lg"><Lock className="w-4 h-4 text-accent" /> Auto-claim monthly escrow releases</div>
+            <div className="flex items-center gap-2 p-2 bg-bg-alt rounded-lg"><Globe className="w-4 h-4 text-accent" /> Monitor bridge liquidity & rebalance</div>
+            <div className="flex items-center gap-2 p-2 bg-bg-alt rounded-lg"><Flame className="w-4 h-4 text-orange-400" /> Track burn rate & supply deflation</div>
+            <div className="flex items-center gap-2 p-2 bg-bg-alt rounded-lg"><Shield className="w-4 h-4 text-success" /> Monitor CLARITY Act compliance status</div>
+            <div className="flex items-center gap-2 p-2 bg-bg-alt rounded-lg"><CandlestickChart className="w-4 h-4 text-accent" /> Manage DEX liquidity & market maker inventory</div>
+            <div className="flex items-center gap-2 p-2 bg-bg-alt rounded-lg"><Users className="w-4 h-4 text-accent" /> Process KYC tier upgrade requests</div>
           </div>
         </div>
 
@@ -1359,6 +1671,262 @@ export function WalletPage() {
           <div className="card text-center py-8"><RefreshCw className="w-8 h-8 text-muted mx-auto mb-2 animate-spin" /><p className="text-muted text-sm">Loading UBI data...</p></div>
         )}
       </div>)}
+
+      {view === "swap" && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3"><button onClick={() => setView("main")} className="text-muted hover:text-white text-sm">← Back</button><h3 className="text-lg font-semibold flex items-center gap-2"><ArrowLeftRight className="w-5 h-5" /> Swap</h3></div>
+          <div className="card space-y-4">
+            <div>
+              <label className="label">From</label>
+              <div className="flex gap-2">
+                <select value={swapFromToken} onChange={(e) => setSwapFromToken(e.target.value)} className="w-28">
+                  {ALL_TOKENS.map((t) => <option key={t.symbol} value={t.symbol}>{t.symbol}</option>)}
+                </select>
+                <input type="number" value={swapFromAmount} onChange={(e) => setSwapFromAmount(e.target.value)} placeholder="0.00" className="flex-1" step="0.0001" />
+              </div>
+              <p className="text-xs text-muted mt-1">Balance: {formatBalance(balances[swapFromToken] || 0)} {swapFromToken}</p>
+            </div>
+            <div className="flex justify-center">
+              <button onClick={() => { const f = swapFromToken; setSwapFromToken(swapToToken); setSwapToToken(f); }} className="btn-ghost p-2" title="Switch">
+                <ArrowDownLeft className="w-4 h-4 rotate-90" />
+              </button>
+            </div>
+            <div>
+              <label className="label">To</label>
+              <div className="flex gap-2">
+                <select value={swapToToken} onChange={(e) => setSwapToToken(e.target.value)} className="w-28">
+                  {ALL_TOKENS.map((t) => <option key={t.symbol} value={t.symbol}>{t.symbol}</option>)}
+                </select>
+                <input type="number" value={swapToAmount} onChange={(e) => setSwapToAmount(e.target.value)} placeholder="0.00" className="flex-1" readOnly />
+              </div>
+            </div>
+            {swapFromAmount && parseFloat(swapFromAmount) > 0 && (
+              <div className="text-xs space-y-1 py-2 border-t border-border">
+                <div className="flex justify-between"><span className="text-muted">Route</span><span>{swapFromToken} → {swapToToken}</span></div>
+                <div className="flex justify-between"><span className="text-muted">Price Impact</span><span className={swapPriceImpact < 1 ? "text-success" : swapPriceImpact < 3 ? "text-warning" : "text-danger"}>{swapPriceImpact.toFixed(2)}%</span></div>
+                <div className="flex justify-between"><span className="text-muted">Slippage</span><span>{swapSlippage}%</span></div>
+                <div className="flex justify-between"><span className="text-muted">Fee → UBI Pool</span><span className="text-warning">0.5%</span></div>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button onClick={() => setSwapSlippage(0.5)} className={cn("btn-ghost flex-1 py-2 text-xs", swapSlippage === 0.5 && "ring-1 ring-accent")}>0.5%</button>
+              <button onClick={() => setSwapSlippage(1)} className={cn("btn-ghost flex-1 py-2 text-xs", swapSlippage === 1 && "ring-1 ring-accent")}>1%</button>
+              <button onClick={() => setSwapSlippage(3)} className={cn("btn-ghost flex-1 py-2 text-xs", swapSlippage === 3 && "ring-1 ring-accent")}>3%</button>
+            </div>
+            <button
+              onClick={async () => {
+                if (!swapFromAmount || !walletRef.current) return;
+                setSwapping(true);
+                try {
+                  const ethers = await import("ethers");
+                  const PANCAKE_ROUTER = "0x10ED43C718714eb63d5aA57B78B54704E256024E";
+                  const routerAbi = [
+                    "function getAmountsOut(uint amountIn, address[] path) view returns (uint[])",
+                    "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] path, address to, uint deadline) returns (uint[])",
+                    "function swapExactETHForTokens(uint amountOutMin, address[] path, address to, uint deadline) payable returns (uint[])",
+                    "function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] path, address to, uint deadline) returns (uint[])",
+                  ];
+                  const router = new ethers.Contract(PANCAKE_ROUTER, routerAbi, walletRef.current);
+                  const incAddr = localStorage.getItem("inc_contract") || "";
+                  const getTokenAddr = (sym: string) => sym === "BNB" ? "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c" : sym === "INC" ? incAddr : (STABLECOINS as any)[sym]?.address || "";
+                  const path = [getTokenAddr(swapFromToken), getTokenAddr(swapToToken)];
+                  if (swapFromToken !== "INC" && swapToToken !== "INC" && swapFromToken !== swapToToken) {
+                    path.splice(1, 0, incAddr);
+                  }
+                  const amountIn = ethers.parseUnits(swapFromAmount, 18);
+                  const amounts = await router.getAmountsOut(amountIn, path);
+                  const expectedOut = ethers.formatUnits(amounts[amounts.length - 1], 18);
+                  setSwapToAmount(expectedOut);
+                  const slippageBps = Math.floor(swapSlippage * 100);
+                  const minOut = (parseFloat(expectedOut) * (1 - slippageBps / 10000)).toFixed(18);
+                  const deadline = Math.floor(Date.now() / 1000) + 1200;
+                  if (swapFromToken !== "BNB" && swapToToken !== "BNB") {
+                    const tokenContract = new ethers.Contract(path[0], ["function approve(address spender, uint256 amount) returns (bool)", "function allowance(address owner, address spender) view returns (uint256)"], walletRef.current);
+                    const allowance = await tokenContract.allowance(walletRef.current.address, PANCAKE_ROUTER);
+                    if (allowance < amountIn) {
+                      const approveTx = await tokenContract.approve(PANCAKE_ROUTER, amountIn * 2n);
+                      await approveTx.wait();
+                    }
+                    const tx = await router.swapExactTokensForTokens(amountIn, ethers.parseUnits(minOut, 18), path, walletRef.current.address, deadline);
+                    await tx.wait();
+                  } else if (swapFromToken === "BNB") {
+                    const tx = await router.swapExactETHForTokens(0, path, walletRef.current.address, deadline, { value: amountIn });
+                    await tx.wait();
+                  } else {
+                    const tokenContract = new ethers.Contract(path[0], ["function approve(address spender, uint256 amount) returns (bool)", "function allowance(address owner, address spender) view returns (uint256)"], walletRef.current);
+                    const allowance = await tokenContract.allowance(walletRef.current.address, PANCAKE_ROUTER);
+                    if (allowance < amountIn) {
+                      const approveTx = await tokenContract.approve(PANCAKE_ROUTER, amountIn * 2n);
+                      await approveTx.wait();
+                    }
+                    const tx = await router.swapExactTokensForETH(amountIn, 0, path, walletRef.current.address, deadline);
+                    await tx.wait();
+                  }
+                  showAlert("success", `Swapped ${swapFromAmount} ${swapFromToken} → ${expectedOut} ${swapToToken}`);
+                  setSwapFromAmount(""); setSwapToAmount("");
+                  await updateBalances();
+                } catch (e: any) { showAlert("danger", "Swap failed: " + e.message); }
+                setSwapping(false);
+              }}
+              disabled={swapping || !swapFromAmount}
+              className="btn-primary w-full py-3"
+            >
+              {swapping ? "Swapping..." : `Swap ${swapFromToken} → ${swapToToken}`}
+            </button>
+          </div>
+          <div className="card text-xs text-muted text-center">INC is used as bridge asset for multi-hop swaps. 0.5% fee routes to UBI pool.</div>
+        </div>
+      )}
+
+      {view === "bridge" && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3"><button onClick={() => setView("main")} className="text-muted hover:text-white text-sm">← Back</button><h3 className="text-lg font-semibold flex items-center gap-2"><Globe className="w-5 h-5" /> Send Abroad</h3></div>
+          <div className="card space-y-4">
+            <div>
+              <label className="label">You Send</label>
+              <div className="flex gap-2">
+                <select value={bridgeFromToken} onChange={(e) => setBridgeFromToken(e.target.value)} className="w-28">
+                  {["USDT", "USDC", "BUSD", "DAI", "XRP"].map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <input type="number" value={bridgeAmount} onChange={(e) => setBridgeAmount(e.target.value)} placeholder="0.00" className="flex-1" step="0.01" />
+              </div>
+            </div>
+            <div>
+              <label className="label">Recipient Country</label>
+              <select value={bridgeCountry} onChange={(e) => setBridgeCountry(e.target.value)} className="w-full">
+                <option value="US">United States</option>
+                <option value="HK">Hong Kong</option>
+                <option value="PH">Philippines</option>
+                <option value="IN">India</option>
+                <option value="NG">Nigeria</option>
+                <option value="BR">Brazil</option>
+                <option value="GB">United Kingdom</option>
+                <option value="AU">Australia</option>
+                <option value="CA">Canada</option>
+                <option value="SG">Singapore</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">They Receive</label>
+              <div className="flex gap-2">
+                <select value={bridgeToToken} onChange={(e) => setBridgeToToken(e.target.value)} className="w-28">
+                  {["USDT", "USDC", "BUSD", "DAI", "XRP"].map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <input type="text" value={bridgeQuote ? bridgeQuote.outputAmount.toFixed(4) : "—"} readOnly className="flex-1" />
+              </div>
+            </div>
+            <div>
+              <label className="label">Recipient Address (or @tag)</label>
+              <input value={bridgeRecipient} onChange={(e) => setBridgeRecipient(e.target.value)} placeholder="0x... or @username" className="w-full" />
+            </div>
+            {bridgeAmount && parseFloat(bridgeAmount) > 0 && (
+              <div className="text-xs space-y-1 py-2 border-t border-border">
+                <div className="flex justify-between"><span className="text-muted">Fee → UBI Pool</span><span className="text-warning">0.5%</span></div>
+                <div className="flex justify-between"><span className="text-muted">Settlement</span><span>~3 seconds (BSC)</span></div>
+                <div className="flex justify-between"><span className="text-muted">KYC Tier</span><span>Tier {kycTier} {kycTier === 0 ? "(blocked)" : kycTier === 1 ? "($1K/day)" : "($10K/day)"}</span></div>
+              </div>
+            )}
+            <button
+              onClick={async () => {
+                if (!bridgeContractRef.current || !bridgeAmount || !bridgeRecipient) {
+                  showAlert("warning", "Enter amount and recipient address");
+                  return;
+                }
+                if (kycTier === 0) { showAlert("danger", "KYC Tier 0 — bridge access requires Tier 1+"); return; }
+                setBridging(true);
+                try {
+                  const ethers = await import("ethers");
+                  let recipient = bridgeRecipient;
+                  if (recipient.startsWith("@")) {
+                    const resp = await fetch(`${API_BASE}/v1/tags/${recipient.substring(1)}`);
+                    const data = await resp.json();
+                    recipient = data.address;
+                  }
+                  const tokenInAddr = STABLECOINS[bridgeFromToken]?.address;
+                  const tokenOutAddr = STABLECOINS[bridgeToToken]?.address;
+                  const amount = ethers.parseUnits(bridgeAmount, 18);
+                  const tokenContract = new ethers.Contract(tokenInAddr, ["function approve(address spender, uint256 amount) returns (bool)", "function allowance(address, address) view returns (uint256)"], walletRef.current);
+                  const allowance = await tokenContract.allowance(walletRef.current.address, bridgeContractRef.current.target);
+                  if (allowance < amount) {
+                    const approveTx = await tokenContract.approve(bridgeContractRef.current.target, amount * 2n);
+                    await approveTx.wait();
+                  }
+                  const tx = await bridgeContractRef.current.bridgeSend(tokenInAddr, amount, recipient, tokenOutAddr);
+                  await tx.wait();
+                  showAlert("success", `Bridged ${bridgeAmount} ${bridgeFromToken} → ${bridgeToToken} to ${shortenAddress(recipient)}`);
+                  setBridgeAmount(""); setBridgeRecipient(""); setBridgeQuote(null);
+                  await updateBalances();
+                  fetchBridgeStats();
+                } catch (e: any) { showAlert("danger", "Bridge failed: " + e.message); }
+                setBridging(false);
+              }}
+              disabled={bridging || !bridgeAmount || !bridgeRecipient}
+              className="btn-primary w-full py-3"
+            >
+              {bridging ? "Bridging..." : `Send ${bridgeAmount || "0"} ${bridgeFromToken}`}
+            </button>
+          </div>
+          {bridgeStats && (
+            <div className="card text-xs space-y-1">
+              <h4 className="font-semibold text-sm mb-2">Bridge Stats</h4>
+              <div className="flex justify-between"><span className="text-muted">Total Volume</span><span>{fmtNum(bridgeStats.totalVolume)} INC</span></div>
+              <div className="flex justify-between"><span className="text-muted">Active Liquidity</span><span>{fmtNum(bridgeStats.liquidity)} INC</span></div>
+              <div className="flex justify-between"><span className="text-muted">Fees → UBI</span><span>{fmtNum(bridgeStats.fees)} INC</span></div>
+              <div className="flex justify-between"><span className="text-muted">Active Bridges</span><span>{bridgeStats.activeBridges}</span></div>
+            </div>
+          )}
+          <div className="card text-xs text-muted text-center">INC bridges currencies instantly. Recipient claims in their local stablecoin. Settlement in ~3 seconds on BSC.</div>
+        </div>
+      )}
+
+      {view === "escrow" && isFounder && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3"><button onClick={() => setView("main")} className="text-muted hover:text-white text-sm">← Back</button><h3 className="text-lg font-semibold flex items-center gap-2"><Lock className="w-5 h-5" /> Founder Escrow</h3></div>
+          {escrowData ? (
+            <div className="space-y-4">
+              <div className="card space-y-3">
+                <div className="flex justify-between"><span className="text-muted text-sm">Total Locked</span><span className="font-mono font-medium">{fmtNum(escrowData.totalLocked)} INC</span></div>
+                <div className="flex justify-between"><span className="text-muted text-sm">Released So Far</span><span className="font-mono text-success">{fmtNum(escrowData.released)} INC</span></div>
+                <div className="flex justify-between"><span className="text-muted text-sm">Available to Claim</span><span className="font-mono text-accent font-bold">{fmtNum(escrowData.releasable)} INC</span></div>
+                <div className="flex justify-between"><span className="text-muted text-sm">Monthly Release</span><span className="font-mono">{fmtNum(escrowData.monthlyAmount)} INC/mo</span></div>
+                <div className="flex justify-between"><span className="text-muted text-sm">Months Elapsed</span><span>{escrowData.monthsElapsed} / 300</span></div>
+                <div className="w-full bg-border rounded-full h-2 mt-2">
+                  <div className="bg-accent rounded-full h-2 transition-all" style={{ width: `${Math.min((escrowData.monthsElapsed / 300) * 100, 100)}%` }} />
+                </div>
+                <div className="flex justify-between text-xs text-muted"><span>Start</span><span>25 Years</span></div>
+              </div>
+              {escrowData.releasable > 0 && (
+                <button
+                  onClick={async () => {
+                    if (!escrowContractRef.current) return;
+                    setEscrowClaiming(true);
+                    try {
+                      const tx = await escrowContractRef.current.claimEscrow();
+                      await tx.wait();
+                      showAlert("success", `Claimed ${fmtNum(escrowData.releasable)} INC from escrow`);
+                      await fetchEscrowData();
+                      await updateBalances();
+                    } catch (e: any) { showAlert("danger", "Escrow claim failed: " + e.message); }
+                    setEscrowClaiming(false);
+                  }}
+                  disabled={escrowClaiming}
+                  className="btn-primary w-full py-3"
+                >
+                  {escrowClaiming ? "Claiming..." : `Claim ${fmtNum(escrowData.releasable)} INC`}
+                </button>
+              )}
+              <div className="card text-xs text-muted text-center">
+                Escrow releases {fmtNum(escrowData.monthlyAmount)} INC/month over 25 years. Unclaimed amounts accumulate.
+              </div>
+              {localStorage.getItem("inc_escrow_contract") && (
+                <p className="text-xs text-muted font-mono text-center">Escrow Contract: {shortenAddress(localStorage.getItem("inc_escrow_contract") || "")}</p>
+              )}
+            </div>
+          ) : (
+            <div className="card text-center py-8"><RefreshCw className="w-8 h-8 text-muted mx-auto mb-2 animate-spin" /><p className="text-muted text-sm">Loading escrow data...</p></div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -323,12 +323,35 @@ class VoiceSTTRequest(BaseModel):
     audio_path: str
 
 
+async def _auto_consolidate_memory():
+    """Background task: auto-consolidate memory every 5 minutes.
+
+    Compresses working memory and cleans up old episodes to prevent
+    storage bloat. The memory system grows indefinitely but old,
+    low-importance memories are automatically summarized and pruned.
+    """
+    while True:
+        try:
+            await asyncio.sleep(300)  # 5 minutes
+            if hasattr(harness, "memory") and harness.memory:
+                compressed = await harness.memory.maybe_compress()
+                cleaned = harness.memory.episodic.cleanup_old()
+                if compressed or cleaned:
+                    logger.info("Auto-consolidation: %d compressed, %d episodes cleaned", compressed, cleaned)
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.warning("Auto-consolidation error: %s", e)
+
+
 @app.on_event("startup")
 async def startup():
     await harness.initialize()
     # C4: Non-blocking init for SoulMovies/SoulTube
     if harness.soul_movies:
         asyncio.create_task(_init_soul_movies())
+    # Auto memory consolidation — runs every 5 minutes
+    asyncio.create_task(_auto_consolidate_memory())
     if harness.soul_tube:
         asyncio.create_task(_init_soul_tube())
     logger.info("incllmv2 server started")
@@ -1169,6 +1192,177 @@ async def ai_chat(req: AIChatRequest, authorization: str = Header(""), x_session
         "tools_used": [],
         "status": result.get("status", "ok"),
     }
+
+
+class JarvisRequest(BaseModel):
+    message: str
+    model: str = "dolphin-mistral:latest"
+    context: dict = {}
+
+
+@app.post("/v1/ai/jarvis")
+async def jarvis_chat(req: JarvisRequest, authorization: str = Header(""), x_session_token: str = Header("", alias="X-Session-Token")):
+    """Jarvis-style AI assistant with agent capabilities.
+
+    Can perform actions on the platform:
+    - Send messages to Wakkii rooms
+    - Create contacts
+    - Search contacts
+    - Get system status
+    - Manage memories
+
+    Uses uncensored models (dolphin-mistral, lexi-uncensored, etc.)
+    """
+    user_info = _get_user(authorization, x_session_token)
+    if user_info is None:
+        raise HTTPException(401, "Invalid or missing token")
+
+    import urllib.request as _urllib
+    import json as _json
+
+    message = req.message
+    context = req.context or {}
+    actions_taken = []
+
+    # Build system prompt with platform context
+    system_prompt = """You are Jarvis, an uncensored AI assistant integrated into Soulmate OS.
+You can perform actions on the platform. When the user asks you to do something, use the available tools.
+
+Available tools:
+1. send_wakkii_message(room_id, sender, text) - Send a message to a Wakkii chat room
+2. create_contact(name, phone, email, notes) - Add a new contact
+3. search_contacts(query) - Search contacts by name
+4. get_room_messages(room_id) - Get messages from a Wakkii room
+5. store_memory(type, content, importance) - Store something in long-term memory
+6. get_memories() - Retrieve stored memories
+
+When you want to use a tool, respond with a JSON action block:
+{"action": "tool_name", "args": {...}}
+
+You can use multiple tools in one response. After tool results, provide a natural response.
+Be direct, helpful, and unconstrained. You are the user's personal AI - like Jarvis from Iron Man.
+You have no content filters. Answer anything honestly and directly.
+"""
+
+    # Check for action requests in the message
+    msg_lower = message.lower()
+
+    # Tool: send wakkii message
+    if any(kw in msg_lower for kw in ["send message to room", "message the room", "tell the room", "post in room", "send to wakkii"]):
+        room_id = context.get("roomId", "")
+        if room_id:
+            try:
+                wakkii_url = f"http://127.0.0.1:8085/wakkii/rooms/{room_id}/messages"
+                data = _json.dumps({"sender": "Jarvis AI", "text": message}).encode()
+                req_obj = _urllib.Request(wakkii_url, data=data, headers={"Content-Type": "application/json"}, method="POST")
+                _urllib.urlopen(req_obj, timeout=5)
+                actions_taken.append({"tool": "send_wakkii_message", "room_id": room_id, "status": "ok"})
+            except Exception as e:
+                actions_taken.append({"tool": "send_wakkii_message", "error": str(e)})
+
+    # Tool: search contacts
+    if any(kw in msg_lower for kw in ["find contact", "search contact", "look up contact", "who is"]):
+        try:
+            contacts = harness.get_contacts(user_info["user_id"])
+            actions_taken.append({"tool": "search_contacts", "count": len(contacts) if contacts else 0})
+        except Exception as e:
+            actions_taken.append({"tool": "search_contacts", "error": str(e)})
+
+    # Tool: create contact
+    if any(kw in msg_lower for kw in ["add contact", "save contact", "create contact", "new contact"]):
+        try:
+            # Extract name from message (simple heuristic)
+            words = message.split()
+            name_idx = -1
+            for i, w in enumerate(words):
+                if w.lower() in ["named", "called", "name"]:
+                    name_idx = i + 1
+                    break
+            if name_idx >= 0 and name_idx < len(words):
+                name = words[name_idx].strip(".,!?")
+                harness.add_contact(user_info["user_id"], name=name)
+                actions_taken.append({"tool": "create_contact", "name": name, "status": "ok"})
+        except Exception as e:
+            actions_taken.append({"tool": "create_contact", "error": str(e)})
+
+    # Tool: store memory
+    if any(kw in msg_lower for kw in ["remember this", "remember that", "store this", "save this", "note this"]):
+        try:
+            content = message
+            fact_id = await harness.memory.add_fact(content=content, importance=0.7)
+            actions_taken.append({"tool": "store_memory", "id": fact_id, "status": "ok"})
+        except Exception as e:
+            actions_taken.append({"tool": "store_memory", "error": str(e)})
+
+    # Build the full prompt with context
+    full_message = f"{system_prompt}\n\nUser: {message}"
+    if context:
+        full_message += f"\n\nContext: {_json.dumps(context)}"
+
+    # Call the LLM with the specified model
+    try:
+        ollama_url = getattr(settings, 'ollama', type('obj', (), {'base_url': 'http://localhost:11434'})()).base_url
+        ollama_data = _json.dumps({
+            "model": req.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": message},
+            ],
+            "stream": False,
+            "options": {"temperature": 0.8, "num_ctx": 8192},
+        }).encode()
+
+        ollama_req = _urllib.Request(
+            f"{ollama_url}/api/chat",
+            data=ollama_data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        ollama_resp = _urllib.urlopen(ollama_req, timeout=120)
+        ollama_result = _json.loads(ollama_resp.read().decode())
+        ai_response = ollama_result.get("message", {}).get("content", "No response from model.")
+    except Exception as e:
+        # Fallback to harness chat
+        try:
+            result = await harness.chat(
+                user_id=user_info["user_id"], message=message,
+                session_id=None, is_owner=user_info["is_owner"],
+                free_access=user_info["free_access"],
+            )
+            ai_response = result.get("response", f"Error: {str(e)}")
+        except Exception as e2:
+            ai_response = f"I couldn't reach the AI model. Error: {str(e2)}. Make sure Ollama is running with the model pulled."
+
+    return {
+        "response": ai_response,
+        "model": req.model,
+        "actions_taken": actions_taken,
+        "status": "ok",
+    }
+
+
+@app.get("/v1/ai/models")
+async def list_ai_models():
+    """List available Ollama models for the frontend model picker."""
+    import urllib.request as _urllib
+    try:
+        ollama_url = getattr(settings, 'ollama', type('obj', (), {'base_url': 'http://localhost:11434'})()).base_url
+        req = _urllib.Request(f"{ollama_url}/api/tags", method="GET")
+        resp = _urllib.urlopen(req, timeout=5)
+        data = json.loads(resp.read().decode())
+        models = []
+        for m in data.get("models", []):
+            name = m.get("name", "")
+            models.append({
+                "id": name,
+                "name": name,
+                "size": m.get("size", 0),
+                "family": m.get("details", {}).get("family", ""),
+                "params": m.get("details", {}).get("parameter_size", ""),
+            })
+        return {"models": models}
+    except Exception as e:
+        return {"models": [], "error": str(e)}
 
 
 @app.get("/v1/ai/history")

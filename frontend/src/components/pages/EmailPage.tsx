@@ -311,13 +311,12 @@ export function EmailPage() {
   }
 
   return (
-    <div className="min-h-screen -mx-4 -my-4 md:-mx-8 md:-my-8 flex" style={{ background: GMAIL_BG, color: "#202124" }}>
+    <div className="min-h-[70vh] flex gap-4 animate-fade-in">
       {/* Sidebar */}
       <aside className="w-56 flex-shrink-0 p-2 hidden md:flex flex-col gap-1" style={{ background: GMAIL_SIDEBAR }}>
         <button
           onClick={() => { setShowCompose(true); setTo(""); setSubject(""); setBody(""); setComposePrompt(""); }}
-          className="flex items-center gap-3 px-4 py-3 rounded-2xl shadow-sm hover:shadow-md transition-all mb-4"
-          style={{ background: "#C2E7FF", color: "#001D35" }}
+          className="flex items-center gap-3 px-4 py-3 rounded-2xl shadow-sm hover:shadow-md transition-all mb-4 bg-accent text-white"
         >
           <PenSquare className="w-5 h-5" /> Compose
         </button>
@@ -331,7 +330,7 @@ export function EmailPage() {
           <button
             key={folder.label}
             onClick={() => { setSelectedFolder(folder.label); setView("inbox"); setAiSummary(null); }}
-            className={cn("flex items-center gap-3 px-4 py-2.5 rounded-r-full text-sm font-medium", selectedFolder === folder.label ? "bg-blue-100 text-blue-800 font-bold" : "hover:bg-gray-200")}
+            className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium", selectedFolder === folder.label ? "bg-accent/15 text-accent font-semibold" : "hover:bg-white/5 text-muted")}
           >
             <folder.icon className="w-4 h-4" />
             <span className="flex-1 text-left">{folder.label}</span>
@@ -341,7 +340,7 @@ export function EmailPage() {
         <div className="mt-2 pt-2 border-t border-gray-200">
           <button
             onClick={() => setShowVerifPanel(!showVerifPanel)}
-            className={cn("flex items-center gap-3 px-4 py-2.5 rounded-r-full text-sm font-medium w-full", showVerifPanel ? "bg-blue-100 text-blue-800 font-bold" : "hover:bg-gray-200")}
+            className={cn("flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium w-full", showVerifPanel ? "bg-accent/15 text-accent font-semibold" : "hover:bg-white/5 text-muted")}
           >
             <KeyRound className="w-4 h-4" />
             <span className="flex-1 text-left">Verification Codes</span>

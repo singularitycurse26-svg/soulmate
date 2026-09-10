@@ -27,7 +27,8 @@ export type AppPage =
   | "healing"
   | "journal"
   | "soultube"
-  | "soulillusions";
+  | "soulillusions"
+  | "wakkii";
 
 interface Alert {
   id: number;

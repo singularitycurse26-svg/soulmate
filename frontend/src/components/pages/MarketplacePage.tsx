@@ -22,7 +22,7 @@ interface Listing {
   created_at: string;
 }
 
-const FB_BLUE = "#1877F2";
+const FB_BLUE = "#6366f1";
 const CATEGORIES = [
   "All", "Vehicles", "Property Rentals", "Apparel", "Electronics",
   "Entertainment", "Home & Garden", "Free Stuff", "Hobbies & Toys",
@@ -174,8 +174,8 @@ export function MarketplacePage() {
   // Listing detail view
   if (selectedListing) {
     return (
-      <div className="min-h-screen -mx-4 -my-4 md:-mx-8 md:-my-8" style={{ background: "#F0F2F5", color: "#050505" }}>
-        <div className="sticky top-0 z-50 flex items-center gap-3 px-4 h-14 bg-white border-b border-gray-200 shadow-sm">
+      <div className="animate-fade-in">
+        <div className="sticky top-0 z-40 flex items-center gap-3 px-4 h-14 surface mb-4">
           <button onClick={() => setSelectedListing(null)} className="p-2 rounded-full hover:bg-gray-100">
             <ChevronLeft className="w-6 h-6" />
           </button>
@@ -184,7 +184,7 @@ export function MarketplacePage() {
         <div className="max-w-5xl mx-auto p-4 grid md:grid-cols-2 gap-6">
           {/* Images */}
           <div>
-            <div className="bg-white rounded-lg overflow-hidden shadow-sm">
+            <div className="card overflow-hidden p-0">
               <img src={selectedListing.image_urls?.[0] || "https://via.placeholder.com/600x600?text=No+Image"} alt="" className="w-full max-h-[500px] object-cover" />
             </div>
             {selectedListing.image_urls && selectedListing.image_urls.length > 1 && (
@@ -197,8 +197,8 @@ export function MarketplacePage() {
           </div>
           {/* Details */}
           <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <h1 className="text-2xl font-bold">{selectedListing.title}</h1>
+            <div className="card">
+              <h1 className="text-2xl font-semibold">{selectedListing.title}</h1>
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-3xl font-bold">${selectedListing.price}</span>
                 <span className="px-2 py-1 rounded text-sm font-bold text-white" style={{ background: currencyBadge(selectedListing.currency) }}>
@@ -215,44 +215,44 @@ export function MarketplacePage() {
                 )}
               </div>
             </div>
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <h3 className="font-bold mb-2">Description</h3>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedListing.description || "No description provided."}</p>
+            <div className="card">
+              <h3 className="font-semibold mb-2">Description</h3>
+              <p className="text-sm text-muted whitespace-pre-wrap">{selectedListing.description || "No description provided."}</p>
             </div>
-            <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="card">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                <div className="w-12 h-12 rounded-full bg-accent/15 flex items-center justify-center text-accent font-bold">
                   {(selectedListing.seller_name || "U").charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold">{selectedListing.seller_name}</p>
-                  <p className="text-xs text-gray-500">Seller</p>
+                  <p className="text-xs text-muted">Seller</p>
                 </div>
               </div>
             </div>
             {/* Payment + Buy */}
-            <div className="bg-white rounded-lg shadow-sm p-4 space-y-3">
-              <h3 className="font-bold">Payment Method</h3>
+            <div className="card space-y-3">
+              <h3 className="font-semibold">Payment Method</h3>
               <div className="grid grid-cols-2 gap-2">
                 {["USDT", "USDC", "INC", "Google Pay"].map((method) => (
                   <button
                     key={method}
                     onClick={() => setPaymentMethod(method)}
-                    className={cn("p-3 rounded-lg border-2 text-sm font-medium transition-all", paymentMethod === method ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300")}
+                    className={cn("p-3 rounded-lg border text-sm font-medium transition-all", paymentMethod === method ? "border-accent bg-accent/10" : "border-white/10 hover:border-white/20")}
                   >
                     {method === "Google Pay" ? "🟢 Google Pay" : <span className="flex items-center justify-center gap-1"><span className="w-3 h-3 rounded-full" style={{ background: currencyBadge(method) }} />{method}</span>}
                   </button>
                 ))}
               </div>
               <div className="flex gap-2">
-                <button className="flex-1 py-3 rounded-lg border-2 border-gray-300 font-bold text-gray-700 hover:bg-gray-100 flex items-center justify-center gap-2">
+                <button className="flex-1 py-3 rounded-lg border border-white/10 font-semibold hover:bg-white/5 flex items-center justify-center gap-2">
                   <MessageSquare className="w-5 h-5" /> Message Seller
                 </button>
-                <button onClick={handleBuy} disabled={buying} className="flex-1 py-3 rounded-lg font-bold text-white hover:opacity-90 flex items-center justify-center gap-2" style={{ background: FB_BLUE }}>
+                <button onClick={handleBuy} disabled={buying} className="flex-1 py-3 rounded-lg font-semibold text-white hover:opacity-90 flex items-center justify-center gap-2 bg-accent">
                   {buying ? "Processing..." : <><ShoppingCart className="w-5 h-5" /> Buy Now</>}
                 </button>
               </div>
-              <button onClick={() => handleSave(selectedListing.id)} className="w-full py-2 rounded-lg border-2 border-gray-300 text-sm font-medium hover:bg-gray-100 flex items-center justify-center gap-2">
+              <button onClick={() => handleSave(selectedListing.id)} className="w-full py-2 rounded-lg border border-white/10 text-sm font-medium hover:bg-white/5 flex items-center justify-center gap-2">
                 <Heart className="w-4 h-4" /> Save Listing
               </button>
             </div>
@@ -265,15 +265,15 @@ export function MarketplacePage() {
   // Create listing view
   if (showCreate) {
     return (
-      <div className="min-h-screen -mx-4 -my-4 md:-mx-8 md:-my-8" style={{ background: "#F0F2F5", color: "#050505" }}>
-        <div className="sticky top-0 z-50 flex items-center gap-3 px-4 h-14 bg-white border-b border-gray-200 shadow-sm">
+      <div className="animate-fade-in">
+        <div className="sticky top-0 z-40 flex items-center gap-3 px-4 h-14 surface mb-4">
           <button onClick={() => setShowCreate(false)} className="p-2 rounded-full hover:bg-gray-100">
             <ChevronLeft className="w-6 h-6" />
           </button>
           <h2 className="font-bold text-lg">Create New Listing</h2>
         </div>
         <div className="max-w-2xl mx-auto p-4 space-y-4">
-          <div className="bg-white rounded-lg shadow-sm p-4 space-y-4">
+          <div className="card space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">Photos</label>
               <div className="grid grid-cols-3 gap-2">
@@ -285,9 +285,9 @@ export function MarketplacePage() {
                     </button>
                   </div>
                 ))}
-                <button onClick={() => { const url = prompt("Image URL:"); if (url) setFormImages([...formImages, url]); }} className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center hover:border-blue-500 hover:bg-blue-50">
-                  <Plus className="w-8 h-8 text-gray-400" />
-                  <span className="text-xs text-gray-500 mt-1">Add Photo</span>
+                <button onClick={() => { const url = prompt("Image URL:"); if (url) setFormImages([...formImages, url]); }} className="aspect-square rounded-lg border-2 border-dashed border-white/15 flex flex-col items-center justify-center hover:border-accent hover:bg-accent/5">
+                  <Plus className="w-8 h-8 text-muted" />
+                  <span className="text-xs text-muted mt-1">Add Photo</span>
                 </button>
               </div>
             </div>
@@ -328,7 +328,7 @@ export function MarketplacePage() {
               <label className="block text-sm font-medium mb-1">Description</label>
               <textarea value={formDesc} onChange={(e) => setFormDesc(e.target.value)} placeholder="Describe your item..." rows={4} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500 resize-none" />
             </div>
-            <button onClick={handleCreate} disabled={creating || !formTitle.trim() || !formPrice.trim()} className="w-full py-3 rounded-lg font-bold text-white disabled:opacity-40" style={{ background: FB_BLUE }}>
+            <button onClick={handleCreate} disabled={creating || !formTitle.trim() || !formPrice.trim()} className="w-full py-3 rounded-lg font-bold text-white disabled:opacity-40 bg-accent">
               {creating ? "Posting..." : "Post Listing"}
             </button>
           </div>
@@ -340,20 +340,20 @@ export function MarketplacePage() {
   // My listings view
   if (showMyListings) {
     return (
-      <div className="min-h-screen -mx-4 -my-4 md:-mx-8 md:-my-8" style={{ background: "#F0F2F5", color: "#050505" }}>
-        <div className="sticky top-0 z-50 flex items-center gap-3 px-4 h-14 bg-white border-b border-gray-200 shadow-sm">
-          <button onClick={() => setShowMyListings(false)} className="p-2 rounded-full hover:bg-gray-100">
+      <div className="animate-fade-in">
+        <div className="sticky top-0 z-40 flex items-center gap-3 px-4 h-14 surface mb-4">
+          <button onClick={() => setShowMyListings(false)} className="p-2 rounded-full hover:bg-white/5">
             <ChevronLeft className="w-6 h-6" />
           </button>
           <h2 className="font-bold text-lg">My Listings</h2>
         </div>
         <div className="max-w-4xl mx-auto p-4">
           {myListings.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-sm p-8 text-center text-gray-500">You have no listings yet.</div>
+            <div className="card p-8 text-center text-muted dark:text-gray-400">You have no listings yet.</div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {myListings.map((listing) => (
-                <div key={listing.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                <div key={listing.id} className="card overflow-hidden p-0">
                   <img src={listing.image_urls?.[0] || "https://via.placeholder.com/300x300?text=No+Image"} alt="" className="w-full aspect-square object-cover" />
                   <div className="p-3">
                     <p className="font-bold text-sm truncate">{listing.title}</p>
@@ -375,8 +375,8 @@ export function MarketplacePage() {
   // Saved listings view
   if (showSaved) {
     return (
-      <div className="min-h-screen -mx-4 -my-4 md:-mx-8 md:-my-8" style={{ background: "#F0F2F5", color: "#050505" }}>
-        <div className="sticky top-0 z-50 flex items-center gap-3 px-4 h-14 bg-white border-b border-gray-200 shadow-sm">
+      <div className="animate-fade-in">
+        <div className="sticky top-0 z-40 flex items-center gap-3 px-4 h-14 surface mb-4">
           <button onClick={() => setShowSaved(false)} className="p-2 rounded-full hover:bg-gray-100">
             <ChevronLeft className="w-6 h-6" />
           </button>
@@ -384,7 +384,7 @@ export function MarketplacePage() {
         </div>
         <div className="max-w-4xl mx-auto p-4">
           {savedListings.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-sm p-8 text-center text-gray-500">No saved listings yet.</div>
+            <div className="card p-8 text-center text-muted">No saved listings yet.</div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {savedListings.map((listing) => (
@@ -405,13 +405,13 @@ export function MarketplacePage() {
 
   // Main browse view
   return (
-    <div className="min-h-screen -mx-4 -my-4 md:-mx-8 md:-my-8" style={{ background: "#F0F2F5", color: "#050505" }}>
+    <div className="animate-fade-in">
       {/* Top bar */}
-      <div className="sticky top-0 z-50 flex items-center justify-between px-4 h-14 bg-white border-b border-gray-200 shadow-sm">
+      <div className="sticky top-0 z-40 flex items-center justify-between px-4 h-14 surface mb-4">
         <h1 className="text-xl font-bold">Marketplace</h1>
         <div className="flex items-center gap-2">
-          <button onClick={() => { setShowMyListings(true); loadMyListings(); }} className="px-3 py-2 rounded-lg hover:bg-gray-100 text-sm font-medium">My Listings</button>
-          <button onClick={() => { setShowSaved(true); loadSaved(); }} className="px-3 py-2 rounded-lg hover:bg-gray-100 text-sm font-medium">Saved</button>
+          <button onClick={() => { setShowMyListings(true); loadMyListings(); }} className="px-3 py-2 rounded-lg hover:bg-white/5 text-sm font-medium">My Listings</button>
+          <button onClick={() => { setShowSaved(true); loadSaved(); }} className="px-3 py-2 rounded-lg hover:bg-white/5 text-sm font-medium">Saved</button>
           <button onClick={() => setShowCreate(true)} className="px-4 py-2 rounded-lg text-white font-medium text-sm flex items-center gap-1" style={{ background: FB_BLUE }}>
             <Plus className="w-4 h-4" /> Sell
           </button>

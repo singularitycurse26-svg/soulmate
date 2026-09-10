@@ -1,4 +1,4 @@
-const API_BASE = "";
+const API_BASE = "https://needs-independently-metro-focus.trycloudflare.com";
 const API_PORT = "";
 const API_TOKEN = "soulmate_wallet_2024";
 
@@ -27,8 +27,11 @@ export async function apiFetch<T = any>(
       ...options,
       headers: { ...getAuthHeaders(), ...options.headers },
     });
+    const text = await resp.text();
+    if (text.startsWith("<!") || text.startsWith("<html") || text.includes("<!DOCTYPE")) {
+      throw new Error("Cannot connect to Soulmate OS server. Check your connection.");
+    }
     if (!resp.ok) {
-      const text = await resp.text();
       try {
         const json = JSON.parse(text);
         throw new Error(json.detail || json.message || `HTTP ${resp.status}`);
@@ -37,7 +40,11 @@ export async function apiFetch<T = any>(
         throw e;
       }
     }
-    return resp.json();
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error("Cannot connect to Soulmate OS server. Check your connection.");
+    }
   } catch (e: any) {
     if (e instanceof TypeError && e.message.includes("fetch")) {
       throw new Error("Cannot connect to Soulmate OS server. Check your connection.");
@@ -439,6 +446,12 @@ export const incllmv2Api = {
   updateSettings: (data: any) =>
     incllmv2Fetch("/v1/ai/settings", { method: "POST", body: JSON.stringify(data) }),
   tools: () => incllmv2Fetch("/v1/ai/tools"),
+  jarvis: (message: string, model?: string, context?: any) =>
+    incllmv2Fetch("/v1/ai/jarvis", {
+      method: "POST",
+      body: JSON.stringify({ message, model: model || "dolphin-mistral:latest", context: context || {} }),
+    }),
+  models: () => incllmv2Fetch("/v1/ai/models"),
   // Raw chat (direct harness, no /v1/ai wrapper)
   rawChat: async (sessionId: string, message: string, model?: string) => {
     const token = await incllmv2Token();
@@ -693,6 +706,17 @@ export const soulTubeApi = {
       headers: { "X-API-Token": API_TOKEN, "X-Session-Token": localStorage.getItem("session_token") || "" },
       body: formData,
     }).then((r) => r.json()),
+  uploadMusic: (formData: FormData) =>
+    fetch(`${API_URL}/v1/soultube/upload-music`, {
+      method: "POST",
+      headers: { "X-API-Token": API_TOKEN, "X-Session-Token": localStorage.getItem("session_token") || "" },
+      body: formData,
+    }).then((r) => r.json()),
+  youtubeRelease: (videoId: string, metadata?: { title?: string; description?: string; tags?: string; privacy?: string }) =>
+    apiFetch(`/v1/soultube/youtube-release/${videoId}`, {
+      method: "POST",
+      body: JSON.stringify(metadata || {}),
+    }),
   getStreamUrl: (id: string, resolution = "720p") =>
     `${API_URL}/v1/soultube/stream/${id}?resolution=${resolution}`,
   getThumbnailUrl: (id: string) => `${API_URL}/v1/soultube/thumbnail/${id}`,
@@ -813,4 +837,57 @@ export const soulIllusionsAgentApi = {
   // Models
   getModels: () =>
     fetch(`${SOULILLUSIONS_URL}/api/models`).then(r => r.json()),
+};
+
+// INC Token Ecosystem API — bridge, KYC, sanctions, escrow, burn, compliance
+export const incApi = {
+  // Bridge
+  bridgeQuote: (tokenIn: string, tokenOut: string, amount: string) =>
+    apiFetch("/v1/inc/bridge/quote", { method: "POST", body: JSON.stringify({ token_in: tokenIn, token_out: tokenOut, amount }) }),
+  bridgeSend: (tokenIn: string, amount: string, recipient: string, tokenOut: string) =>
+    apiFetch("/v1/inc/bridge/send", { method: "POST", body: JSON.stringify({ token_in: tokenIn, amount, recipient, token_out: tokenOut }) }),
+  bridgeClaim: (bridgeId: number) =>
+    apiFetch(`/v1/inc/bridge/claim/${bridgeId}`, { method: "POST" }),
+  bridgeStats: () => apiFetch("/v1/inc/bridge/stats"),
+  bridgeHistory: (address: string) => apiFetch(`/v1/inc/bridge/history/${address}`),
+
+  // KYC
+  kycStatus: (address: string) => apiFetch(`/v1/inc/kyc/${address}`),
+  kycSubmit: (address: string, tier: number, documents: any) =>
+    apiFetch("/v1/inc/kyc/submit", { method: "POST", body: JSON.stringify({ address, tier, documents }) }),
+  kycApprove: (address: string, tier: number) =>
+    apiFetch("/v1/inc/kyc/approve", { method: "POST", body: JSON.stringify({ address, tier }) }),
+  kycTiers: () => apiFetch("/v1/inc/kyc/tiers"),
+
+  // Sanctions screening
+  sanctionsCheck: (address: string) => apiFetch(`/v1/inc/sanctions/${address}`),
+  sanctionsAdd: (address: string) =>
+    apiFetch("/v1/inc/sanctions/add", { method: "POST", body: JSON.stringify({ address }) }),
+  sanctionsRemove: (address: string) =>
+    apiFetch("/v1/inc/sanctions/remove", { method: "POST", body: JSON.stringify({ address }) }),
+
+  // Escrow
+  escrowInfo: () => apiFetch("/v1/inc/escrow/info"),
+  escrowClaim: () => apiFetch("/v1/inc/escrow/claim", { method: "POST" }),
+
+  // Burn stats
+  burnStats: () => apiFetch("/v1/inc/burn/stats"),
+
+  // Compliance
+  complianceStatus: () => apiFetch("/v1/inc/compliance/status"),
+  complianceReport: () => apiFetch("/v1/inc/compliance/report"),
+
+  // Trading liquidity
+  tradingOverview: () => apiFetch("/v1/inc/trading/overview"),
+  allocateDEXLiquidity: (poolAddress: string, amount: string) =>
+    apiFetch("/v1/inc/trading/allocate-dex", { method: "POST", body: JSON.stringify({ pool_address: poolAddress, amount }) }),
+  allocateMarketMaker: (mmAddress: string, amount: string) =>
+    apiFetch("/v1/inc/trading/allocate-mm", { method: "POST", body: JSON.stringify({ mm_address: mmAddress, amount }) }),
+  allocateExchange: (exchangeAddress: string, amount: string) =>
+    apiFetch("/v1/inc/trading/allocate-exchange", { method: "POST", body: JSON.stringify({ exchange_address: exchangeAddress, amount }) }),
+  distributeRewards: (recipient: string, amount: string) =>
+    apiFetch("/v1/inc/trading/distribute-rewards", { method: "POST", body: JSON.stringify({ recipient, amount }) }),
+
+  // Decentralization
+  decentStats: () => apiFetch("/v1/inc/decent/stats"),
 };

@@ -3,6 +3,7 @@ import { ethers } from "ethers";
 import { useStore } from "@/lib/store";
 import { useTranslation } from "react-i18next";
 import { smsApi, aiApi } from "@/lib/api";
+import { playMessageAlert, playSendAlert } from "@/lib/notification-sound";
 import { cn, copyToClipboard, shortenAddress, formatBalance } from "@/lib/utils";
 import { WalkieTalkie } from "@/components/phone/WalkieTalkie";
 import { TranslatedMessage } from "@/components/TranslatedMessage";
@@ -298,6 +299,7 @@ export function PhonePage() {
     if (!messageBody.trim()) return showAlert("danger", t("phone:enterMessage"));
     if (messageBody.length > 160) return showAlert("danger", t("phone:messageTooLong"));
     setSending(true);
+    playSendAlert();
     try {
       await smsApi.send(toNumber, messageBody, carrier, method);
       showAlert("success", `Text sent via ${method}!`);
@@ -369,6 +371,7 @@ export function PhonePage() {
         );
 
         if (newIncoming.length > 0) {
+          playMessageAlert();
           const lastManual = lastManualSendRef.current[phone] || 0;
           const elapsed = Date.now() - lastManual;
 
@@ -709,16 +712,16 @@ export function PhonePage() {
                     <button onClick={() => setView("main")} className="p-2 rounded-full hover:bg-gray-100"><ArrowLeft className="w-5 h-5" /></button>
                     <h3 className="text-lg font-bold">Subscribe</h3>
                   </div>
-                  <div className="bg-white rounded-2xl shadow-sm text-center py-6">
+                  <div className="card text-center py-6">
                     <Crown className="w-10 h-10 text-yellow-500 mx-auto mb-2" />
-                    <p className="font-bold text-yellow-600">Premium Communications</p>
-                    <p className="text-3xl font-bold mt-2">{status?.price_inc || 1.50} INC<span className="text-sm text-gray-500 font-normal">/month</span></p>
-                    <p className="text-gray-500 text-sm mt-2">Unlimited texting, walkie-talkie & crypto</p>
+                    <p className="font-semibold text-warning">Premium Communications</p>
+                    <p className="text-3xl font-bold mt-2">{status?.price_inc || 1.50} INC<span className="text-sm text-muted font-normal">/month</span></p>
+                    <p className="text-muted text-sm mt-2">Unlimited texting, walkie-talkie & crypto</p>
                   </div>
-                  <div className="bg-white rounded-2xl shadow-sm p-4">
+                  <div className="card">
                     <h4 className="font-semibold mb-2">How to Subscribe</h4>
-                    <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
-                      <li>Send {status?.price_inc || 1.50} INC to: <code className="text-blue-600">{shortenAddress(FEE_WALLET)}</code></li>
+                    <ol className="text-sm text-muted space-y-1 list-decimal list-inside">
+                      <li>Send {status?.price_inc || 1.50} INC to: <code className="text-accent">{shortenAddress(FEE_WALLET)}</code></li>
                       <li>Copy your transaction hash</li>
                       <li>Paste it below and click Subscribe</li>
                     </ol>
@@ -734,14 +737,14 @@ export function PhonePage() {
               {view === "main" && status?.allowed && (
                 <div className="flex-1 flex flex-col max-w-md mx-auto w-full">
                   {/* Search bar */}
-                  <div className="px-4 py-2 bg-white">
+                  <div className="px-4 py-2">
                     <div className="relative">
                       <input
                         type="tel"
                         value={toNumber}
                         onChange={(e) => setToNumber(e.target.value)}
                         placeholder="Search or start new message"
-                        className="w-full pl-4 pr-4 py-2.5 rounded-full bg-gray-100 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-200"
+                        className="w-full pl-4 pr-4 py-2.5 rounded-full bg-bg-alt text-sm outline-none"
                       />
                     </div>
                   </div>

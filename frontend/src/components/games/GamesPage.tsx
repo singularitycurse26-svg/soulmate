@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Coins, Flame, TrendingUp, TrendingDown, Trophy, Dice5, RotateCcw, Lock, Bot, Square } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/layout/PageShell";
 import { PachinkoGame } from "./PachinkoGame";
 import { BlackjackGame } from "./BlackjackGame";
 import { TexasHoldemGame } from "./TexasHoldemGame";
@@ -381,17 +382,19 @@ export function GamesPage() {
   const progress = deck.length > 0 ? Math.round((cardIndex / deck.length) * 100) : 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Games</h2>
-          <p className="text-muted text-sm mt-1">Play and win virtual coins</p>
-        </div>
-        <div className="flex items-center gap-2 bg-bg-alt px-4 py-2 rounded-lg">
-          <Coins className="w-5 h-5 text-warning" />
-          <span className="font-bold">{coins.toLocaleString()}</span>
-        </div>
-      </div>
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+        icon={Dice5}
+        title="Games"
+        subtitle="Play and win virtual coins"
+        accent="from-pink-500 to-rose-500"
+        actions={
+          <div className="flex items-center gap-2 bg-bg-alt px-4 py-2 rounded-xl border border-white/5">
+            <Coins className="w-5 h-5 text-warning" />
+            <span className="font-bold">{coins.toLocaleString()}</span>
+          </div>
+        }
+      />
 
       {/* Tab selector */}
       <div className="flex gap-2 p-1 bg-bg-alt rounded-lg w-fit flex-wrap">

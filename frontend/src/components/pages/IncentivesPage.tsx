@@ -6,6 +6,7 @@ import {
   Clock, Trophy, Newspaper, Crown, Activity, Zap, Users,
   ExternalLink, RefreshCw, Plus, ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageShell";
 
 const BSC_RPC = "https://bsc-dataseed.binance.org";
 const ERC20_ABI = [
@@ -220,21 +221,19 @@ export function IncentivesPage() {
   const maxBarHeight = 120;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Coins className="w-7 h-7 text-accent" />
-            Incentives Hub
-          </h1>
-          <p className="text-muted text-sm mt-1">Live INC token analytics, staking, halving tracker & news</p>
-        </div>
-        <button onClick={fetchAllData} disabled={refreshing} className="btn-secondary flex items-center gap-2 text-sm">
-          <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-          Refresh
-        </button>
-      </div>
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+        icon={Coins}
+        title="Incentives Hub"
+        subtitle="Live INC token analytics, staking, halving tracker & news"
+        accent="from-amber-500 to-yellow-400"
+        actions={
+          <button onClick={fetchAllData} disabled={refreshing} className="btn-secondary flex items-center gap-2 text-sm">
+            <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        }
+      />
 
       {/* Section 1: INC Market Overview */}
       <div className="card p-6">

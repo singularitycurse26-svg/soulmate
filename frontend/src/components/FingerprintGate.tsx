@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { authApi } from "@/lib/api";
-import { Fingerprint, Loader2, CheckCircle, ArrowLeft, ShieldCheck } from "lucide-react";
+import { Fingerprint, Loader2, CheckCircle, ArrowLeft, ShieldCheck, MonitorSmartphone } from "lucide-react";
 import { motion } from "framer-motion";
+import { getDeviceKind, hasPlatformAuthenticator } from "@/lib/utils";
 
 const TOTAL_SCANS = 1;
 
@@ -11,17 +12,37 @@ export function FingerprintGate({ onUnlock, onBack }: { onUnlock: () => void; on
   const [busy, setBusy] = useState(false);
   const [scanCount, setScanCount] = useState(0);
   const [status, setStatus] = useState("");
+  const [checking, setChecking] = useState(true);
+  const [hasSensor, setHasSensor] = useState(false);
+  const deviceKind = getDeviceKind();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const available = await hasPlatformAuthenticator();
+      if (cancelled) return;
+      setHasSensor(available);
+      setChecking(false);
+      if (!available) {
+        localStorage.setItem("bio_unlock_setup", "skipped-no-sensor");
+        onUnlock();
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [onUnlock]);
+
+  const skipSetup = () => {
+    localStorage.setItem("bio_unlock_setup", "skipped");
+    showAlert("info", "Using regular login on this device.");
+    onUnlock();
+  };
 
   const handleSetup = async () => {
     setBusy(true);
     setScanCount(0);
 
-    if (!window.PublicKeyCredential) {
-      localStorage.setItem("bio_unlock_setup", "true");
-      localStorage.setItem("fingerprint_registered", "true");
-      localStorage.setItem("remember_me_device", "true");
-      showAlert("success", "Device saved for bio unlock! You can use it to get back in.");
-      onUnlock();
+    if (!window.PublicKeyCredential || !hasSensor) {
+      skipSetup();
       setBusy(false);
       return;
     }
@@ -89,6 +110,14 @@ export function FingerprintGate({ onUnlock, onBack }: { onUnlock: () => void; on
     setBusy(false);
     setStatus("");
   };
+
+  if (checking) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-8 h-8 text-accent animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] px-4">
@@ -159,6 +188,14 @@ export function FingerprintGate({ onUnlock, onBack }: { onUnlock: () => void; on
           {busy ? status || "Scanning..." : "Start Fingerprint Setup"}
         </button>
 
+        <button
+          onClick={skipSetup}
+          disabled={busy}
+          className="btn-secondary w-full mb-2 text-sm flex items-center justify-center gap-2"
+        >
+          <MonitorSmartphone className="w-4 h-4" />
+          Continue with email & password
+        </button>
         <button
           onClick={onBack}
           disabled={busy}

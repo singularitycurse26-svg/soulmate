@@ -47,6 +47,45 @@ const ERC20_ABI = [
     "event Transfer(address indexed from, address indexed to, uint256 value)",
 ];
 
+// INC Token ABI (extended with burn + decent stats)
+const INC_TOKEN_ABI = [
+    ...ERC20_ABI,
+    "function totalBurned() view returns (uint256)",
+    "function burnRate() view returns (uint256)",
+    "function isMature() view returns (bool)",
+    "function getDecentralizationStats() view returns (uint256 eoaBalance, uint256 contractBalance, uint256 eoaPercentage, bool isMature)",
+];
+
+// Bridge ABI
+const BRIDGE_ABI = [
+    "function bridgeSend(address tokenIn, uint256 amount, address recipient, address tokenOut) external returns (uint256)",
+    "function getBridgeQuote(address tokenIn, address tokenOut, uint256 amount) view returns (uint256, uint256)",
+    "function getBridgeStats() view returns (uint256, uint256, uint256, uint256)",
+    "function addLiquidity(address token, uint256 amount) external",
+    "function getKYCTier(address account) view returns (uint8)",
+    "function isSanctioned(address account) view returns (bool)",
+];
+
+// Escrow ABI
+const ESCROW_ABI = [
+    "function claimEscrow() external returns (uint256)",
+    "function getEscrowInfo() view returns (uint256, uint256, uint256, uint256, uint256, uint256)",
+];
+
+// PancakeSwap Router ABI (for swap)
+const PANCAKE_ROUTER_ABI = [
+    "function getAmountsOut(uint amountIn, address[] path) view returns (uint[])",
+    "function swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[] path, address to, uint deadline) returns (uint[])",
+    "function swapExactETHForTokens(uint amountOutMin, address[] path, address to, uint deadline) payable returns (uint[])",
+    "function swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] path, address to, uint deadline) returns (uint[])",
+];
+
+// Contract instances
+let bridgeContract = null;
+let escrowContract = null;
+let incTokenContract = null;
+let totalBurned = 0;
+
 // State
 let provider = null;
 let wallet = null;
@@ -115,17 +154,19 @@ function showView(viewId) {
 }
 
 function showPage(pageId) {
-    const pages = ["page-dashboard", "page-buy", "page-send", "page-receive", "page-tags", "page-history"];
+    const pages = ["page-dashboard", "page-buy", "page-send", "page-receive", "page-tags", "page-history", "page-swap", "page-bridge"];
     pages.forEach(p => { const el = $(p); if (el) el.classList.add("hidden"); });
     const page = $(pageId);
     if (page) page.classList.remove("hidden");
 
     document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-    const navMap = { "page-dashboard": 0, "page-buy": 1, "page-send": 2, "page-receive": 3, "page-tags": 4, "page-history": 5 };
+    const navMap = { "page-dashboard": 0, "page-buy": 1, "page-send": 2, "page-receive": 3, "page-tags": 4, "page-history": 5, "page-swap": 6, "page-bridge": 7 };
     const navItems = document.querySelectorAll(".nav-item");
     if (navMap[pageId] !== undefined && navItems[navMap[pageId]]) navItems[navMap[pageId]].classList.add("active");
     if (pageId === "page-buy") updateBuyDisplay();
     if (pageId === "page-receive") updateReceiveQR();
+    if (pageId === "page-swap") updateSwapDisplay();
+    if (pageId === "page-bridge") updateBridgeDisplay();
 }
 
 function shortenAddr(addr) {
@@ -230,6 +271,7 @@ async function initWallet(privateKey) {
         // Init INC contract if address is set
         if (INC_CONTRACT) {
             incContract = new ethers.Contract(INC_CONTRACT, ERC20_ABI, wallet);
+            incTokenContract = new ethers.Contract(INC_CONTRACT, INC_TOKEN_ABI, wallet);
             ALL_TOKENS.INC.address = INC_CONTRACT;
         }
 
@@ -241,6 +283,26 @@ async function initWallet(privateKey) {
             tokenContracts["INC"] = incContract;
         }
 
+        // Init Bridge contract if deployed
+        const bridgeAddr = localStorage.getItem("inc_bridge_contract");
+        if (bridgeAddr) {
+            bridgeContract = new ethers.Contract(bridgeAddr, BRIDGE_ABI, wallet);
+        }
+
+        // Init Escrow contract if deployed
+        const escrowAddr = localStorage.getItem("inc_escrow_contract");
+        if (escrowAddr) {
+            escrowContract = new ethers.Contract(escrowAddr, ESCROW_ABI, wallet);
+        }
+
+        // Fetch burn stats
+        if (incTokenContract) {
+            try {
+                const burned = await incTokenContract.totalBurned();
+                totalBurned = parseFloat(ethers.formatUnits(burned, 18));
+            } catch {}
+        }
+
         // Load balances
         $("loading-text").textContent = "Loading balances...";
         await updateBalances();
@@ -250,6 +312,7 @@ async function initWallet(privateKey) {
 
         showView("view-wallet");
         showPage("page-dashboard");
+        updateBurnDisplay();
         showAlert("success", "Wallet connected!");
     } catch (e) {
         showAlert("error", "Failed to connect: " + e.message);
@@ -1125,6 +1188,200 @@ function initShareButtons() {
     }).join("");
 }
 
+// ===== SWAP =====
+
+function fmtNum(n) {
+    if (n >= 1e9) return (n / 1e9).toFixed(2) + "B";
+    if (n >= 1e6) return (n / 1e6).toFixed(2) + "M";
+    if (n >= 1e3) return (n / 1e3).toFixed(2) + "K";
+    return n.toFixed(2);
+}
+
+async function updateSwapDisplay() {
+    const fromToken = $("swap-from-token") ? $("swap-from-token").value : "INC";
+    const toToken = $("swap-to-token") ? $("swap-to-token").value : "USDT";
+    const amount = $("swap-from-amount") ? $("swap-from-amount").value : "";
+    const balanceEl = $("swap-from-balance");
+    if (balanceEl) {
+        balanceEl.textContent = (tokenBalances[fromToken] || 0).toFixed(4) + " " + fromToken;
+    }
+    if (amount && parseFloat(amount) > 0) {
+        try {
+            const { ethers } = window.ethers;
+            const router = new ethers.Contract(PANCAKE_ROUTER, PANCAKE_ROUTER_ABI, wallet);
+            const incAddr = localStorage.getItem("inc_contract") || "";
+            const getTokenAddr = (sym) => sym === "BNB" ? "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c" : sym === "INC" ? incAddr : (STABLECOINS[sym] ? STABLECOINS[sym].address : "");
+            const path = [getTokenAddr(fromToken), getTokenAddr(toToken)];
+            if (fromToken !== "INC" && toToken !== "INC" && fromToken !== toToken) {
+                path.splice(1, 0, incAddr);
+            }
+            const amountIn = ethers.parseUnits(amount, 18);
+            const amounts = await router.getAmountsOut(amountIn, path);
+            const expectedOut = ethers.formatUnits(amounts[amounts.length - 1], 18);
+            if ($("swap-to-amount")) $("swap-to-amount").value = parseFloat(expectedOut).toFixed(6);
+            if ($("swap-route")) $("swap-route").textContent = fromToken + " → " + toToken;
+            if ($("swap-fee")) $("swap-fee").textContent = "0.5% → UBI Pool";
+        } catch (e) {
+            if ($("swap-to-amount")) $("swap-to-amount").value = "—";
+        }
+    }
+}
+
+async function executeSwap() {
+    const fromToken = $("swap-from-token").value;
+    const toToken = $("swap-to-token").value;
+    const amount = $("swap-from-amount").value;
+    if (!amount || parseFloat(amount) <= 0) {
+        showAlert("error", "Enter a valid amount to swap");
+        return;
+    }
+    try {
+        showView("view-loading");
+        $("loading-text").textContent = "Swapping " + fromToken + " → " + toToken + "...";
+        const { ethers } = window.ethers;
+        const router = new ethers.Contract(PANCAKE_ROUTER, PANCAKE_ROUTER_ABI, wallet);
+        const incAddr = localStorage.getItem("inc_contract") || "";
+        const getTokenAddr = (sym) => sym === "BNB" ? "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c" : sym === "INC" ? incAddr : (STABLECOINS[sym] ? STABLECOINS[sym].address : "");
+        const path = [getTokenAddr(fromToken), getTokenAddr(toToken)];
+        if (fromToken !== "INC" && toToken !== "INC" && fromToken !== toToken) {
+            path.splice(1, 0, incAddr);
+        }
+        const amountIn = ethers.parseUnits(amount, 18);
+        const deadline = Math.floor(Date.now() / 1000) + 1200;
+        let tx;
+        if (fromToken === "BNB") {
+            tx = await router.swapExactETHForTokens(0, path, wallet.address, deadline, { value: amountIn });
+        } else if (toToken === "BNB") {
+            const tokenContract = tokenContracts[fromToken];
+            const allowance = await tokenContract.allowance(wallet.address, PANCAKE_ROUTER);
+            if (allowance < amountIn) {
+                const approveTx = await tokenContract.approve(PANCAKE_ROUTER, amountIn * 2n);
+                await approveTx.wait();
+            }
+            tx = await router.swapExactTokensForETH(amountIn, 0, path, wallet.address, deadline);
+        } else {
+            const tokenContract = tokenContracts[fromToken];
+            const allowance = await tokenContract.allowance(wallet.address, PANCAKE_ROUTER);
+            if (allowance < amountIn) {
+                const approveTx = await tokenContract.approve(PANCAKE_ROUTER, amountIn * 2n);
+                await approveTx.wait();
+            }
+            tx = await router.swapExactTokensForTokens(amountIn, 0, path, wallet.address, deadline);
+        }
+        await tx.wait();
+        showAlert("success", "Swap complete! TX: " + tx.hash.slice(0, 18) + "...");
+        await updateBalances();
+        showView("view-wallet");
+        showPage("page-swap");
+        $("swap-from-amount").value = "";
+        if ($("swap-to-amount")) $("swap-to-amount").value = "";
+    } catch (e) {
+        showAlert("error", "Swap failed: " + e.message);
+        showView("view-wallet");
+        showPage("page-swap");
+    }
+}
+
+// ===== BRIDGE =====
+
+async function updateBridgeDisplay() {
+    const fromToken = $("bridge-from-token") ? $("bridge-from-token").value : "USDT";
+    const toToken = $("bridge-to-token") ? $("bridge-to-token").value : "USDC";
+    const amount = $("bridge-amount") ? $("bridge-amount").value : "";
+    const balanceEl = $("bridge-from-balance");
+    if (balanceEl) {
+        balanceEl.textContent = (tokenBalances[fromToken] || 0).toFixed(4) + " " + fromToken;
+    }
+    if (amount && parseFloat(amount) > 0 && bridgeContract) {
+        try {
+            const { ethers } = window.ethers;
+            const tokenInAddr = STABLECOINS[fromToken] ? STABLECOINS[fromToken].address : "";
+            const tokenOutAddr = STABLECOINS[toToken] ? STABLECOINS[toToken].address : "";
+            const amountIn = ethers.parseUnits(amount, 18);
+            const quote = await bridgeContract.getBridgeQuote(tokenInAddr, tokenOutAddr, amountIn);
+            if ($("bridge-output")) $("bridge-output").value = parseFloat(ethers.formatUnits(quote[0], 18)).toFixed(6);
+            if ($("bridge-fee")) $("bridge-fee").textContent = parseFloat(ethers.formatUnits(quote[1], 18)).toFixed(6) + " (0.5%)";
+        } catch (e) {
+            if ($("bridge-output")) $("bridge-output").value = "—";
+        }
+    }
+    // Update bridge stats
+    if (bridgeContract) {
+        try {
+            const stats = await bridgeContract.getBridgeStats();
+            if ($("bridge-stats-volume")) $("bridge-stats-volume").textContent = fmtNum(parseFloat(ethers.formatUnits(stats[0], 18))) + " INC";
+            if ($("bridge-stats-liquidity")) $("bridge-stats-liquidity").textContent = fmtNum(parseFloat(ethers.formatUnits(stats[1], 18))) + " INC";
+            if ($("bridge-stats-fees")) $("bridge-stats-fees").textContent = fmtNum(parseFloat(ethers.formatUnits(stats[2], 18))) + " INC";
+        } catch {}
+    }
+}
+
+async function executeBridge() {
+    const fromToken = $("bridge-from-token").value;
+    const toToken = $("bridge-to-token").value;
+    const amount = $("bridge-amount").value;
+    const recipient = $("bridge-recipient") ? $("bridge-recipient").value.trim() : "";
+    if (!amount || parseFloat(amount) <= 0) {
+        showAlert("error", "Enter a valid amount");
+        return;
+    }
+    if (!recipient) {
+        showAlert("error", "Enter recipient address");
+        return;
+    }
+    if (!bridgeContract) {
+        showAlert("error", "Bridge contract not deployed");
+        return;
+    }
+    try {
+        showView("view-loading");
+        $("loading-text").textContent = "Bridging " + amount + " " + fromToken + " → " + toToken + "...";
+        const { ethers } = window.ethers;
+        let recipientAddr = recipient;
+        if (recipient.startsWith("@")) {
+            const resp = await fetch(`${TAG_API}/v1/tags/${recipient.substring(1)}`);
+            const data = await resp.json();
+            recipientAddr = data.address;
+        }
+        const tokenInAddr = STABLECOINS[fromToken] ? STABLECOINS[fromToken].address : "";
+        const tokenOutAddr = STABLECOINS[toToken] ? STABLECOINS[toToken].address : "";
+        const amountIn = ethers.parseUnits(amount, 18);
+        // Approve bridge contract
+        const tokenContract = tokenContracts[fromToken];
+        const allowance = await tokenContract.allowance(wallet.address, bridgeContract.target);
+        if (allowance < amountIn) {
+            const approveTx = await tokenContract.approve(bridgeContract.target, amountIn * 2n);
+            await approveTx.wait();
+        }
+        const tx = await bridgeContract.bridgeSend(tokenInAddr, amountIn, recipientAddr, tokenOutAddr);
+        await tx.wait();
+        showAlert("success", "Bridged " + amount + " " + fromToken + " → " + toToken + " to " + shortenAddr(recipientAddr));
+        await updateBalances();
+        showView("view-wallet");
+        showPage("page-bridge");
+        $("bridge-amount").value = "";
+        if ($("bridge-recipient")) $("bridge-recipient").value = "";
+        if ($("bridge-output")) $("bridge-output").value = "";
+        updateBridgeDisplay();
+    } catch (e) {
+        showAlert("error", "Bridge failed: " + e.message);
+        showView("view-wallet");
+        showPage("page-bridge");
+    }
+}
+
+// ===== BURN STATS =====
+
+function updateBurnDisplay() {
+    const el = $("burn-stats");
+    if (!el) return;
+    if (totalBurned > 0) {
+        el.style.display = "block";
+        el.innerHTML = "<strong>🔥 " + fmtNum(totalBurned) + " INC burned forever</strong> · Supply: " + fmtNum(600000000000 - totalBurned) + " INC";
+    }
+}
+
+
 document.addEventListener("DOMContentLoaded", () => {
     // ===== AUTH EVENT LISTENERS =====
 
@@ -1319,6 +1576,45 @@ document.addEventListener("DOMContentLoaded", () => {
     $("btn-quick-send").addEventListener("click", () => showPage("page-send"));
     $("btn-quick-receive").addEventListener("click", () => showPage("page-receive"));
 
+    // Swap
+    const btnQuickSwap = $("btn-quick-swap");
+    if (btnQuickSwap) btnQuickSwap.addEventListener("click", () => showPage("page-swap"));
+    const btnSwap = $("btn-swap");
+    if (btnSwap) btnSwap.addEventListener("click", executeSwap);
+    const swapFromToken = $("swap-from-token");
+    if (swapFromToken) swapFromToken.addEventListener("change", updateSwapDisplay);
+    const swapToToken = $("swap-to-token");
+    if (swapToToken) swapToToken.addEventListener("change", updateSwapDisplay);
+    const swapFromAmount = $("swap-from-amount");
+    if (swapFromAmount) swapFromAmount.addEventListener("input", updateSwapDisplay);
+    const btnSwapMax = $("btn-swap-max");
+    if (btnSwapMax) btnSwapMax.addEventListener("click", () => {
+        const fromToken = $("swap-from-token").value;
+        const bal = tokenBalances[fromToken] || 0;
+        $("swap-from-amount").value = bal.toFixed(6);
+        updateSwapDisplay();
+    });
+    const btnSwapFlip = $("btn-swap-flip");
+    if (btnSwapFlip) btnSwapFlip.addEventListener("click", () => {
+        const fromVal = $("swap-from-token").value;
+        const toVal = $("swap-to-token").value;
+        $("swap-from-token").value = toVal;
+        $("swap-to-token").value = fromVal;
+        updateSwapDisplay();
+    });
+
+    // Bridge
+    const btnQuickBridge = $("btn-quick-bridge");
+    if (btnQuickBridge) btnQuickBridge.addEventListener("click", () => showPage("page-bridge"));
+    const btnBridge = $("btn-bridge");
+    if (btnBridge) btnBridge.addEventListener("click", executeBridge);
+    const bridgeFromToken = $("bridge-from-token");
+    if (bridgeFromToken) bridgeFromToken.addEventListener("change", updateBridgeDisplay);
+    const bridgeToToken = $("bridge-to-token");
+    if (bridgeToToken) bridgeToToken.addEventListener("change", updateBridgeDisplay);
+    const bridgeAmount = $("bridge-amount");
+    if (bridgeAmount) bridgeAmount.addEventListener("input", updateBridgeDisplay);
+
     // Send
     $("btn-send").addEventListener("click", sendTransaction);
 
@@ -1343,6 +1639,10 @@ document.addEventListener("DOMContentLoaded", () => {
     $("btn-back-dashboard3").addEventListener("click", () => showPage("page-dashboard"));
     $("btn-back-dashboard4").addEventListener("click", () => showPage("page-dashboard"));
     $("btn-back-dashboard5").addEventListener("click", () => showPage("page-dashboard"));
+    const btnBackDashboard6 = $("btn-back-dashboard6");
+    if (btnBackDashboard6) btnBackDashboard6.addEventListener("click", () => showPage("page-dashboard"));
+    const btnBackDashboard7 = $("btn-back-dashboard7");
+    if (btnBackDashboard7) btnBackDashboard7.addEventListener("click", () => showPage("page-dashboard"));
 
     // Buy page
     $("buy-amount").addEventListener("change", updateBuyDisplay);

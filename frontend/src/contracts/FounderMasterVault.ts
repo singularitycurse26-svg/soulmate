@@ -6,16 +6,40 @@ export const FounderMasterVaultABI = [
   "function setVestingContract(address vestingContract) external",
   "function setStakingContract(address stakingContract) external",
   "function initializeReserves(uint256 staking, uint256 marketing, uint256 airdrop) external",
+
+  // Trading liquidity sub-account
+  "function initializeTradingReserves(uint256 dexLiquidity, uint256 marketMaker, uint256 exchangeReserves, uint256 tradingRewards, uint256 contingency) external",
+  "function getTradingOverview() view returns (uint256 dexLiquidity, uint256 marketMakerInventory, uint256 exchangeReserves, uint256 tradingRewards, uint256 contingencyReserve)",
+  "function allocateDEXLiquidity(address poolAddress, uint256 amount) external",
+  "function allocateMarketMakerInventory(address mmAddress, uint256 amount) external",
+  "function allocateExchangeReserve(address exchangeAddress, uint256 amount) external",
+  "function distributeTradingRewards(address recipient, uint256 amount) external",
+  "function withdrawContingency(address recipient, uint256 amount) external",
+  "function reclaimMarketMakerInventory(address mmAddress, uint256 amount) external",
+
+  // Reserve balances
   "function stakingPoolReserve() view returns (uint256)",
   "function marketingReserve() view returns (uint256)",
   "function airdropReserve() view returns (uint256)",
+  "function dexLiquidityReserve() view returns (uint256)",
+  "function marketMakerReserve() view returns (uint256)",
+  "function exchangeReserveBalance() view returns (uint256)",
+  "function tradingRewardsReserve() view returns (uint256)",
+  "function contingencyReserve() view returns (uint256)",
   "function vestingContractAddress() view returns (address)",
   "function stakingContractAddress() view returns (address)",
   "function owner() view returns (address)",
   "event ReservesAllocated(uint256 staking, uint256 marketing, uint256 airdrop)",
+  "event TradingReservesInitialized(uint256 dex, uint256 mm, uint256 exchange, uint256 rewards, uint256 contingency)",
   "event FundsDisbursed(string category, address indexed recipient, uint256 amount)",
   "event FounderVestingClaimed(uint256 amount)",
   "event StakingPoolRefilled(uint256 amount)",
+  "event DEXLiquidityAllocated(address indexed pool, uint256 amount)",
+  "event MarketMakerInventoryAllocated(address indexed mm, uint256 amount)",
+  "event MarketMakerInventoryReclaimed(address indexed mm, uint256 amount)",
+  "event ExchangeReserveAllocated(address indexed exchange, uint256 amount)",
+  "event TradingRewardsDistributed(address indexed recipient, uint256 amount)",
+  "event ContingencyWithdrawn(address indexed recipient, uint256 amount)",
 ] as const;
 
 export const FounderMasterVaultBytecode = "0x6080604052348015600e575f80fd5b50603e80601a575f80fd5b505f80f3fe";

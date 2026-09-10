@@ -438,9 +438,9 @@ export function MerramunSlotGame() {
                     >
                       {config.text ? (
                         <span className={cn("text-3xl sm:text-4xl font-black", config.color, config.glow)}>{config.text}</span>
-                      ) : (
+                      ) : config.icon ? (
                         <config.icon className={cn("w-9 h-9 sm:w-11 sm:h-11", config.color, config.glow)} />
-                      )}
+                      ) : null}
                       {isMultiplier && (
                         <span className="absolute inset-0 flex items-center justify-center text-slate-900 font-black text-sm sm:text-base">
                           {tile.value}x
@@ -558,9 +558,9 @@ export function MerramunSlotGame() {
                   <div className="flex items-center gap-2">
                     {s.text ? (
                       <span className={cn("font-black text-lg", s.color, s.glow)}>{s.text}</span>
-                    ) : (
+                    ) : s.icon ? (
                       <s.icon className={cn("w-5 h-5", s.color)} />
-                    )}
+                    ) : null}
                     <span className="text-muted">{s.label}</span>
                   </div>
                   <span className="text-muted">3+ pays</span>

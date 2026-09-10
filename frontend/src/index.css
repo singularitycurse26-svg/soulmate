@@ -7,10 +7,18 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  html {
+    color-scheme: dark;
+  }
+
   body {
     @apply bg-bg text-white antialiased;
     font-family: "Inter", system-ui, -apple-system, sans-serif;
     overscroll-behavior: none;
+    background-image:
+      radial-gradient(1200px 600px at 10% -10%, rgba(99, 102, 241, 0.12), transparent 55%),
+      radial-gradient(900px 500px at 110% 0%, rgba(168, 85, 247, 0.08), transparent 50%);
+    background-attachment: fixed;
   }
 
   ::-webkit-scrollbar {
@@ -61,7 +69,15 @@
   }
 
   .card {
-    @apply bg-bg-card border border-border rounded-2xl p-5;
+    @apply bg-bg-card/90 border border-border/80 rounded-2xl p-5 shadow-sm shadow-black/20 backdrop-blur-sm;
+  }
+
+  .card-soft {
+    @apply bg-bg-card/70 border border-white/5 rounded-2xl p-4 backdrop-blur-sm;
+  }
+
+  .surface {
+    @apply bg-bg-card/80 border border-border/70 rounded-2xl backdrop-blur-md;
   }
 
   .label {
@@ -94,4 +110,9 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
 }

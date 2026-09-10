@@ -588,7 +588,6 @@ export function HermesPage() {
     saveSessions([session, ...sessions]);
     setActiveSessionId(id);
     setMessages([]);
-    setShowMoreMenu(false);
   };
 
   const switchSession = (id: string) => {

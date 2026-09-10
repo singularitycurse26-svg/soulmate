@@ -3,6 +3,7 @@ import { subscriptionApi } from "@/lib/api";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Shield, Crown, Check, Loader2, Copy, Fingerprint } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageShell";
 
 export function SecurityPage() {
   const { showAlert, authEmail } = useStore();
@@ -58,11 +59,8 @@ export function SecurityPage() {
   const paymentAddress = tiers.find((t: any) => t.name === "pro") ? "0x7Fb10c467319Dd4C9CEB3fcF018C2101a0842D8d" : "";
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Security & Subscription</h2>
-        <p className="text-muted text-sm mt-1">Manage your account and plan</p>
-      </div>
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader icon={Shield} title="Security & Subscription" subtitle="Manage your account, biometrics, and plan" />
 
       {/* Current tier badge */}
       <div className={cn(

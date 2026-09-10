@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { contactsApi } from "@/lib/api";
+import { getContactStatuses, ContactStatus } from "@/hooks/useWakkiiRoom";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import {
@@ -26,6 +27,14 @@ export function ContactsPage() {
   const [editing, setEditing] = useState<Contact | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [contactStatuses, setContactStatuses] = useState<Map<string, ContactStatus>>(new Map());
+
+  useEffect(() => {
+    const checkStatuses = () => setContactStatuses(getContactStatuses());
+    checkStatuses();
+    const interval = setInterval(checkStatuses, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Form state
   const [name, setName] = useState("");
@@ -134,74 +143,92 @@ export function ContactsPage() {
 
   if (selectedContact) {
     return (
-      <div className="min-h-screen -mx-4 -my-4 md:-mx-8 md:-my-8" style={{ background: "#F5F5F5", color: "#202124" }}>
-        <div className="sticky top-0 z-50 flex items-center gap-3 px-4 h-14 bg-white border-b border-gray-200">
-          <button onClick={() => setSelectedContact(null)} className="p-2 rounded-full hover:bg-gray-100">
+      <div className="animate-fade-in">
+        <div className="sticky top-0 z-40 flex items-center gap-3 px-4 h-14 surface mb-4">
+          <button onClick={() => setSelectedContact(null)} className="p-2 rounded-full hover:bg-white/5">
             <ChevronLeft className="w-6 h-6" />
           </button>
-          <h2 className="font-bold text-lg flex-1">Contact Details</h2>
-          <button onClick={() => handleEdit(selectedContact)} className="p-2 rounded-full hover:bg-gray-100">
+          <h2 className="font-semibold text-lg flex-1">Contact Details</h2>
+          <button onClick={() => handleEdit(selectedContact)} className="p-2 rounded-full hover:bg-white/5">
             <Edit3 className="w-5 h-5" />
           </button>
-          <button onClick={() => handleDelete(selectedContact.id)} className="p-2 rounded-full hover:bg-gray-100">
-            <Trash2 className="w-5 h-5 text-red-500" />
+          <button onClick={() => handleDelete(selectedContact.id)} className="p-2 rounded-full hover:bg-white/5">
+            <Trash2 className="w-5 h-5 text-red-400" />
           </button>
         </div>
         <div className="max-w-md mx-auto">
-          <div className="flex flex-col items-center py-8 bg-white">
-            <div className="w-24 h-24 rounded-full flex items-center justify-center text-white font-bold text-4xl mb-3" style={{ background: avatarColor(selectedContact.name) }}>
-              {selectedContact.name.charAt(0).toUpperCase()}
-            </div>
-            <h1 className="text-2xl font-bold">{selectedContact.name}</h1>
-          </div>
-          <div className="flex justify-around py-4 bg-white border-t border-gray-100">
-            <button onClick={() => handleTextContact(selectedContact)} className="flex flex-col items-center gap-1">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "#1A73E815" }}>
-                <MessageSquare className="w-5 h-5" style={{ color: "#1A73E8" }} />
+          <div className="flex flex-col items-center py-8 card">
+            <div className="relative">
+              <div className="w-24 h-24 rounded-full flex items-center justify-center text-white font-bold text-4xl mb-3" style={{ background: avatarColor(selectedContact.name) }}>
+                {selectedContact.name.charAt(0).toUpperCase()}
               </div>
-              <span className="text-xs font-medium" style={{ color: "#1A73E8" }}>Text</span>
+              {(() => {
+                const status = contactStatuses.get(selectedContact.name) || "offline";
+                const dotColor = status === "same-room" ? "bg-green-500"
+                  : status === "other-room" ? "bg-white"
+                  : "bg-gray-500";
+                return <span className={cn(
+                  "absolute bottom-1 right-1 w-5 h-5 rounded-full border-4 border-bg",
+                  dotColor
+                )} />;
+              })()}
+            </div>
+            <h1 className="text-2xl font-semibold">{selectedContact.name}</h1>
+            {(() => {
+              const status = contactStatuses.get(selectedContact.name) || "offline";
+              if (status === "same-room") return <p className="text-sm text-green-500 font-medium mt-1">In your room now</p>;
+              if (status === "other-room") return <p className="text-sm text-white/70 font-medium mt-1">On another call</p>;
+              return null;
+            })()}
+          </div>
+          <div className="flex justify-around py-4 card mt-3">
+            <button onClick={() => handleTextContact(selectedContact)} className="flex flex-col items-center gap-1">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center bg-accent/15">
+                <MessageSquare className="w-5 h-5 text-accent" />
+              </div>
+              <span className="text-xs font-medium text-accent">Text</span>
             </button>
             <button onClick={() => selectedContact.phone && window.open(`tel:${selectedContact.phone}`)} className="flex flex-col items-center gap-1">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "#1A73E815" }}>
-                <Phone className="w-5 h-5" style={{ color: "#1A73E8" }} />
+              <div className="w-12 h-12 rounded-full flex items-center justify-center bg-accent/15">
+                <Phone className="w-5 h-5 text-accent" />
               </div>
-              <span className="text-xs font-medium" style={{ color: "#1A73E8" }}>Call</span>
+              <span className="text-xs font-medium text-accent">Call</span>
             </button>
             <button onClick={() => selectedContact.email && (window.location.href = `mailto:${selectedContact.email}`)} className="flex flex-col items-center gap-1">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "#1A73E815" }}>
-                <Mail className="w-5 h-5" style={{ color: "#1A73E8" }} />
+              <div className="w-12 h-12 rounded-full flex items-center justify-center bg-accent/15">
+                <Mail className="w-5 h-5 text-accent" />
               </div>
-              <span className="text-xs font-medium" style={{ color: "#1A73E8" }}>Email</span>
+              <span className="text-xs font-medium text-accent">Email</span>
             </button>
             <button onClick={() => setActivePage("wallet")} className="flex flex-col items-center gap-1">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "#1A73E815" }}>
-                <Wallet className="w-5 h-5" style={{ color: "#1A73E8" }} />
+              <div className="w-12 h-12 rounded-full flex items-center justify-center bg-accent/15">
+                <Wallet className="w-5 h-5 text-accent" />
               </div>
-              <span className="text-xs font-medium" style={{ color: "#1A73E8" }}>Send</span>
+              <span className="text-xs font-medium text-accent">Send</span>
             </button>
           </div>
-          <div className="mt-2 bg-white">
+          <div className="mt-3 card p-0 overflow-hidden">
             {selectedContact.phone && (
-              <div className="px-4 py-3 border-b border-gray-100">
-                <p className="text-xs text-gray-500 mb-1">Phone</p>
+              <div className="px-4 py-3 border-b border-white/5">
+                <p className="text-xs text-muted mb-1">Phone</p>
                 <p className="font-medium">{selectedContact.phone}</p>
               </div>
             )}
             {selectedContact.email && (
-              <div className="px-4 py-3 border-b border-gray-100">
-                <p className="text-xs text-gray-500 mb-1">Email</p>
+              <div className="px-4 py-3 border-b border-white/5">
+                <p className="text-xs text-muted mb-1">Email</p>
                 <p className="font-medium">{selectedContact.email}</p>
               </div>
             )}
             {selectedContact.wallet_address && (
-              <div className="px-4 py-3 border-b border-gray-100">
-                <p className="text-xs text-gray-500 mb-1">Wallet</p>
+              <div className="px-4 py-3 border-b border-white/5">
+                <p className="text-xs text-muted mb-1">Wallet</p>
                 <p className="font-mono text-sm break-all">{selectedContact.wallet_address}</p>
               </div>
             )}
             {selectedContact.notes && (
-              <div className="px-4 py-3 border-b border-gray-100">
-                <p className="text-xs text-gray-500 mb-1">Notes</p>
+              <div className="px-4 py-3">
+                <p className="text-xs text-muted mb-1">Notes</p>
                 <p className="text-sm">{selectedContact.notes}</p>
               </div>
             )}
@@ -212,15 +239,15 @@ export function ContactsPage() {
   }
 
   return (
-    <div className="min-h-screen -mx-4 -my-4 md:-mx-8 md:-my-8" style={{ background: "#F5F5F5", color: "#202124" }}>
-      <div className="sticky top-0 z-50 bg-white border-b border-gray-200">
+    <div className="animate-fade-in">
+      <div className="sticky top-0 z-40 surface mb-4">
         <div className="flex items-center justify-between px-4 h-14">
           <h1 className="text-xl font-bold">Contacts</h1>
           <div className="flex items-center gap-2">
-            <button onClick={handleExport} className="p-2 rounded-full hover:bg-gray-100" title="Export">
+            <button onClick={handleExport} className="p-2 rounded-full hover:bg-white/5" title="Export">
               <Download className="w-5 h-5" />
             </button>
-            <button onClick={() => { resetForm(); setShowAdd(true); }} className="p-2 rounded-full hover:bg-gray-100">
+            <button onClick={() => { resetForm(); setShowAdd(true); }} className="p-2 rounded-full hover:bg-white/5">
               <Plus className="w-5 h-5" />
             </button>
           </div>
@@ -232,7 +259,7 @@ export function ContactsPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search contacts"
-              className="w-full pl-10 pr-4 py-2.5 rounded-full bg-gray-100 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-blue-200"
+              className="w-full pl-10 pr-4 py-2.5 rounded-full bg-bg-alt text-sm outline-none"
             />
           </div>
         </div>
@@ -245,32 +272,53 @@ export function ContactsPage() {
           ) : filtered.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-gray-500">No contacts found</p>
-              <button onClick={() => { resetForm(); setShowAdd(true); }} className="mt-4 px-4 py-2 rounded-lg text-white text-sm font-medium" style={{ background: "#1A73E8" }}>
+              <button onClick={() => { resetForm(); setShowAdd(true); }} className="mt-4 px-4 py-2 rounded-lg text-white text-sm font-medium bg-accent">
                 Add Contact
               </button>
             </div>
           ) : (
             sortedLetters.map((letter) => (
               <div key={letter} data-letter={letter}>
-                <div className="px-4 py-2 text-sm font-bold sticky top-[112px] z-10" style={{ background: "#F5F5F5", color: "#1A73E8" }}>
+                <div className="px-4 py-2 text-sm font-semibold sticky top-[112px] z-10 text-accent">
                   {letter}
                 </div>
-                <div className="bg-white">
-                  {grouped[letter].map((contact) => (
+                <div className="card p-0 overflow-hidden">
+                  {grouped[letter].map((contact) => {
+                    const status = contactStatuses.get(contact.name) || "offline";
+                    const dotColor = status === "same-room" ? "bg-green-500"
+                      : status === "other-room" ? "bg-white"
+                      : "bg-gray-500";
+                    const statusText = status === "same-room" ? "In your room"
+                      : status === "other-room" ? "On another call"
+                      : null;
+                    return (
                     <button
                       key={contact.id}
                       onClick={() => setSelectedContact(contact)}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left border-b border-gray-50"
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 text-left border-b border-white/5 last:border-0"
                     >
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0" style={{ background: avatarColor(contact.name) }}>
-                        {contact.name.charAt(0).toUpperCase()}
+                      <div className="relative flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style={{ background: avatarColor(contact.name) }}>
+                          {contact.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className={cn(
+                          "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-bg",
+                          dotColor
+                        )} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{contact.name}</p>
                         {contact.phone && <p className="text-xs text-gray-500 truncate">{contact.phone}</p>}
+                        {statusText && (
+                          <p className={cn(
+                            "text-xs font-medium",
+                            status === "same-room" ? "text-green-500" : "text-white/70"
+                          )}>{statusText}</p>
+                        )}
                       </div>
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ))

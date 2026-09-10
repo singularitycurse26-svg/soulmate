@@ -40,3 +40,31 @@ export function timeAgo(date: string | Date): string {
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
 }
+
+export type DeviceKind = "phone" | "tablet" | "laptop" | "desktop";
+
+export function getDeviceKind(): DeviceKind {
+  if (typeof navigator === "undefined") return "desktop";
+  const ua = navigator.userAgent || "";
+  const touchPoints = navigator.maxTouchPoints || 0;
+  const width = typeof window !== "undefined" ? window.innerWidth : 1280;
+  if (/Android|iPhone|iPod|Windows Phone/i.test(ua)) return "phone";
+  if (/iPad|Tablet/i.test(ua) || (touchPoints > 1 && width < 1100 && /Macintosh/i.test(ua))) return "tablet";
+  if (touchPoints > 0 && width <= 1366) return "laptop";
+  return "desktop";
+}
+
+export function isMobileDevice(): boolean {
+  const kind = getDeviceKind();
+  return kind === "phone" || kind === "tablet";
+}
+
+export async function hasPlatformAuthenticator(): Promise<boolean> {
+  if (typeof window === "undefined" || !window.PublicKeyCredential) return false;
+  try {
+    if (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === "function") {
+      return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    }
+  } catch {}
+  return false;
+}

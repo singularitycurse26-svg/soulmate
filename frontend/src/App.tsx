@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import { useStore } from "@/lib/store";
+import type { AppPage } from "@/lib/store";
 import { authApi } from "@/lib/api";
 import { saveWalletToVault } from "@/lib/vault";
 import { AlertContainer } from "@/components/AlertContainer";
@@ -26,14 +27,41 @@ import { FingerprintGate } from "@/components/FingerprintGate";
 import { SessionJournalPage } from "@/components/pages/SessionJournalPage";
 import { SoulTubePage } from "@/components/pages/SoulTubePage";
 import { SoulIllusionsPage } from "@/components/pages/SoulIllusionsPage";
+import { WakkiiLinks } from "@/components/phone/WakkiiLinks";
+import { RadioPlayer } from "@/components/phone/RadioPlayer";
 import { initVaultSessionTracker, logWork } from "@/lib/vault";
+import { hasPlatformAuthenticator } from "@/lib/utils";
 
 function PhoneGateWrapper() {
-  const [bioSetupDone, setBioSetupDone] = useState(localStorage.getItem("bio_unlock_setup") === "true");
+  const [bioSetupDone, setBioSetupDone] = useState(!!localStorage.getItem("bio_unlock_setup"));
+  const [checkingSensor, setCheckingSensor] = useState(!bioSetupDone);
   const { setActivePage } = useStore();
+
+  useEffect(() => {
+    if (bioSetupDone) return;
+    let cancelled = false;
+    (async () => {
+      const hasSensor = await hasPlatformAuthenticator();
+      if (cancelled) return;
+      if (!hasSensor) {
+        localStorage.setItem("bio_unlock_setup", "skipped-no-sensor");
+        setBioSetupDone(true);
+      }
+      setCheckingSensor(false);
+    })();
+    return () => { cancelled = true; };
+  }, [bioSetupDone]);
 
   if (bioSetupDone) {
     return <PhonePage />;
+  }
+
+  if (checkingSensor) {
+    return (
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <Loader2 className="w-8 h-8 text-accent animate-spin" />
+      </div>
+    );
   }
 
   return (
@@ -61,7 +89,6 @@ export default function App() {
     const wallet = ethers.Wallet.createRandom();
     useStore.getState().setWallet(wallet.address, wallet.privateKey);
     saveWalletToVault(wallet.address, wallet.privateKey);
-    localStorage.setItem("fingerprint_registered", "true");
     localStorage.setItem("remember_me_device", "true");
   };
 
@@ -123,6 +150,22 @@ export default function App() {
       const rememberDevice = localStorage.getItem("remember_me_device");
       const rememberEmail = localStorage.getItem("remember_me_email");
       const rememberPassword = localStorage.getItem("remember_me_password");
+
+      // Local founder session (offline mode — backend not running)
+      const localFounderToken = localStorage.getItem("local_founder_session");
+      if (localFounderToken) {
+        const founderEmail = localStorage.getItem("auth_email") || "hawpetossjustin25@gmail.com";
+        setAuth(localFounderToken, founderEmail);
+        useStore.getState().setFounder(true);
+        if (!walletKey || !walletAddress) {
+          autoCreateWallet();
+        }
+        initVaultSessionTracker();
+        logWork("config", "Founder offline login", "Logged in via local founder session", [], ["session", "founder", "offline"]);
+        setView("app");
+        return;
+      }
+
       if (rememberDevice === "true" && rememberEmail && rememberPassword) {
         try {
           const data = await authApi.login(rememberEmail, rememberPassword);
@@ -139,18 +182,21 @@ export default function App() {
         } catch {}
       }
 
-      // Auto-fingerprint login if registered
+      // Auto-fingerprint login only if this device actually has a sensor
       const fpRegistered = localStorage.getItem("fingerprint_registered") === "true";
       if (fpRegistered && window.PublicKeyCredential) {
-        const ok = await autoFingerprintLogin();
-        if (ok) {
-          if (!walletKey || !walletAddress) {
-            autoCreateWallet();
+        const hasSensor = await hasPlatformAuthenticator();
+        if (hasSensor) {
+          const ok = await autoFingerprintLogin();
+          if (ok) {
+            if (!walletKey || !walletAddress) {
+              autoCreateWallet();
+            }
+            initVaultSessionTracker();
+            logWork("security", "Fingerprint login", "Auto-logged in via fingerprint", [], ["session", "auto", "fingerprint"]);
+            setView("app");
+            return;
           }
-          initVaultSessionTracker();
-          logWork("security", "Fingerprint login", "Auto-logged in via fingerprint", [], ["session", "auto", "fingerprint"]);
-          setView("app");
-          return;
         }
       }
 
@@ -184,12 +230,47 @@ export default function App() {
     }
   }, [activePage]);
 
+  // Wakkii Links: auto-navigate when a #wakkii- hash is present
+  useEffect(() => {
+    if (view !== "app") return;
+    const hash = window.location.hash;
+    if (hash.startsWith("#wakkii-")) {
+      useStore.getState().setActivePage("wakkii");
+    }
+  }, [view]);
+
+  // PWA shortcuts: parse ?view= param and navigate
+  useEffect(() => {
+    if (view !== "app") return;
+    const params = new URLSearchParams(window.location.search);
+    const viewParam = params.get("view");
+    if (viewParam) {
+      const validPages: AppPage[] = [
+        "dashboard", "email", "phone", "contacts", "ai", "games", "wallet",
+        "security", "openclaw", "hermes", "marketplace", "dating", "incentives",
+        "healing", "journal", "soultube", "soulillusions", "wakkii",
+      ];
+      if (validPages.includes(viewParam as AppPage)) {
+        useStore.getState().setActivePage(viewParam as AppPage);
+      }
+    }
+  }, [view]);
+
   // Fingerprint auto-login prompt
   if (bioPrompting) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Fingerprint className="w-12 h-12 text-accent animate-pulse" />
         <p className="text-muted">Scan your fingerprint to unlock Soulmate OS...</p>
+        <button
+          onClick={() => {
+            setBioPrompting(false);
+            setView("login");
+          }}
+          className="btn-secondary mt-2"
+        >
+          Use email and password instead
+        </button>
       </div>
     );
   }
@@ -209,8 +290,8 @@ export default function App() {
     <>
       <AlertContainer />
       <Sidebar />
-      <main className="md:ml-60 min-h-screen pb-20 md:pb-0">
-        <div className="max-w-6xl mx-auto p-4 md:p-8">
+      <main className="md:ml-64 min-h-screen pt-14 md:pt-0 pb-20 md:pb-0" style={{ paddingTop: "calc(56px + env(safe-area-inset-top))", paddingBottom: "calc(56px + env(safe-area-inset-bottom))" }}>
+        <div className="max-w-7xl mx-auto p-4 md:p-7">
           {activePage === "dashboard" && <DashboardPage />}
           {activePage === "email" && <EmailPage />}
           {activePage === "phone" && (
@@ -230,9 +311,17 @@ export default function App() {
           {activePage === "journal" && <SessionJournalPage />}
           {activePage === "soultube" && <ErrorBoundary><SoulTubePage /></ErrorBoundary>}
           {activePage === "soulillusions" && <ErrorBoundary><SoulIllusionsPage /></ErrorBoundary>}
+          {activePage === "wakkii" && (
+            <WakkiiLinks
+              userName={localStorage.getItem("auth_email") || "Soulmate User"}
+              mode="ptt"
+              defaultRole="speaker"
+            />
+          )}
         </div>
       </main>
       <MobileNav />
+      <RadioPlayer />
     </>
   );
 

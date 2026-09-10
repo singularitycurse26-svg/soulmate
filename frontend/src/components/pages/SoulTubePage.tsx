@@ -6,6 +6,7 @@ import {
   Search, Play, ThumbsUp, ThumbsDown, Share2, Download,
   MessageSquare, Send, Eye, Clock, Upload, X, Home,
   TrendingUp, History, User, ChevronDown, Crown, Flame,
+  Music, Youtube, CheckCircle2, Copy, FileAudio, Image,
 } from "lucide-react";
 
 interface Video {
@@ -304,6 +305,19 @@ export function SoulTubePage() {
                     <Share2 className="w-4 h-4" />
                     <span className="hidden sm:block">Share</span>
                   </button>
+                  <button
+                    onClick={() => {
+                      soulTubeApi.youtubeRelease(selectedVideo.id).then((r) => {
+                        if (r.youtube_upload_url) {
+                          window.open(r.youtube_upload_url, "_blank");
+                        }
+                      }).catch(() => {});
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-600/10 text-red-500 hover:bg-red-600/20 text-sm font-medium transition-all"
+                  >
+                    <Youtube className="w-4 h-4" />
+                    <span className="hidden sm:block">YouTube</span>
+                  </button>
                   <a
                     href={soulTubeApi.getStreamUrl(selectedVideo.id, resolution)}
                     download
@@ -486,13 +500,19 @@ function VideoCard({ video, onClick }: { video: Video; onClick: () => void }) {
 }
 
 function UploadView({ onBack }: { onBack: () => void }) {
+  const [uploadTab, setUploadTab] = useState<"video" | "music">("video");
   const [file, setFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
+  const [genre, setGenre] = useState("Music");
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
+  const [uploadedId, setUploadedId] = useState<string | null>(null);
+  const [ytRelease, setYtRelease] = useState<any>(null);
+  const [ytReleasing, setYtReleasing] = useState(false);
 
   const handleUpload = async () => {
     if (!file || !title) return;
@@ -504,21 +524,74 @@ function UploadView({ onBack }: { onBack: () => void }) {
       formData.append("title", title);
       formData.append("description", description);
       formData.append("tags", tags);
+      if (uploadTab === "music") {
+        formData.append("genre", genre);
+        if (coverFile) formData.append("cover", coverFile);
+      }
       setProgress(50);
-      await soulTubeApi.uploadVideo(formData);
+      const result = uploadTab === "music"
+        ? await soulTubeApi.uploadMusic(formData)
+        : await soulTubeApi.uploadVideo(formData);
       setProgress(100);
-      setTimeout(() => onBack(), 1500);
+      if (result.id) {
+        setUploadedId(result.id);
+      }
+      setTimeout(() => {
+        if (!result.id) onBack();
+      }, 1500);
     } catch {
       setUploading(false);
     }
   };
+
+  const handleYoutubeRelease = async () => {
+    if (!uploadedId) return;
+    setYtReleasing(true);
+    try {
+      const result = await soulTubeApi.youtubeRelease(uploadedId, {
+        title,
+        description,
+        tags,
+        privacy: "public",
+      });
+      setYtRelease(result);
+    } catch {
+    } finally {
+      setYtReleasing(false);
+    }
+  };
+
+  const acceptType = uploadTab === "music" ? "audio/*,.mp3,.wav,.flac,.ogg,.m4a,.aac" : "video/*";
+  const uploadLabel = uploadTab === "music" ? "audio file" : "video file";
 
   return (
     <div className="py-2 max-w-2xl mx-auto">
       <button onClick={onBack} className="flex items-center gap-2 text-muted hover:text-white mb-4 text-sm">
         <X className="w-4 h-4" /> Cancel
       </button>
-      <h2 className="text-xl font-bold text-white mb-6">Upload Video</h2>
+      <h2 className="text-xl font-bold text-white mb-6">Upload to SoulTube</h2>
+
+      {/* Upload Type Tabs */}
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => { setUploadTab("video"); setFile(null); setUploadedId(null); setYtRelease(null); }}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+            uploadTab === "video" ? "bg-accent text-white" : "bg-bg-alt text-muted hover:text-white"
+          )}
+        >
+          <Upload className="w-4 h-4" /> Video
+        </button>
+        <button
+          onClick={() => { setUploadTab("music"); setFile(null); setUploadedId(null); setYtRelease(null); }}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+            uploadTab === "music" ? "bg-accent text-white" : "bg-bg-alt text-muted hover:text-white"
+          )}
+        >
+          <Music className="w-4 h-4" /> Music
+        </button>
+      </div>
 
       {/* Drop zone */}
       <div
@@ -534,17 +607,49 @@ function UploadView({ onBack }: { onBack: () => void }) {
         <input
           id="file-input"
           type="file"
-          accept="video/*"
+          accept={acceptType}
           className="hidden"
           onChange={(e) => e.target.files?.[0] && setFile(e.target.files[0])}
         />
-        <Upload className="w-10 h-10 text-muted mx-auto mb-3" />
-        {file ? (
-          <p className="text-sm text-white font-medium">{file.name}</p>
+        {uploadTab === "music" ? (
+          <FileAudio className="w-10 h-10 text-muted mx-auto mb-3" />
         ) : (
-          <p className="text-sm text-muted">Drag & drop or click to browse</p>
+          <Upload className="w-10 h-10 text-muted mx-auto mb-3" />
+        )}
+        {file ? (
+          <p className="text-sm text-white font-medium">{file.name} ({(file.size / 1024 / 1024).toFixed(1)} MB)</p>
+        ) : (
+          <p className="text-sm text-muted">Drag & drop or click to browse {uploadLabel}</p>
         )}
       </div>
+
+      {/* Cover art for music */}
+      {uploadTab === "music" && (
+        <div className="mt-4">
+          <label className="text-sm text-muted block mb-2">Cover Art (optional)</label>
+          <div
+            onDragOver={(e) => { e.preventDefault(); }}
+            onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) setCoverFile(f); }}
+            className="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer hover:border-muted transition-all"
+            onClick={() => document.getElementById("cover-input")?.click()}
+          >
+            <input
+              id="cover-input"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => e.target.files?.[0] && setCoverFile(e.target.files[0])}
+            />
+            {coverFile ? (
+              <p className="text-sm text-white font-medium">{coverFile.name}</p>
+            ) : (
+              <p className="text-sm text-muted flex items-center justify-center gap-2">
+                <Image className="w-4 h-4" /> Drop cover image or click to browse
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Metadata */}
       <div className="space-y-4 mt-6">
@@ -575,6 +680,20 @@ function UploadView({ onBack }: { onBack: () => void }) {
             className="w-full px-3 py-2 rounded-lg bg-bg-alt border border-border text-sm text-white focus:outline-none focus:border-accent/50"
           />
         </div>
+        {uploadTab === "music" && (
+          <div>
+            <label className="text-sm text-muted block mb-1">Genre</label>
+            <select
+              value={genre}
+              onChange={(e) => setGenre(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg bg-bg-alt border border-border text-sm text-white focus:outline-none focus:border-accent/50"
+            >
+              {["Music", "Hip Hop", "R&B", "Pop", "Rock", "Electronic", "Jazz", "Classical", "Country", "Reggae", "Lo-Fi", "Trap", "Beat"].map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Progress */}
@@ -595,13 +714,116 @@ function UploadView({ onBack }: { onBack: () => void }) {
         </div>
       )}
 
-      <button
-        onClick={handleUpload}
-        disabled={!file || !title || uploading}
-        className="w-full mt-6 py-3 rounded-xl bg-gradient-to-r from-accent to-purple-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
-      >
-        {uploading ? "Uploading..." : "Publish Video"}
-      </button>
+      {/* Upload button */}
+      {!uploadedId && (
+        <button
+          onClick={handleUpload}
+          disabled={!file || !title || uploading}
+          className="w-full mt-6 py-3 rounded-xl bg-gradient-to-r from-accent to-purple-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+        >
+          {uploading ? "Uploading..." : uploadTab === "music" ? "Publish Music" : "Publish Video"}
+        </button>
+      )}
+
+      {/* Post-upload: YouTube Release */}
+      {uploadedId && (
+        <div className="mt-6 space-y-4">
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-green-500/10 border border-green-500/20">
+            <CheckCircle2 className="w-5 h-5 text-green-400" />
+            <span className="text-sm text-green-400 font-medium">Uploaded to SoulTube successfully!</span>
+          </div>
+
+          {/* YouTube Release Section */}
+          <div className="p-4 rounded-xl bg-bg-alt border border-border">
+            <div className="flex items-center gap-2 mb-3">
+              <Youtube className="w-5 h-5 text-red-500" />
+              <h3 className="text-sm font-bold text-white">Release to YouTube</h3>
+            </div>
+            <p className="text-xs text-muted mb-3">
+              Release your {uploadTab === "music" ? "track" : "video"} to YouTube. We'll prepare the file and metadata for you.
+            </p>
+
+            {!ytRelease ? (
+              <button
+                onClick={handleYoutubeRelease}
+                disabled={ytReleasing}
+                className="w-full py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {ytReleasing ? "Preparing..." : "Release to YouTube"}
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm text-green-400">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Ready for YouTube!
+                </div>
+
+                {/* Metadata for copy-paste */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={ytRelease.metadata?.title || title}
+                      className="flex-1 px-3 py-1.5 rounded-lg bg-bg-card border border-border text-xs text-white"
+                    />
+                    <button
+                      onClick={() => navigator.clipboard.writeText(ytRelease.metadata?.title || title)}
+                      className="p-1.5 rounded-lg bg-bg-card border border-border text-muted hover:text-white"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={ytRelease.metadata?.tags?.join(", ") || tags}
+                      className="flex-1 px-3 py-1.5 rounded-lg bg-bg-card border border-border text-xs text-white"
+                    />
+                    <button
+                      onClick={() => navigator.clipboard.writeText(ytRelease.metadata?.tags?.join(", ") || tags)}
+                      className="p-1.5 rounded-lg bg-bg-card border border-border text-muted hover:text-white"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-2">
+                  <a
+                    href={soulTubeApi.getStreamUrl(uploadedId)}
+                    download
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-bg-card border border-border text-sm text-white hover:border-accent transition-colors"
+                  >
+                    <Download className="w-4 h-4" /> Download
+                  </a>
+                  <a
+                    href={ytRelease.youtube_upload_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors"
+                  >
+                    <Youtube className="w-4 h-4" /> Open YouTube Upload
+                  </a>
+                </div>
+                <p className="text-xs text-muted text-center">
+                  Download the file, then upload it at YouTube. Copy the metadata above to fill in the upload form.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Back to SoulTube */}
+          <button
+            onClick={onBack}
+            className="w-full py-2.5 rounded-lg bg-bg-alt border border-border text-sm text-muted hover:text-white transition-colors"
+          >
+            Back to SoulTube
+          </button>
+        </div>
+      )}
     </div>
   );
 }

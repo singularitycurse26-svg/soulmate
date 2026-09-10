@@ -14,6 +14,7 @@ import {
   ChevronDown, ChevronRight, Lightbulb,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { PageHeader } from "@/components/layout/PageShell";
 
 const CATEGORY_ICONS: Record<string, any> = {
   feature: Code,
@@ -94,26 +95,22 @@ export function SessionJournalPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-            <BookOpen className="w-5 h-5 text-accent" />
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+        icon={BookOpen}
+        title="Session Journal"
+        subtitle="Auto-cataloged work history & smart assessments"
+        actions={
+          <div className="flex items-center gap-2">
+            <button onClick={refresh} className="btn-ghost p-2" title="Refresh">
+              <RefreshCw className="w-4 h-4" />
+            </button>
+            <button onClick={handleClear} className="btn-ghost p-2 text-red-400" title="Clear journal">
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
-          <div>
-            <h1 className="text-xl font-bold">Session Journal</h1>
-            <p className="text-sm text-muted">Auto-cataloged work history & smart assessments</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={refresh} className="btn-ghost p-2" title="Refresh">
-            <RefreshCw className="w-4 h-4" />
-          </button>
-          <button onClick={handleClear} className="btn-ghost p-2 text-red-400" title="Clear journal">
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Assessment Panel */}
       {assessment && showAssessment && (

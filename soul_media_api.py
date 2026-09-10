@@ -1211,6 +1211,9 @@ async def get_thumbnail(video_id: str):
         return FileResponse(row["thumbnail_path"], media_type="image/jpeg")
     return JSONResponse({"error": "No thumbnail"}, status_code=404)
 
+MUSIC_DIR = VIDEOS_DIR / "music"
+MUSIC_DIR.mkdir(parents=True, exist_ok=True)
+
 # === Helper ===
 def _video_dict(row) -> dict:
     return {
@@ -1226,4 +1229,135 @@ def _video_dict(row) -> dict:
         "resolution": row["resolution"],
         "tags": [t.strip() for t in row["tags"].split(",") if t.strip()] if row["tags"] else [],
         "created_at": row["created_at"],
+    }
+
+# === Music Upload ===
+
+@router.post("/v1/soultube/upload-music")
+async def upload_music(file: UploadFile = File(...), title: str = Form(...),
+                       description: str = Form(""), tags: str = Form(""),
+                       genre: str = Form("Music"), cover: UploadFile = File(None)):
+    video_id = str(uuid.uuid4())[:12]
+    audio_path = str(MUSIC_DIR / f"{video_id}_audio")
+    thumb_path = str(THUMBS_DIR / f"{video_id}.jpg")
+    video_path = str(UPLOADS_DIR / f"{video_id}.mp4")
+
+    content = await file.read()
+    audio_path_full = audio_path + os.path.splitext(file.filename or ".mp3")[1]
+    with open(audio_path_full, "wb") as f:
+        f.write(content)
+
+    duration = 0
+    try:
+        result = subprocess.run([FFMPEG, "-i", audio_path_full, "-hide_banner"],
+                                capture_output=True, text=True, timeout=10)
+        for line in result.stderr.split("\n"):
+            if "Duration:" in line:
+                parts = line.split("Duration:")[1].split(",")[0].strip().split(":")
+                duration = int(float(parts[2]))
+                break
+    except:
+        pass
+
+    if cover:
+        cover_content = await cover.read()
+        with open(thumb_path, "wb") as f:
+            f.write(cover_content)
+    else:
+        _generate_music_thumbnail(title, thumb_path)
+
+    cmd = [
+        FFMPEG, "-y",
+        "-loop", "1", "-i", thumb_path,
+        "-i", audio_path_full,
+        "-c:v", "libx264", "-preset", "fast", "-crf", "28",
+        "-tune", "stillimage", "-pix_fmt", "yuv420p",
+        "-c:a", "aac", "-b:a", "192k",
+        "-shortest",
+        video_path
+    ]
+    try:
+        subprocess.run(cmd, capture_output=True, timeout=300)
+    except:
+        pass
+
+    if not os.path.exists(video_path):
+        shutil.copy(audio_path_full, video_path)
+
+    try:
+        os.unlink(audio_path_full)
+    except:
+        pass
+
+    db = get_db()
+    db.execute("""INSERT INTO soultube_videos
+                 (id, title, description, creator_id, creator_name, duration_s,
+                  views, likes, file_path, thumbnail_path, resolution, tags, created_at, category)
+                 VALUES (?, ?, ?, 'founder', 'Founder', ?, 0, 0, ?, ?, '720p', ?, ?, ?)""",
+               (video_id, title, description, duration, video_path, thumb_path, tags, time.time(), genre))
+    db.commit()
+    db.close()
+
+    return {"id": video_id, "status": "uploaded", "title": title, "duration_s": duration}
+
+def _generate_music_thumbnail(title: str, output_path: str):
+    import hashlib
+    color_hex = hashlib.md5(title.encode()).hexdigest()[:6]
+    r, g, b = int(color_hex[0:2], 16), int(color_hex[2:4], 16), int(color_hex[4:6], 16)
+    cmd = [
+        FFMPEG, "-y",
+        "-f", "lavfi", "-i", f"color=c=0x{color_hex}:s=1280x720:d=1",
+        "-vf", f"drawtext=text='{title[:40]}':fontfile={FONT}:fontsize=48:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2",
+        "-frames:v", "1",
+        output_path
+    ]
+    try:
+        subprocess.run(cmd, capture_output=True, timeout=15)
+    except:
+        pass
+
+# === YouTube Release ===
+
+@router.post("/v1/soultube/youtube-release/{video_id}")
+async def youtube_release(video_id: str, request: Request):
+    body = {}
+    try:
+        body = await request.json()
+    except:
+        pass
+
+    db = get_db()
+    row = db.execute("SELECT * FROM soultube_videos WHERE id=?", (video_id,)).fetchone()
+    if not row:
+        db.close()
+        return JSONResponse({"error": "Video not found"}, status_code=404)
+
+    yt_title = body.get("title", row["title"])[:100]
+    yt_description = body.get("description", row["description"])[:5000]
+    yt_tags = body.get("tags", row["tags"])
+    yt_category = body.get("category", "10")
+    yt_privacy = body.get("privacy", "public")
+
+    yt_metadata = {
+        "title": yt_title,
+        "description": yt_description,
+        "tags": [t.strip() for t in yt_tags.split(",") if t.strip()] if yt_tags else [],
+        "category": yt_category,
+        "privacy": yt_privacy,
+        "video_id": video_id,
+        "download_url": f"/v1/soultube/stream/{video_id}",
+        "youtube_upload_url": "https://www.youtube.com/upload",
+    }
+
+    db.execute("UPDATE soultube_videos SET tags=? WHERE id=?", (f"{yt_tags},youtube-released", video_id))
+    db.commit()
+    db.close()
+
+    return {
+        "status": "ready",
+        "video_id": video_id,
+        "metadata": yt_metadata,
+        "youtube_upload_url": "https://www.youtube.com/upload",
+        "download_url": f"/v1/soultube/stream/{video_id}",
+        "instructions": "Download your video, then upload to YouTube using the provided link. Metadata is pre-filled for copy-paste.",
     }

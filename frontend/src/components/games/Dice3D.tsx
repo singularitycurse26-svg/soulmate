@@ -306,7 +306,7 @@ export function Dice3D({ rollTrigger, onResult }: Dice3DProps) {
       gravity: new CANNON.Vec3(0, -35, 0),
     });
     world.broadphase = new CANNON.NaiveBroadphase();
-    world.solver.iterations = 12;
+    (world.solver as CANNON.GSSolver).iterations = 12;
     world.allowSleep = true;
     worldRef.current = world;
 

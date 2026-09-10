@@ -299,8 +299,8 @@ export function DatingPage() {
   // Chat view
   if (view === "chat" && activeMatch) {
     return (
-      <div className="min-h-screen -mx-4 -my-4 md:-mx-8 md:-my-8 flex flex-col" style={{ background: "#F0F2F5", color: "#050505" }}>
-        <div className="sticky top-0 z-50 flex items-center gap-3 px-4 h-14 bg-white border-b border-gray-200 shadow-sm">
+      <div className="flex flex-col animate-fade-in min-h-[70vh]">
+        <div className="sticky top-0 z-40 flex items-center gap-3 px-4 h-14 surface mb-4">
           <button onClick={() => { setView("matches"); setActiveMatch(null); }} className="p-2 rounded-full hover:bg-gray-100">
             <ChevronLeft className="w-6 h-6" />
           </button>
@@ -354,8 +354,8 @@ export function DatingPage() {
   // Matches view
   if (view === "matches") {
     return (
-      <div className="min-h-screen -mx-4 -my-4 md:-mx-8 md:-my-8" style={{ background: "#F0F2F5", color: "#050505" }}>
-        <div className="sticky top-0 z-50 flex items-center gap-3 px-4 h-14 bg-white border-b border-gray-200 shadow-sm">
+      <div className="animate-fade-in">
+        <div className="sticky top-0 z-40 flex items-center gap-3 px-4 h-14 surface mb-4">
           <button onClick={() => setView("swipe")} className="p-2 rounded-full hover:bg-gray-100">
             <ChevronLeft className="w-6 h-6" />
           </button>
@@ -391,8 +391,8 @@ export function DatingPage() {
   // Profile/settings view
   if (view === "profile") {
     return (
-      <div className="min-h-screen -mx-4 -my-4 md:-mx-8 md:-my-8" style={{ background: "#F0F2F5", color: "#050505" }}>
-        <div className="sticky top-0 z-50 flex items-center gap-3 px-4 h-14 bg-white border-b border-gray-200 shadow-sm">
+      <div className="animate-fade-in">
+        <div className="sticky top-0 z-40 flex items-center gap-3 px-4 h-14 surface mb-4">
           <button onClick={() => setView("swipe")} className="p-2 rounded-full hover:bg-gray-100">
             <ChevronLeft className="w-6 h-6" />
           </button>
@@ -400,13 +400,13 @@ export function DatingPage() {
         </div>
         <div className="max-w-md mx-auto p-4 space-y-4">
           {profile && (
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="card overflow-hidden p-0">
               <div className="aspect-square flex items-center justify-center text-white font-bold text-6xl" style={{ background: TINDER_GRADIENT }}>
                 {profile.photos?.[0] ? <img src={profile.photos[0]} alt="" className="w-full h-full object-cover" /> : getAvatar(profile.name || authEmail)}
               </div>
               <div className="p-4">
                 <h3 className="font-bold text-lg">{profile.name || authEmail}, {profile.age}</h3>
-                <p className="text-sm text-gray-600 mt-1">{profile.bio}</p>
+                <p className="text-sm text-muted mt-1">{profile.bio}</p>
                 {profile.interests && (
                   <div className="flex flex-wrap gap-2 mt-3">
                     {profile.interests.map((interest: string, i: number) => (
@@ -414,7 +414,7 @@ export function DatingPage() {
                     ))}
                   </div>
                 )}
-                <button onClick={() => setView("setup")} className="w-full mt-4 py-2.5 rounded-lg border-2 border-gray-300 font-medium text-sm hover:bg-gray-100">Edit Profile</button>
+                <button onClick={() => setView("setup")} className="w-full mt-4 py-2.5 rounded-lg border border-white/10 font-medium text-sm hover:bg-white/5">Edit Profile</button>
               </div>
             </div>
           )}
@@ -426,8 +426,8 @@ export function DatingPage() {
   // Facebook Dating view
   if (view === "fb-dating") {
     return (
-      <div className="min-h-screen -mx-4 -my-4 md:-mx-8 md:-my-8" style={{ background: "#F0F2F5", color: "#050505" }}>
-        <div className="sticky top-0 z-50 flex items-center gap-3 px-4 h-14 bg-white border-b border-gray-200 shadow-sm">
+      <div className="animate-fade-in">
+        <div className="sticky top-0 z-40 flex items-center gap-3 px-4 h-14 surface mb-4">
           <button onClick={() => { setView("swipe"); setMode("tinder"); }} className="p-2 rounded-full hover:bg-gray-100">
             <ChevronLeft className="w-6 h-6" />
           </button>
@@ -639,7 +639,7 @@ export function DatingPage() {
               </div>
             </div>
             <p className="text-white/80 mb-6">You and {showMatchPopup.name} liked each other!</p>
-            <button onClick={() => { loadMessages({ id: showMatchPopup.id, name: showMatchPopup.name, avatar: showMatchPopup.photos?.[0] }); setShowMatchPopup(null); }} className="px-8 py-3 rounded-full bg-white text-pink-500 font-bold mb-3 block w-full max-w-xs mx-auto">
+            <button onClick={() => { loadMessages({ id: showMatchPopup.id, name: showMatchPopup.name, avatar: showMatchPopup.photos?.[0], created_at: "" }); setShowMatchPopup(null); }} className="px-8 py-3 rounded-full bg-white text-pink-500 font-bold mb-3 block w-full max-w-xs mx-auto">
               Send a Message
             </button>
             <button onClick={() => setShowMatchPopup(null)} className="px-8 py-3 rounded-full border-2 border-white text-white font-medium block w-full max-w-xs mx-auto">

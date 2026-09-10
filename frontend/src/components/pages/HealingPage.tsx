@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Activity, CheckCircle2, AlertTriangle, Clock, Zap } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { PageHeader } from "@/components/layout/PageShell";
 
 interface HealError {
   id: string;
@@ -61,16 +62,8 @@ export function HealingPage() {
   const successRate = totalFixed > 0 ? 100 : 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-          <Activity className="w-5 h-5 text-accent" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold">Self-Healing System</h1>
-          <p className="text-sm text-muted">Auto-detect, report, and fix errors</p>
-        </div>
-      </div>
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader icon={Activity} title="Self-Healing System" subtitle="Auto-detect, report, and fix errors" accent="from-emerald-500 to-teal-500" />
 
       {/* Status Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

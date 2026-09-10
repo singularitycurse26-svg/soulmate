@@ -44,6 +44,11 @@ export const IncentiveUBIABI = [
   "function lastMintTime() view returns (uint256)",
   "function totalMinted() view returns (uint256)",
 
+  // Compliance hooks
+  "function getComplianceStats() view returns (uint256 totalRegistered, uint256 totalClaimed, uint256 totalDistributed, uint256 poolBalance, uint256 feesReceived, uint256 yieldReceived)",
+  "function isCompliant() view returns (bool)",
+  "function getSustainabilityMetrics() view returns (uint256 poolBalance, uint256 monthlyDistribution, uint256 monthlyFeesIn, uint256 monthlyYieldIn, uint256 monthsRemaining)",
+
   // Events
   "event UBIRegistered(address indexed account, uint256 timestamp)",
   "event UBIClaimed(address indexed account, uint256 amount, uint256 timestamp)",
