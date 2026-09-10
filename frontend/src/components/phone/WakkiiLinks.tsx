@@ -4,6 +4,7 @@ import { useStore } from "@/lib/store";
 import { aiApi, incllmv2Api } from "@/lib/api";
 import { playMessageAlert, playSendAlert } from "@/lib/notification-sound";
 import { WakkiiLiveStream } from "@/components/phone/WakkiiLiveStream";
+import { RadioPlayer } from "@/components/phone/RadioPlayer";
 import { cn } from "@/lib/utils";
 import {
   Mic,
@@ -169,6 +170,20 @@ export function WakkiiLinks({
           userName={userName}
           onJoinRoom={(roomId) => { joinRoom(roomId, "speaker"); setStarted(true); }}
         />
+
+        {/* Radio widget — pops up with social services, auto-plays */}
+        <div className="card">
+          <div className="flex items-center gap-2 mb-3">
+            <Radio className="w-4 h-4 text-accent" />
+            <h4 className="font-semibold text-sm">Radio & Podcasts</h4>
+            <span className="text-xs text-muted ml-auto">auto-plays on enter</span>
+          </div>
+          <p className="text-xs text-muted mb-3">
+            Music, podcasts, and radio stations. Save your favorite songs — click to replay anytime.
+            Scrollable saved songs list for your collection.
+          </p>
+          <RadioPlayer embedded />
+        </div>
       </div>
     );
   }
@@ -497,6 +512,16 @@ export function WakkiiLinks({
         userName={userName}
         onJoinRoom={(roomId) => { joinRoom(roomId, "speaker"); }}
       />
+
+      {/* Radio widget — in-room music */}
+      <div className="card">
+        <div className="flex items-center gap-2 mb-3">
+          <Radio className="w-4 h-4 text-accent" />
+          <h4 className="font-semibold text-sm">Radio & Podcasts</h4>
+          <span className="text-xs text-muted ml-auto">save & replay songs</span>
+        </div>
+        <RadioPlayer embedded />
+      </div>
 
       {/* Leave */}
       <button
