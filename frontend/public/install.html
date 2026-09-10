@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Soulmate OS">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" href="/incentives-coin.png">
+<link rel="apple-touch-icon" href="/incentives-coin.png">
+<title>Install Soulmate OS — Home Screen Shortcut</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, 'Segoe UI', sans-serif;
+  background: #0a0a0f; color: #fff;
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 20px; text-align: center;
+}
+.container { max-width: 400px; width: 100%; }
+.app-icon {
+  width: 96px; height: 96px; border-radius: 22px;
+  background: linear-gradient(135deg, #00e676, #00bfa5);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 48px; font-weight: 700; margin: 0 auto 20px;
+  color: #0a0a0f;
+  box-shadow: 0 8px 32px rgba(0,230,118,0.4);
+}
+h1 { font-size: 24px; margin-bottom: 8px; }
+.subtitle { font-size: 14px; color: #8888aa; margin-bottom: 28px; }
+.install-btn {
+  width: 100%; padding: 16px; border: none; border-radius: 14px;
+  background: linear-gradient(135deg, #00e676, #00bfa5);
+  color: #0a0a0f; font-size: 16px; font-weight: 700;
+  cursor: pointer; margin-bottom: 12px;
+}
+.install-btn:active { transform: scale(0.98); }
+.instructions {
+  background: #1a1a2e; border-radius: 14px; padding: 20px;
+  text-align: left; margin-top: 20px; display: none;
+}
+.instructions.show { display: block; }
+.instructions h2 { font-size: 16px; margin-bottom: 12px; text-align: center; }
+.instructions ol { list-style: none; counter-reset: step; }
+.instructions li {
+  counter-increment: step; padding: 10px 0 10px 36px;
+  position: relative; font-size: 14px; color: #ccc;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.instructions li::before {
+  content: counter(step); position: absolute; left: 0; top: 8px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #00e676; color: #0a0a0f; font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.platform-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.platform-tab {
+  flex: 1; padding: 10px; border: 1px solid #333; border-radius: 10px;
+  background: transparent; color: #8888aa; font-size: 13px; cursor: pointer;
+}
+.platform-tab.active { background: #00e676; color: #0a0a0f; border-color: #00e676; }
+.status {
+  margin-top: 16px; padding: 12px; border-radius: 10px;
+  font-size: 13px; display: none;
+}
+.status.show { display: block; }
+.status.success { background: rgba(0,230,118,0.15); color: #00e676; }
+.status.info { background: rgba(33,150,243,0.15); color: #2196f3; }
+.shortcut-links {
+  margin-top: 24px; display: flex; flex-direction: column; gap: 8px;
+}
+.shortcut-link {
+  display: flex; align-items: center; gap: 12px; padding: 14px;
+  background: #1a1a2e; border-radius: 12px; text-decoration: none;
+  color: white; font-size: 14px;
+}
+.shortcut-link:active { background: #252545; }
+.shortcut-link-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 700; flex-shrink: 0;
+}
+.soulmate-icon { background: linear-gradient(135deg, #00e676, #00bfa5); color: #0a0a0f; }
+.aceline-icon { background: linear-gradient(135deg, #E91E63, #9C27B0); }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="app-icon">S</div>
+  <h1>Install Soulmate OS</h1>
+  <p class="subtitle">Add to your phone home screen for instant access</p>
+
+  <button class="install-btn" id="installBtn">Add to Home Screen</button>
+
+  <div class="status" id="status"></div>
+
+  <div class="instructions" id="instructions">
+    <h2>How to Install</h2>
+    <div class="platform-tabs">
+      <button class="platform-tab active" onclick="showPlatform('android')">Android</button>
+      <button class="platform-tab" onclick="showPlatform('ios')">iPhone</button>
+    </div>
+    <ol id="androidSteps">
+      <li>Tap the <strong>3 dots menu</strong> in your browser</li>
+      <li>Tap <strong>Add to Home screen</strong> or <strong>Install app</strong></li>
+      <li>Tap <strong>Add</strong> or <strong>Install</strong></li>
+      <li>Soulmate OS icon appears on your home screen</li>
+      <li>Tap it to open like a native app</li>
+    </ol>
+    <ol id="iosSteps" style="display:none;">
+      <li>Tap the <strong>Share button</strong> at the bottom</li>
+      <li>Scroll down and tap <strong>Add to Home Screen</strong></li>
+      <li>Tap <strong>Add</strong> in the top right</li>
+      <li>Soulmate OS icon appears on your home screen</li>
+      <li>Tap it to open like a native app</li>
+    </ol>
+  </div>
+
+  <div class="shortcut-links">
+    <a href="/" class="shortcut-link">
+      <div class="shortcut-link-icon soulmate-icon">S</div>
+      <div>
+        <div style="font-weight:600;">Soulmate OS</div>
+        <div style="font-size:12px;color:#8888aa;">Open the full app</div>
+      </div>
+    </a>
+    <a href="http://127.0.0.1:8085" class="shortcut-link">
+      <div class="shortcut-link-icon aceline-icon">A</div>
+      <div>
+        <div style="font-weight:600;">Aceline (Local)</div>
+        <div style="font-size:12px;color:#8888aa;">127.0.0.1:8085</div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<script>
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  showStatus('Install button ready! Tap to add Soulmate OS to your home screen.', 'info');
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  showStatus('Soulmate OS installed! Check your home screen for the app icon.', 'success');
+});
+
+function showStatus(msg, type) {
+  const s = document.getElementById('status');
+  s.textContent = msg;
+  s.className = 'status show ' + type;
+}
+
+function showPlatform(platform) {
+  document.querySelectorAll('.platform-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('androidSteps').style.display = platform === 'android' ? 'block' : 'none';
+  document.getElementById('iosSteps').style.display = platform === 'ios' ? 'block' : 'none';
+}
+
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      showStatus('Soulmate OS installed! Check your home screen.', 'success');
+    } else {
+      showStatus('Install cancelled. Follow manual steps below.', 'info');
+      document.getElementById('instructions').classList.add('show');
+    }
+    deferredPrompt = null;
+  } else {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS) {
+      showPlatform('ios');
+      document.querySelectorAll('.platform-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.platform-tab')[1].classList.add('active');
+    } else {
+      showPlatform('android');
+    }
+    document.getElementById('instructions').classList.add('show');
+    showStatus('Follow the steps below to add Soulmate OS to your home screen.', 'info');
+  }
+});
+
+setTimeout(() => {
+  if (!deferredPrompt) {
+    document.getElementById('instructions').classList.add('show');
+  }
+}, 3000);
+</script>
+</body>
+</html>

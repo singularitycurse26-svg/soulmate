@@ -13,6 +13,18 @@
 
 **Soulmate** gives your AI agent a structured mind — a 9-phase reasoning loop, 3-layer persistent memory, a recursive knowledge graph, and guard hooks that prevent grinding. It works with [Cascade/Windsurf](https://windsurf.com), [Ollama](https://ollama.ai), or any OpenAI-compatible backend.
 
+## Phone Home Screen Shortcut
+
+Add Soulmate OS to your phone home screen with one tap:
+
+1. Open the app on your phone
+2. Browser will prompt **Add to Home Screen** automatically
+3. Or visit `/install` and tap **Add to Home Screen**
+4. Soulmate OS icon appears on your home screen
+5. Tap it to open like a native app (no browser chrome)
+
+The install page auto-detects Android vs iPhone and shows the right steps.
+
 100% local. 100% free. No API keys required.
 
 ### Works With Your AI Stack
