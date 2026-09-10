@@ -24,6 +24,7 @@ export type AppPage =
   | "marketplace"
   | "dating"
   | "incentives"
+  | "daytrading"
   | "healing"
   | "journal"
   | "soultube"

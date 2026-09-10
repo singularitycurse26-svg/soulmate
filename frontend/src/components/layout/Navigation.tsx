@@ -24,6 +24,7 @@ import {
   PlayCircle,
   Sparkles,
   Radio,
+  CandlestickChart,
   Menu,
   X,
 } from "lucide-react";
@@ -45,6 +46,7 @@ const navItems: { page: AppPage; labelKey: string; icon: any; group: string }[] 
   { page: "soulillusions", labelKey: "common:nav.soulillusions", icon: Sparkles, group: "Play" },
   { page: "wallet", labelKey: "common:nav.wallet", icon: Wallet, group: "Money" },
   { page: "incentives", labelKey: "common:nav.incentives", icon: Coins, group: "Money" },
+  { page: "daytrading", labelKey: "common:nav.daytrading", icon: CandlestickChart, group: "Money" },
   { page: "security", labelKey: "common:nav.security", icon: Shield, group: "System" },
 ];
 
