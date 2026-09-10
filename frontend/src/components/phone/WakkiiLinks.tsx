@@ -34,6 +34,7 @@ import {
   Shield,
   Database,
   Heart,
+  VolumeX,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -93,6 +94,7 @@ export function WakkiiLinks({
   const [copied, setCopied] = useState(false);
   const [started, setStarted] = useState(false);
   const [jarvisMode, setJarvisMode] = useState(false);
+  const [acelineMode, setAcelineMode] = useState(false);
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -128,6 +130,10 @@ export function WakkiiLinks({
     return <JarvisAssistant userName={userName} onExit={() => setJarvisMode(false)} roomId={state.roomId} />;
   }
 
+  if (acelineMode) {
+    return <AcelineAssistant userName={userName} onExit={() => setAcelineMode(false)} roomId={state.roomId} />;
+  }
+
   if (!started) {
     return (
       <div className="space-y-4">
@@ -156,6 +162,13 @@ export function WakkiiLinks({
           >
             <Bot className="w-4 h-4" />
             Talk to Jarvis AI
+          </button>
+          <button
+            onClick={() => setAcelineMode(true)}
+            className="w-full max-w-xs mx-auto mt-3 px-4 py-3 rounded-xl bg-pink-500/15 text-pink-400 font-medium text-sm flex items-center justify-center gap-2 hover:bg-pink-500/25 transition-colors"
+          >
+            <Sparkles className="w-4 h-4" />
+            Talk to Aceline AI
           </button>
           {state.error && (
             <p className="text-danger text-sm mt-3">{state.error}</p>
@@ -1743,6 +1756,277 @@ function JarvisAssistant({ userName, onExit, roomId }: { userName: string; onExi
         <p className="text-[10px] text-muted mt-2 flex items-center gap-1">
           <Shield className="w-2.5 h-2.5" />
           Runs locally via Ollama · Uncensored · Has memory · Can perform actions on Soulmate OS
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function AcelineAssistant({ userName, onExit, roomId }: { userName: string; onExit: () => void; roomId: string }) {
+  const [messages, setMessages] = useState<Array<{ role: "user" | "ai"; text: string; actions?: any[] }>>([
+    {
+      role: "ai",
+      text: `Hi ${userName}! I'm Aceline, your AI building assistant. I work with the room chat and other AI agents here to help you build. I can send messages to Wakkii rooms, manage contacts, store memories, write code, and coordinate with other agents. What are we building today?`,
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [thinking, setThinking] = useState(false);
+  const [model, setModel] = useState<string>(() => {
+    try { return localStorage.getItem("aceline_model") || "trill"; } catch { return "trill"; }
+  });
+  const [showModels, setShowModels] = useState(false);
+  const [availableModels, setAvailableModels] = useState<Array<{ id: string; name: string; params: string }>>([]);
+  const [listening, setListening] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, thinking]);
+
+  useEffect(() => {
+    incllmv2Api.models().then(async (res) => {
+      try {
+        const data = await res.json();
+        if (data.models) setAvailableModels(data.models);
+      } catch {}
+    }).catch(() => {});
+  }, []);
+
+  const speak = (text: string) => {
+    if (!voiceEnabled || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const clean = text.replace(/[*_`#>]/g, "").slice(0, 500);
+    const utterance = new SpeechSynthesisUtterance(clean);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.1;
+    utterance.volume = 1.0;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const startListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice input not supported. Use Chrome or Edge.");
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (event: any) => {
+      let transcript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setInput(transcript);
+      if (event.results[event.results.length - 1].isFinal) {
+        setListening(false);
+      }
+    };
+
+    recognition.onerror = () => setListening(false);
+    recognition.onend = () => setListening(false);
+
+    recognition.start();
+    recognitionRef.current = recognition;
+    setListening(true);
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch {}
+    }
+    setListening(false);
+  };
+
+  const send = async () => {
+    if (!input.trim() || thinking) return;
+    const text = input.trim();
+    setInput("");
+    setMessages((prev) => [...prev, { role: "user", text }]);
+    setThinking(true);
+
+    try {
+      const result = await incllmv2Api.jarvis(text, model, { roomId, userName, agent: "aceline" });
+      const data = await result.json();
+      const reply = data.response || "No response";
+      setMessages((prev) => [...prev, {
+        role: "ai",
+        text: reply,
+        actions: data.actions_taken || [],
+      }]);
+      speak(reply);
+    } catch (e: any) {
+      const errMsg = `I couldn't reach the backend. Make sure the Soulmate server is running. Error: ${e.message}`;
+      setMessages((prev) => [...prev, { role: "ai", text: errMsg }]);
+    } finally {
+      setThinking(false);
+    }
+  };
+
+  const quickActions = [
+    "Help me build a feature",
+    "Send a message to the room",
+    "What can the other agents do?",
+    "Write some code for me",
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="card">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-12 h-12 rounded-xl bg-pink-500/20 flex items-center justify-center">
+            <Sparkles className="w-6 h-6 text-pink-400" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-bold text-base flex items-center gap-2">
+              Aceline
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-400 font-normal">
+                BUILD ASSISTANT
+              </span>
+            </h3>
+            <p className="text-xs text-muted">AI building assistant · works with room agents · voice enabled</p>
+          </div>
+          <button
+            onClick={() => setVoiceEnabled(!voiceEnabled)}
+            className={cn(
+              "text-xs px-2 py-1 rounded-lg flex items-center gap-1 transition-colors",
+              voiceEnabled ? "bg-pink-500/20 text-pink-400" : "bg-bg-alt text-muted"
+            )}
+            title="Toggle voice output"
+          >
+            {voiceEnabled ? <Volume2 className="w-3 h-3" /> : <VolumeX className="w-3 h-3" />}
+          </button>
+          <button
+            onClick={() => setShowModels(!showModels)}
+            className="text-xs px-2 py-1 rounded-lg bg-bg-alt flex items-center gap-1"
+          >
+            <Brain className="w-3 h-3" />
+            {model.split(":")[0].slice(0, 12)}
+          </button>
+          <button onClick={onExit} className="text-muted hover:text-text p-1">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {showModels && (
+          <div className="mb-4 p-3 rounded-xl bg-bg-alt space-y-1 max-h-48 overflow-y-auto">
+            <p className="text-xs font-semibold text-muted mb-2">Select Model</p>
+            {availableModels.length === 0 ? (
+              <p className="text-xs text-muted">No models found. Make sure Ollama is running.</p>
+            ) : (
+              availableModels.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => {
+                    setModel(m.id);
+                    try { localStorage.setItem("aceline_model", m.id); } catch {}
+                    setShowModels(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between p-2 rounded-lg text-left text-xs",
+                    model === m.id ? "bg-pink-500/15" : "hover:bg-bg"
+                  )}
+                >
+                  <div>
+                    <span className="font-medium">{m.name}</span>
+                    {m.params && <span className="text-muted ml-2">{m.params}</span>}
+                  </div>
+                  {model === m.id && <Check className="w-3 h-3 text-pink-400" />}
+                </button>
+              ))
+            )}
+          </div>
+        )}
+
+        <div className="space-y-3 max-h-[50vh] overflow-y-auto mb-3">
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={cn(
+                "rounded-xl p-3 text-sm",
+                msg.role === "user"
+                  ? "bg-pink-500/10 ml-8"
+                  : "bg-pink-500/10 border border-pink-500/20 mr-8"
+              )}
+            >
+              <p className={cn(
+                "text-xs font-medium mb-1 flex items-center gap-1",
+                msg.role === "ai" ? "text-pink-400" : "text-muted"
+              )}>
+                {msg.role === "ai" && <Sparkles className="w-3 h-3" />}
+                {msg.role === "user" ? userName : "Aceline"}
+              </p>
+              <p className="break-words whitespace-pre-wrap">{msg.text}</p>
+              {msg.actions && msg.actions.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-white/5 space-y-1">
+                  {msg.actions.map((a, j) => (
+                    <p key={j} className="text-[10px] text-green-400 flex items-center gap-1">
+                      <Zap className="w-2.5 h-2.5" />
+                      {a.tool}: {a.status || a.error || "executed"}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+          {thinking && (
+            <div className="rounded-xl p-3 text-sm bg-pink-500/10 border border-pink-500/20 mr-8">
+              <p className="text-xs font-medium mb-1 text-pink-400 flex items-center gap-1">
+                <Sparkles className="w-3 h-3 animate-pulse" />
+                Aceline
+              </p>
+              <p className="text-muted text-xs flex items-center gap-2">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Building...
+              </p>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        <div className="flex gap-2 mb-2 flex-wrap">
+          {quickActions.map((q) => (
+            <button
+              key={q}
+              onClick={() => setInput(q)}
+              className="text-[10px] px-2 py-1 rounded-full bg-bg-alt text-muted hover:text-text"
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={listening ? stopListening : startListening}
+            className={cn(
+              "px-3 rounded-xl flex items-center justify-center transition-colors",
+              listening ? "bg-pink-500/20 text-pink-400 animate-pulse" : "bg-bg-alt text-muted"
+            )}
+            title={listening ? "Stop listening" : "Voice input"}
+          >
+            {listening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+          </button>
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && send()}
+            placeholder="Ask Aceline to help build..."
+            className="flex-1 text-sm"
+            disabled={thinking}
+          />
+          <button onClick={send} disabled={thinking || !input.trim()} className="btn-primary px-3">
+            {thinking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          </button>
+        </div>
+
+        <p className="text-[10px] text-muted mt-2 flex items-center gap-1">
+          <Shield className="w-2.5 h-2.5" />
+          Runs locally via Ollama · Works with room agents · Voice enabled · Can build & coordinate
         </p>
       </div>
     </div>
