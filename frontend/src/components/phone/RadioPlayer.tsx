@@ -730,174 +730,199 @@ export function RadioPlayer({ embedded = false }: { embedded?: boolean }) {
             </button>
           </div>
 
-          {/* Expanded controls */}
+          {/* Expanded controls — top half: player, bottom half: scrollable side panel */}
           {expanded && (
-            <div className="mt-3 pt-3 border-t border-white/5 space-y-3">
-              {/* Volume */}
-              <div className="flex items-center gap-2">
-                <button onClick={toggleMute} className="text-muted hover:text-text">
-                  <VolumeIcon className="w-4 h-4" />
-                </button>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  value={muted ? 0 : volume}
-                  onChange={(e) => changeVolume(parseFloat(e.target.value))}
-                  className="flex-1 h-1 rounded-full appearance-none cursor-pointer"
-                  style={{
-                    background: `linear-gradient(to right, ${currentStation.color} ${(muted ? 0 : volume) * 100}%, rgba(255,255,255,0.1) ${(muted ? 0 : volume) * 100}%)`,
-                  }}
-                />
-                <span className="text-[10px] text-muted w-8 text-right">
-                  {Math.round((muted ? 0 : volume) * 100)}%
-                </span>
+            <div className="mt-3 pt-3 border-t border-white/5">
+              {/* Top half — controls */}
+              <div className="space-y-3 pb-3 border-b border-white/5">
+                {/* Volume */}
+                <div className="flex items-center gap-2">
+                  <button onClick={toggleMute} className="text-muted hover:text-text">
+                    <VolumeIcon className="w-4 h-4" />
+                  </button>
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={muted ? 0 : volume}
+                    onChange={(e) => changeVolume(parseFloat(e.target.value))}
+                    className="flex-1 h-1 rounded-full appearance-none cursor-pointer"
+                    style={{
+                      background: `linear-gradient(to right, ${currentStation.color} ${(muted ? 0 : volume) * 100}%, rgba(255,255,255,0.1) ${(muted ? 0 : volume) * 100}%)`,
+                    }}
+                  />
+                  <span className="text-[10px] text-muted w-8 text-right">
+                    {Math.round((muted ? 0 : volume) * 100)}%
+                  </span>
+                </div>
+
+                {/* Podcast episode controls */}
+                {currentStation.type === "podcast" && podcastEpisodes.length > 0 && (
+                  <div className="flex items-center justify-center gap-4">
+                    <button onClick={prevEpisode} className="text-muted hover:text-text">
+                      <SkipBack className="w-4 h-4" />
+                    </button>
+                    <span className="text-[10px] text-muted">
+                      Ep {episodeIndex + 1} of {podcastEpisodes.length}
+                    </span>
+                    <button onClick={nextEpisode} className="text-muted hover:text-text">
+                      <SkipForward className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Save + toggle buttons */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={saveCurrentSong}
+                    className="flex-1 text-xs px-2 py-2 rounded-lg bg-pink-500/15 text-pink-400 flex items-center justify-center gap-1.5 hover:bg-pink-500/25 transition-colors"
+                  >
+                    <Heart className="w-3 h-3" />
+                    Save
+                  </button>
+                  <button
+                    onClick={() => { setShowStations(!showStations); if (!showSaved) setShowSaved(true); }}
+                    className={cn(
+                      "flex-1 text-xs px-2 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors",
+                      showStations ? "bg-accent/15 text-accent" : "bg-bg-alt text-muted"
+                    )}
+                  >
+                    <List className="w-3 h-3" />
+                    Stations
+                  </button>
+                  <button
+                    onClick={() => { setShowSaved(!showSaved); if (!showStations) setShowStations(true); }}
+                    className={cn(
+                      "flex-1 text-xs px-2 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors",
+                      showSaved ? "bg-pink-500/15 text-pink-400" : "bg-bg-alt text-muted"
+                    )}
+                  >
+                    <Heart className="w-3 h-3" />
+                    Saved ({savedSongs.length})
+                  </button>
+                </div>
               </div>
 
-              {/* Podcast episode controls */}
-              {currentStation.type === "podcast" && podcastEpisodes.length > 0 && (
-                <div className="flex items-center justify-center gap-4">
-                  <button onClick={prevEpisode} className="text-muted hover:text-text">
-                    <SkipBack className="w-4 h-4" />
-                  </button>
-                  <span className="text-[10px] text-muted">
-                    Ep {episodeIndex + 1} of {podcastEpisodes.length}
-                  </span>
-                  <button onClick={nextEpisode} className="text-muted hover:text-text">
-                    <SkipForward className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-
-              {/* Station list toggle */}
-              <button
-                onClick={() => setShowStations(!showStations)}
-                className="w-full text-xs px-3 py-2 rounded-lg bg-bg-alt flex items-center justify-center gap-2"
-              >
-                <List className="w-3 h-3" />
-                {showStations ? "Hide Stations" : "Switch Station"}
-              </button>
-
-              {/* Save current song button */}
-              <button
-                onClick={saveCurrentSong}
-                className="w-full text-xs px-3 py-2 rounded-lg bg-pink-500/15 text-pink-400 flex items-center justify-center gap-2 hover:bg-pink-500/25 transition-colors"
-              >
-                <Heart className="w-3 h-3" />
-                Save Current {currentStation.type === "podcast" && currentEpisode ? "Episode" : "Station"}
-              </button>
-
-              {/* Saved songs toggle */}
-              <button
-                onClick={() => setShowSaved(!showSaved)}
-                className="w-full text-xs px-3 py-2 rounded-lg bg-bg-alt flex items-center justify-center gap-2"
-              >
-                <Heart className="w-3 h-3" />
-                {showSaved ? "Hide Saved" : `Saved (${savedSongs.length})`}
-              </button>
-
-              {/* Saved songs list — scrollable */}
-              {showSaved && (
-                <div className="space-y-1 max-h-60 overflow-y-auto border-t border-white/5 pt-2">
-                  {savedSongs.length === 0 ? (
-                    <p className="text-[10px] text-muted text-center py-4">
-                      No saved songs yet. Tap "Save Current" to add songs here.
-                    </p>
-                  ) : (
-                    savedSongs.map((song) => (
-                      <div
-                        key={song.id}
-                        className="flex items-center gap-2 p-2 rounded-lg bg-bg-alt hover:bg-white/5 transition-colors group"
-                      >
+              {/* Bottom half — scrollable side panel */}
+              <div className="mt-3 max-h-64 overflow-y-auto no-scrollbar">
+                {/* Two-column layout: stations on left, saved songs on right */}
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Left column — Stations */}
+                  {showStations && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-semibold text-muted px-1 pb-1 sticky top-0 bg-bg-card z-10">Stations</p>
+                      {STATIONS.map((station) => (
                         <button
-                          onClick={() => playSavedSong(song)}
-                          className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                          key={station.id}
+                          onClick={() => {
+                            playStation(station);
+                          }}
+                          className={cn(
+                            "w-full flex items-center gap-2 p-1.5 rounded-lg text-left transition-colors",
+                            currentStation.id === station.id ? "bg-white/5" : "hover:bg-white/5"
+                          )}
                         >
                           <div
-                            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                            style={{ background: `${song.color}30`, color: song.color }}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{ background: `${station.color}30`, color: station.color }}
                           >
-                            {song.stationType === "podcast" ? <Mic className="w-4 h-4" /> : <Music className="w-4 h-4" />}
+                            {station.icon}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium truncate">
-                              {song.episodeTitle || song.stationName}
-                            </p>
-                            <p className="text-[10px] text-muted truncate flex items-center gap-1">
-                              <Clock className="w-2.5 h-2.5" />
-                              {new Date(song.savedAt).toLocaleDateString()} · {song.stationName}
-                            </p>
+                            <p className="text-[11px] font-medium truncate">{station.name}</p>
+                            <p className="text-[9px] text-muted truncate">{station.description}</p>
                           </div>
+                          {currentStation.id === station.id && isPlaying && (
+                            <span className="flex gap-0.5 flex-shrink-0">
+                              <span className="w-0.5 h-2 bg-success rounded-full animate-pulse" />
+                              <span className="w-0.5 h-3 bg-success rounded-full animate-pulse" style={{ animationDelay: "150ms" }} />
+                            </span>
+                          )}
                         </button>
-                        <button
-                          onClick={() => deleteSavedSong(song.id)}
-                          className="text-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))
+                      ))}
+
+                      {/* Podcast episodes under selected station */}
+                      {currentStation.type === "podcast" && podcastEpisodes.length > 0 && (
+                        <div className="space-y-1 pt-2 mt-1 border-t border-white/5">
+                          <p className="text-[10px] font-semibold text-muted px-1 pb-1">Episodes</p>
+                          {podcastEpisodes.slice(0, 20).map((ep, i) => (
+                            <button
+                              key={i}
+                              onClick={() => { setEpisodeIndex(i); playEpisode(ep); }}
+                              className={cn(
+                                "w-full text-left p-1.5 rounded-lg text-[11px]",
+                                i === episodeIndex ? "bg-white/5" : "hover:bg-white/5"
+                              )}
+                            >
+                              <p className="truncate font-medium">{ep.title}</p>
+                              <p className="text-[9px] text-muted truncate">{ep.pubDate}</p>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Right column — Saved songs */}
+                  {showSaved && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-semibold text-pink-400 px-1 pb-1 sticky top-0 bg-bg-card z-10 flex items-center gap-1">
+                        <Heart className="w-2.5 h-2.5" />
+                        Saved Songs
+                      </p>
+                      {savedSongs.length === 0 ? (
+                        <p className="text-[10px] text-muted text-center py-6 px-2">
+                          No saved songs yet. Tap "Save" to add songs here.
+                        </p>
+                      ) : (
+                        savedSongs.map((song) => (
+                          <div
+                            key={song.id}
+                            className="flex items-center gap-1.5 p-1.5 rounded-lg bg-bg-alt hover:bg-white/5 transition-colors group"
+                          >
+                            <button
+                              onClick={() => playSavedSong(song)}
+                              className="flex items-center gap-1.5 flex-1 min-w-0 text-left"
+                            >
+                              <div
+                                className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                                style={{ background: `${song.color}30`, color: song.color }}
+                              >
+                                {song.stationType === "podcast" ? <Mic className="w-3.5 h-3.5" /> : <Music className="w-3.5 h-3.5" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[11px] font-medium truncate">
+                                  {song.episodeTitle || song.stationName}
+                                </p>
+                                <p className="text-[9px] text-muted truncate flex items-center gap-0.5">
+                                  <Clock className="w-2 h-2" />
+                                  {new Date(song.savedAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </button>
+                            <button
+                              onClick={() => deleteSavedSong(song.id)}
+                              className="text-muted hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+
+                  {/* Default view when neither is toggled */}
+                  {!showStations && !showSaved && (
+                    <div className="col-span-2 text-center py-4">
+                      <p className="text-[10px] text-muted">
+                        Tap "Stations" or "Saved" to browse in this panel
+                      </p>
+                    </div>
                   )}
                 </div>
-              )}
-
-              {/* Station list */}
-              {showStations && (
-                <div className="space-y-1 max-h-48 overflow-y-auto">
-                  {STATIONS.map((station) => (
-                    <button
-                      key={station.id}
-                      onClick={() => {
-                        playStation(station);
-                        setShowStations(false);
-                      }}
-                      className={cn(
-                        "w-full flex items-center gap-3 p-2 rounded-lg text-left transition-colors",
-                        currentStation.id === station.id ? "bg-white/5" : "hover:bg-white/5"
-                      )}
-                    >
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ background: `${station.color}30`, color: station.color }}
-                      >
-                        {station.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium truncate">{station.name}</p>
-                        <p className="text-[10px] text-muted truncate">{station.description}</p>
-                      </div>
-                      {currentStation.id === station.id && isPlaying && (
-                        <span className="flex gap-0.5">
-                          <span className="w-0.5 h-2 bg-success rounded-full animate-pulse" />
-                          <span className="w-0.5 h-3 bg-success rounded-full animate-pulse" style={{ animationDelay: "150ms" }} />
-                          <span className="w-0.5 h-2 bg-success rounded-full animate-pulse" style={{ animationDelay: "300ms" }} />
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Podcast episode list */}
-              {currentStation.type === "podcast" && showStations && podcastEpisodes.length > 0 && (
-                <div className="space-y-1 max-h-40 overflow-y-auto border-t border-white/5 pt-2">
-                  <p className="text-[10px] font-semibold text-muted px-2">Episodes</p>
-                  {podcastEpisodes.slice(0, 20).map((ep, i) => (
-                    <button
-                      key={i}
-                      onClick={() => { setEpisodeIndex(i); playEpisode(ep); }}
-                      className={cn(
-                        "w-full text-left p-2 rounded-lg text-xs",
-                        i === episodeIndex ? "bg-white/5" : "hover:bg-white/5"
-                      )}
-                    >
-                      <p className="truncate font-medium">{ep.title}</p>
-                      <p className="text-[10px] text-muted truncate">{ep.pubDate}</p>
-                    </button>
-                  ))}
-                </div>
-              )}
+              </div>
             </div>
           )}
         </div>
