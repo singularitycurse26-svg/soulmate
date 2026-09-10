@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Incentives Inc. Frequency Generator</title>
+  <base href="/frequency-generator/">
+  <script type="module" crossorigin src="./assets/main-Dv7nlZYI.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/main-DP-LZjzA.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">Incentives Inc. <strong>Frequency Generator</strong></span>
+      </div>
+      <div class="header-controls">
+        <div class="master-volume-control">
+          <label>Master Vol</label>
+          <input type="range" id="masterVolume" min="0" max="100" value="50" />
+          <span id="masterVolumeValue">50%</span>
+        </div>
+        <button id="masterPlayBtn" class="btn btn-primary btn-lg">▶ Play All</button>
+        <button id="masterStopBtn" class="btn btn-danger btn-lg">■ Stop All</button>
+      </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="generator">Generator</button>
+      <button class="tab-btn" data-tab="timer">Timer & Alarm</button>
+      <button class="tab-btn" data-tab="catalog">Catalog</button>
+      <button class="tab-btn" data-tab="journal">📖 Journal</button>
+      <button class="tab-btn" data-tab="mausbot">🤖 OpenMausBot</button>
+      <button class="tab-btn" data-tab="studio">🎵 Music Studio</button>
+    </nav>
+
+    <!-- Generator Tab -->
+    <div id="tab-generator" class="tab-content active">
+      <!-- Master Oscilloscope -->
+      <div class="master-oscilloscope">
+        <canvas id="masterScope" width="1200" height="120"></canvas>
+        <div class="scope-label">Master Output — Combined Waveform</div>
+      </div>
+
+      <!-- Channel Grid -->
+      <div class="channel-grid" id="channelGrid">
+        <!-- Channels injected by JS -->
+      </div>
+
+      <!-- Presets -->
+      <div class="presets-section">
+        <h3>Quick Presets <span class="hint">(click to load into selected channel)</span></h3>
+        <div class="presets-grid" id="presetsGrid">
+          <!-- Presets injected by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Timer Tab -->
+    <div id="tab-timer" class="tab-content">
+      <div class="timer-section">
+        <!-- Stopwatch -->
+        <div class="timer-card">
+          <h3>Stopwatch</h3>
+          <div class="stopwatch-display" id="stopwatchDisplay">00:00:00.000</div>
+          <div class="timer-controls">
+            <button id="swStart" class="btn btn-primary">Start</button>
+            <button id="swStop" class="btn btn-warning">Stop</button>
+            <button id="swLap" class="btn btn-info">Lap</button>
+            <button id="swReset" class="btn btn-secondary">Reset</button>
+          </div>
+          <div class="lap-list" id="lapList"></div>
+        </div>
+
+        <!-- Countdown Timer -->
+        <div class="timer-card">
+          <h3>Countdown Timer</h3>
+          <div class="timer-input-group">
+            <input type="number" id="timerHours" min="0" max="99" value="0" placeholder="HH" />
+            <span>:</span>
+            <input type="number" id="timerMinutes" min="0" max="59" value="5" placeholder="MM" />
+            <span>:</span>
+            <input type="number" id="timerSeconds" min="0" max="59" value="0" placeholder="SS" />
+          </div>
+          <div class="countdown-display" id="countdownDisplay">00:05:00</div>
+          <div class="timer-progress">
+            <div class="progress-bar" id="timerProgressBar"></div>
+          </div>
+          <div class="timer-controls">
+            <button id="cdStart" class="btn btn-primary">Start</button>
+            <button id="cdPause" class="btn btn-warning">Pause</button>
+            <button id="cdReset" class="btn btn-secondary">Reset</button>
+          </div>
+        </div>
+
+        <!-- Alarm -->
+        <div class="timer-card">
+          <h3>Alarm Clock</h3>
+          <div class="alarm-current-time" id="alarmCurrentTime">--:--:--</div>
+          <div class="alarm-input-group">
+            <input type="time" id="alarmTimeInput" />
+            <select id="alarmFormat">
+              <option value="24">24h</option>
+              <option value="12">12h</option>
+            </select>
+          </div>
+          <div class="timer-controls">
+            <button id="alarmSet" class="btn btn-primary">Set Alarm</button>
+            <button id="alarmCancel" class="btn btn-danger">Cancel</button>
+          </div>
+          <div class="alarm-status" id="alarmStatus">No alarm set</div>
+          <div class="alarm-countdown" id="alarmCountdown">--:--:--</div>
+        </div>
+
+        <!-- Alarm Sound Settings -->
+        <div class="timer-card alarm-sound-card">
+          <h3>Alarm Sounds</h3>
+          <div class="alarm-sound-options">
+            <label class="checkbox-label">
+              <input type="checkbox" id="useBuiltinSound" checked />
+              <span>Built-in sound:</span>
+              <select id="builtinSoundSelect">
+                <option value="beep">Beep</option>
+                <option value="bell">Bell</option>
+                <option value="buzzer">Buzzer</option>
+                <option value="chime">Chime</option>
+              </select>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="useGeneratorChannels" />
+              <span>Trigger generator channels</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="useCustomSound" />
+              <span>Custom sound file:</span>
+              <input type="file" id="customSoundFile" accept=".mp3,.wav,.ogg" />
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="useScreenFlash" checked />
+              <span>Screen flash</span>
+            </label>
+          </div>
+          <button id="testAlarmSound" class="btn btn-info">Test Alarm Sound</button>
+          <button id="dismissAlarm" class="btn btn-danger" style="display:none;">Dismiss Alarm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Catalog Tab -->
+    <div id="tab-catalog" class="tab-content">
+      <div class="catalog-section">
+        <div class="catalog-header">
+          <h3>Saved Frequencies</h3>
+          <div class="catalog-controls">
+            <input type="text" id="catalogSearch" placeholder="Search by name or frequency..." />
+            <button id="catalogExport" class="btn btn-info">Export</button>
+            <button id="catalogImport" class="btn btn-info">Import</button>
+            <input type="file" id="catalogImportFile" accept=".json" style="display:none;" />
+          </div>
+        </div>
+        <div class="catalog-list" id="catalogList">
+          <p class="empty-state">No saved frequencies yet. Say "Jarvis, save this frequency" or click "Save Current" on a channel.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Universal Journal Tab -->
+    <div id="tab-journal" class="tab-content">
+      <div class="uj-section">
+        <div class="uj-compose">
+          <h3>📖 Universal Journal</h3>
+          <p class="uj-subtitle">Your journal persists across all sessions. Write freely, tag entries, track your mood, and link frequencies.</p>
+          <div class="uj-form">
+            <input type="text" id="ujTitle" placeholder="Entry title (optional)" />
+            <textarea id="ujBody" placeholder="Write your journal entry..." rows="4"></textarea>
+            <div class="uj-form-row">
+              <input type="text" id="ujTags" placeholder="Tags (comma-separated, e.g. meditation, healing, breakthrough)" />
+              <select id="ujMood">
+                <option value="">📝 No mood</option>
+                <option value="great">😄 Great</option>
+                <option value="good">🙂 Good</option>
+                <option value="neutral">😐 Neutral</option>
+                <option value="low">😕 Low</option>
+                <option value="anxious">😰 Anxious</option>
+                <option value="calm">😌 Calm</option>
+                <option value="energized">⚡ Energized</option>
+              </select>
+              <button id="ujSubmitBtn" class="btn btn-primary">Add Entry</button>
+              <button id="ujCancelBtn" class="btn btn-secondary" style="display:none;">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="uj-stats" id="ujStats"></div>
+
+        <div class="uj-controls">
+          <input type="text" id="ujSearch" placeholder="Search entries..." />
+          <select id="ujTagFilter"><option value="">All tags</option></select>
+          <button id="ujExport" class="btn btn-info">Export</button>
+          <button id="ujImport" class="btn btn-info">Import</button>
+          <input type="file" id="ujImportFile" accept=".json" style="display:none;" />
+          <button id="ujClear" class="btn btn-danger">Clear All</button>
+        </div>
+
+        <div class="uj-list" id="ujList"></div>
+
+        <!-- Bug Tracker -->
+        <div class="uj-bug-section">
+          <h4>🐛 Bug Tracker — Auto-Detected</h4>
+          <p class="uj-subtitle">The journal automatically detects broken buttons, page errors, and console errors. OpenMausBot auto-fixes them when detected.</p>
+          <div class="uj-stats" id="ujBugStats"></div>
+          <div class="uj-bug-controls">
+            <button id="ujClearFixedBugs" class="btn btn-info btn-sm">Clear Fixed</button>
+            <button id="ujGenSuggestions" class="btn btn-primary btn-sm">Generate Suggestions</button>
+          </div>
+          <div class="uj-bug-list" id="ujBugList"></div>
+        </div>
+
+        <!-- Auto-Log / Activity Monitor -->
+        <div class="uj-autolog-section">
+          <h4>📊 Activity Monitor — Auto-Logged</h4>
+          <p class="uj-subtitle">Every click, navigation, conversation, plan, and system event is logged automatically across all sessions.</p>
+          <div class="uj-autolog-list" id="ujAutoLogList"></div>
+        </div>
+
+        <!-- Suggestions -->
+        <div class="uj-suggest-section">
+          <h4>💡 Suggestions & Improvements — Auto-Generated</h4>
+          <p class="uj-subtitle">The journal analyzes your usage patterns and generates at least 8 suggestions for improvement. Updated every 60 seconds.</p>
+          <div class="uj-suggest-list" id="ujSuggestList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OpenMausBot Tab -->
+    <div id="tab-mausbot" class="tab-content">
+      <div class="omb-section">
+        <div class="omb-header">
+          <h3>🤖 OpenMausBot — Universal AI Agent</h3>
+          <div class="omb-voice-controls">
+            <span class="omb-voice-indicator" id="ombVoiceIndicator"></span>
+            <span class="omb-voice-status" id="ombVoiceStatus">Voice Off</span>
+            <button class="omb-voice-toggle" id="ombVoiceToggle" title="Toggle Jarvis voice">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="omb-layout">
+          <!-- Chat Panel -->
+          <div class="omb-chat-panel">
+            <div class="omb-chat-log" id="ombChatLog"></div>
+            <div class="omb-chat-input-row">
+              <input type="text" id="ombChatInput" placeholder="Type a message or use voice..." />
+              <button id="ombSendBtn" class="btn btn-primary btn-sm">Send</button>
+              <button id="ombClearChat" class="btn btn-secondary btn-sm">Clear</button>
+            </div>
+            <div class="omb-quick-cmds">
+              <button class="omb-quick-cmd" data-cmd="help">Help</button>
+              <button class="omb-quick-cmd" data-cmd="what do you remember">Memory</button>
+              <button class="omb-quick-cmd" data-cmd="show goals">Goals</button>
+              <button class="omb-quick-cmd" data-cmd="show projects">Projects</button>
+              <button class="omb-quick-cmd" data-cmd="show bugs">Bugs</button>
+              <button class="omb-quick-cmd" data-cmd="fix all bugs">Fix Bugs</button>
+              <button class="omb-quick-cmd" data-cmd="show suggestions">Suggestions</button>
+              <button class="omb-quick-cmd" data-cmd="show activity">Activity</button>
+              <button class="omb-quick-cmd" data-cmd="play all">Play All</button>
+              <button class="omb-quick-cmd" data-cmd="stop all">Stop All</button>
+            </div>
+          </div>
+
+          <!-- Memory Panel -->
+          <div class="omb-memory-panel">
+            <h4>🧠 Persistent Memory</h4>
+            <div class="omb-memory-add">
+              <input type="text" id="ombMemoryKey" placeholder="Key (optional)" />
+              <textarea id="ombMemoryValue" placeholder="Memory value..." rows="2"></textarea>
+              <select id="ombMemoryCategory">
+                <option value="fact">Fact</option>
+                <option value="preference">Preference</option>
+                <option value="context">Context</option>
+                <option value="skill">Skill</option>
+              </select>
+              <button id="ombMemoryAdd" class="btn btn-info btn-sm">Add Memory</button>
+            </div>
+            <div class="omb-memory-list" id="ombMemoryList"></div>
+          </div>
+
+          <!-- Goals Panel -->
+          <div class="omb-goals-panel">
+            <h4>🎯 Long-Term Goals</h4>
+            <div class="omb-goal-add">
+              <input type="text" id="ombGoalTitle" placeholder="Goal title..." />
+              <textarea id="ombGoalDesc" placeholder="Description (optional)..." rows="2"></textarea>
+              <button id="ombGoalAdd" class="btn btn-primary btn-sm">Add Goal</button>
+            </div>
+            <div class="omb-goals-list" id="ombGoalsList"></div>
+          </div>
+
+          <!-- Projects Panel -->
+          <div class="omb-projects-panel">
+            <h4>📁 Projects</h4>
+            <div class="omb-project-add">
+              <input type="text" id="ombProjectName" placeholder="Project name..." />
+              <textarea id="ombProjectDesc" placeholder="Description (optional)..." rows="2"></textarea>
+              <button id="ombProjectAdd" class="btn btn-primary btn-sm">Add Project</button>
+            </div>
+            <div class="omb-projects-list" id="ombProjectsList"></div>
+          </div>
+
+          <!-- Export -->
+          <div class="omb-export-row">
+            <button id="ombExport" class="btn btn-info btn-sm">Export All Memory</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Jarvis Panel -->
+    <div class="jarvis-panel" id="jarvisPanel">
+      <div class="jarvis-header">
+        <span class="jarvis-indicator" id="jarvisIndicator"></span>
+        <span>Jarvis</span>
+        <button class="jarvis-toggle-btn" id="jarvisToggle" title="Toggle Jarvis">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </button>
+      </div>
+      <div class="jarvis-mic-controls">
+        <select id="jarvisMicSelect" class="jarvis-mic-select">
+          <option value="">Default Microphone</option>
+        </select>
+        <div class="jarvis-mic-level">
+          <div class="jarvis-mic-level-bar" id="jarvisMicLevel"></div>
+        </div>
+      </div>
+      <div class="jarvis-status" id="jarvisStatus">Jarvis Off</div>
+      <div class="jarvis-log" id="jarvisLog">
+        <div class="jarvis-message system">Jarvis standing by. Click the microphone to activate.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Music Studio Tab -->
+  <div id="tab-studio" class="tab-content">
+    <div id="musicStudioContainer" class="music-studio-container"></div>
+  </div>
+
+  <!-- Alarm Flash Overlay -->
+  <div id="alarmFlash" class="alarm-flash-overlay"></div>
+
+</body>
+</html>

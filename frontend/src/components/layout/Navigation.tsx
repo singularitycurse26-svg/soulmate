@@ -25,6 +25,7 @@ import {
   Sparkles,
   Radio,
   CandlestickChart,
+  AudioWaveform,
   Menu,
   X,
 } from "lucide-react";
@@ -47,6 +48,7 @@ const navItems: { page: AppPage; labelKey: string; icon: any; group: string }[] 
   { page: "wallet", labelKey: "common:nav.wallet", icon: Wallet, group: "Money" },
   { page: "incentives", labelKey: "common:nav.incentives", icon: Coins, group: "Money" },
   { page: "daytrading", labelKey: "common:nav.daytrading", icon: CandlestickChart, group: "Money" },
+  { page: "frequency", labelKey: "common:nav.frequency", icon: AudioWaveform, group: "Money" },
   { page: "security", labelKey: "common:nav.security", icon: Shield, group: "System" },
 ];
 

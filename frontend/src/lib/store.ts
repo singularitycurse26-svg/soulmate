@@ -25,6 +25,7 @@ export type AppPage =
   | "dating"
   | "incentives"
   | "daytrading"
+  | "frequency"
   | "healing"
   | "journal"
   | "soultube"

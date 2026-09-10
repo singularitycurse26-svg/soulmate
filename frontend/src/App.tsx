@@ -21,6 +21,7 @@ import { MarketplacePage } from "@/components/pages/MarketplacePage";
 import { DatingPage } from "@/components/pages/DatingPage";
 import { IncentivesPage } from "@/components/pages/IncentivesPage";
 import { DayTradingPage } from "@/components/pages/DayTradingPage";
+import { FrequencyGeneratorPage } from "@/components/pages/FrequencyGeneratorPage";
 import { HealingPage } from "@/components/pages/HealingPage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Fingerprint, Loader2, BookOpen } from "lucide-react";
@@ -248,7 +249,7 @@ export default function App() {
       const validPages: AppPage[] = [
         "dashboard", "email", "phone", "contacts", "ai", "games", "wallet",
         "security", "openclaw", "hermes", "marketplace", "dating", "incentives",
-        "daytrading", "healing", "journal", "soultube", "soulillusions", "wakkii",
+        "daytrading", "frequency", "healing", "journal", "soultube", "soulillusions", "wakkii",
       ];
       if (validPages.includes(viewParam as AppPage)) {
         useStore.getState().setActivePage(viewParam as AppPage);
@@ -308,6 +309,7 @@ export default function App() {
           {activePage === "dating" && <DatingPage />}
           {activePage === "incentives" && <ErrorBoundary><IncentivesPage /></ErrorBoundary>}
           {activePage === "daytrading" && <ErrorBoundary><DayTradingPage /></ErrorBoundary>}
+          {activePage === "frequency" && <ErrorBoundary><FrequencyGeneratorPage /></ErrorBoundary>}
           {activePage === "healing" && <HealingPage />}
           {activePage === "journal" && <SessionJournalPage />}
           {activePage === "soultube" && <ErrorBoundary><SoulTubePage /></ErrorBoundary>}
