@@ -603,6 +603,204 @@ The integration connects to the SoulIllusions Agent server running on port 7869:
 2. Start the SoulIllusions server: `soulillusions serve` (runs on port 7869)
 3. Open Soulmate OS and click the SoulIllusions icon in the sidebar
 
+## Incentives Inc. Day Trading Pro
+
+A professional real-time crypto trading terminal built into Soulmate OS, accessible from the sidebar under **Money** → **Day Trading**. Live production deployment at [soulmate-os-app.netlify.app](https://soulmate-os-app.netlify.app).
+
+### Real-Time Data
+
+- **Binance WebSocket streaming** — Live ticker prices for all watchlist symbols via combined WebSocket stream (`wss://stream.binance.com`)
+- **Live kline updates** — Real-time candlestick updates for the selected chart symbol
+- **REST polling fallback** — Automatic fallback to REST API polling if WebSocket disconnects
+- **INC stablecoin simulation** — Simulated price updates for INCUSDT (not on Binance) every 2 seconds
+- **LIVE badge** — Visual indicator next to streamed prices showing real-time connection status
+
+### Price Alerts
+
+- **Above/below target alerts** — Create alerts for price crossing thresholds
+- **Persistent storage** — Alerts saved to localStorage (`daytrading_alerts_v3`)
+- **Auto-trigger** — Live ticker updates check alert conditions automatically
+- **Browser notifications** — Native browser notification + in-app toast on trigger
+- **Alerts tab** — Dedicated tab showing active and triggered alerts
+- **Quick alert button** — One-click alert creation from chart header
+- **Distance-to-target display** — Shows how far price is from alert threshold
+
+### Chart & Trading
+
+- **Candlestick chart** — 7 timeframes (1m, 5m, 15m, 1h, 4h, 1d) with live updates
+- **Position overlays** — Visual entry/exit lines on chart (blue=long entry, orange=short entry, green dashed=TP, red dashed=SL)
+- **Drawing tools** — Trendline and Fibonacci with localStorage persistence
+- **Smart Trade Terminal** — Market, limit, conditional, and OCO order types
+- **OCO orders** — One-Cancels-Other: when TP fills, SL cancels (and vice versa) with real-time monitoring
+- **DCA bots** — Automated dollar-cost averaging with configurable strategies
+- **Multiple saved watchlists** — Create, save, load, and delete named watchlists (localStorage persistent)
+- **Portfolio tracking** — Unrealized P&L, position sizes, order history
+- **4 layout presets** — Simple, Advanced, Terminal, Cryptowatch
+
+### Order Flow Widget (8 View Tabs)
+
+Professional order-flow analysis inspired by ATAS, Bookmap, and Quantower:
+
+| Tab | Style | Features |
+|-----|-------|----------|
+| **Footprint** | ATAS | Bid × ask footprint, delta, volume, imbalance ratio, stacking detection |
+| **Heatmap** | Bookmap | Liquidity heatmap with cumulative depth visualization |
+| **Profile** | — | Volume profile with POC, VAH, VAL (value area) |
+| **Tape** | — | Live trade tape with block/large/whale trade classification |
+| **Dots** | Bookmap | Volume dots canvas — colored circles sized by volume, green=buy/red=sell |
+| **Stats** | ATAS | Delta bars chart + 9-column cluster statistics table per candle (volume, buy, sell, delta, delta%, B/S ratio, trade count, POC) |
+| **Power** | Quantower | Power trades (large aggressive orders in short time windows), stop run detection, exhaustion events |
+| **Dist** | — | Trade size distribution across 6 buckets with buy/sell stacked bars |
+
+**Detection functions** in `frontend/src/lib/indicators.ts`:
+- `detectPowerTrades` — Large aggressive orders in short time windows with intensity scoring
+- `detectStops` — Stop run patterns with confidence scoring
+- `detectExhaustion` — Aggressive orders failing to move price
+- `buildClusterStats` — Per-candle metrics (volume, delta, B/S ratio, POC, max/min delta)
+- `buildTradeSizeDistribution` — 6 size buckets with buy/sell split
+- `detectIcebergs` — Hidden large orders detected via trade pattern analysis
+- `detectAbsorption` — Aggressive volume vs passive liquidity comparison
+- `buildVolumeDots` — Bookmap-style volume dot data
+- `buildFootprint` — Per-candle bid/ask footprint matrix
+- `buildHeatmapData` — Order book depth heatmap snapshots
+
+### Order Book Widget
+
+Kraken Pro / Quantower-style order book with:
+
+- **List, ladder, and depth views** — Three display modes with cumulative depth chart
+- **Grouping precision** — None / 0.1 / 1 / 10 price bucket aggregation
+- **Large order highlighting** — Orders > 3x average size get warning accent + bold + side marker
+- **Recent trades tape** — Kraken-style toggleable tape showing last 20 trades with buy/sell coloring
+- **Depth chart** — Cumulative bid/ask curve with area fill and price labels
+- **Imbalance metrics** — Bid/ask volume ratio with spread and mid-price display
+- **Volume modes** — Cumulative or step volume bars
+
+### Day Trading Files
+
+| File | Description |
+|------|-------------|
+| `frontend/src/components/pages/DayTradingPage.tsx` | Main trading page with watchlist, chart, portfolio, orders, alerts |
+| `frontend/src/components/trading/ProChart.tsx` | Candlestick chart with position overlays |
+| `frontend/src/components/trading/OrderFlowWidget.tsx` | 8-tab order flow analysis widget |
+| `frontend/src/components/trading/OrderBookWidget.tsx` | Order book with grouping, highlights, trades tape |
+| `frontend/src/components/trading/SmartTradeTerminal.tsx` | Order entry (market/limit/conditional/OCO) |
+| `frontend/src/components/trading/DCABotPanel.tsx` | DCA bot management |
+| `frontend/src/lib/indicators.ts` | Technical indicators + order flow detection functions |
+
+## Frequency Generator
+
+A full-frequency tone generator and audio toolset integrated into Soulmate OS, accessible from the sidebar under **Money** → **Frequency Gen**.
+
+### Features
+
+- **4-channel tone generator** — Independent frequency, waveform (sine/square/sawtooth/triangle), volume, and pan per channel
+- **Master oscilloscope** — Real-time waveform visualization of combined output
+- **Per-channel oscilloscopes** — Individual channel monitoring
+- **Quick presets** — Schumann Resonance (7.83 Hz), Solfeggio frequencies (174, 285, 396, 417, 528, 639, 741, 852, 963 Hz), Concert Pitch (440 Hz), Alternative Tuning (432 Hz)
+- **Timer & stopwatch** — Countdown timer, stopwatch with lap tracking
+- **Alarm clock** — 24h/12h format, custom alarm sounds (beep/bell/buzzer/chime), screen flash, custom sound file
+- **Frequency catalog** — Browse and load preset frequencies
+- **Universal Journal** — Cross-session persistent journal with IndexedDB + localStorage backup, mood tracking, tags, search, export/import
+- **OpenMausBot** — Universal AI agent with persistent memory, long-term goals, projects tracking, Jarvis voice (speech recognition + synthesis), chat interface
+- **Music Studio** — Full music production studio (see below)
+
+### Music Studio
+
+Embedded inside the Frequency Generator's Music Studio tab:
+
+- **Piano roll** — Note editing with pitch, velocity, duration
+- **Wavetable synth** — Multi-voice synthesis with wavetable modulation
+- **Stem separator** — Isolate vocals, drums, bass, and instruments
+- **Effects rack** — Reverb, delay, distortion, compression, EQ
+- **Automation lanes** — Parameter automation over time
+- **Auto-tune** — Auto-mode and graph-mode pitch correction
+- **Chopper** — Beat-sliced audio chopping
+- **Timeline** — Multi-track arrangement view
+- **Mix window** — Pro Tools-style mixing console
+- **Edit Window** — Pro Tools-style audio editing
+- **Transport** — Play/stop/record/loop controls
+- **Musical typing** — QWERTY keyboard to musical notes mapping
+- **Suno integration** — AI generation panel, chat bar, export
+
+### Frequency Generator Files
+
+| File | Description |
+|------|-------------|
+| `frontend/public/frequency-generator/index.html` | Main frequency generator app (built) |
+| `frontend/public/frequency-generator/assets/` | JS + CSS bundles |
+| `frontend/public/music-studio/` | Music studio app (34 files: acid, autotune, protools, suno, ui, utils) |
+| `frontend/src/components/pages/FrequencyGeneratorPage.tsx` | Iframe wrapper page |
+
+## Business Archive
+
+A business management suite with 8 departments + Cline AI agent, accessible from the sidebar under **Home** → **Business Archive**.
+
+### 8 Departments
+
+| # | Department | Description |
+|---|-----------|-------------|
+| 1 | **Fax Machine** | Scan documents via camera or upload, auto-file by name to universal memory + journal, fax number field |
+| 2 | **Custom Dept 2** | User-customizable department |
+| 3 | **Custom Dept 3** | User-customizable department |
+| 4 | **Contacts & Addresses** | Store fax numbers, phone, email, addresses — auto-saved to universal memory |
+| 5 | **Project Analyzer** | Watch projects, analyze what's missing, generate 25 suggestions every 15 min, auto-add to memory after 1 hour |
+| 6 | **Custom Dept 6** | User-customizable department |
+| 7 | **Custom Dept 7** | User-customizable department |
+| 8 | **Custom Dept 8** | User-customizable department |
+| AI | **Cline Agent** | AI coding assistant connected via GLM 5.1 (see below) |
+
+### Department 1: Fax Machine
+
+- **Photo capture** — Take photo via phone camera (`capture="environment"`) or upload from file
+- **Auto-filing** — Documents auto-filed by name to `Business Archive / Fax Machine / [Category] / [Name]`
+- **Universal memory + journal** — Every scanned document auto-stored to both universal memory and journal
+- **Fax number field** — Optional fax number for faxed documents (real fax API can be wired up later)
+- **Categories** — Contract, Invoice, Legal, Receipt, Letter, ID/Document, Other
+- **Search** — Filter documents by name, category, or tag
+
+### Department 4: Contacts & Addresses
+
+- Store fax numbers, phone numbers, emails, and full addresses
+- Categorize contacts (Business, Client, Vendor, Personal, Other)
+- All contacts auto-saved to universal memory
+
+### Department 5: Project Analyzer
+
+- **Create projects** with name, description, and status (planning → in-progress → review → complete)
+- **Task tracking** with checkboxes and progress bars
+- **Project analysis** — Scans each project for what's present, what's missing, and improvements needed
+- **25 suggestions every 15 minutes** via local rule-based engine (analyzes project status, task completion ratios, missing items, improvements)
+- **Auto-add after 1 hour** — Once a project hits the 1-hour mark, all pending suggestions auto-added to universal memory + journal
+- **Compiled analysis reports** showing present/missing/improvements for each project
+
+### Cline AI Agent
+
+AI coding assistant integrated into the Business Archive, connected the same way as Aceline in Wakkii Links:
+
+- **GLM 5.1 via incllmv2** — Connects through the local incllmv2 backend (port 8547) running GLM 5.1 via Ollama
+- **Model picker** — GLM 5.1 (trill), Singularity, SplitBit, plus any Ollama models detected on the backend
+- **Voice enabled** — Speech synthesis (text-to-speech) + speech recognition (voice input via microphone)
+- **Memory integration** — Shows memory count from backend, with consolidate button
+- **Universal journal logging** — All Cline queries auto-logged to business archive journal
+- **Quick actions** — Analyze projects, suggestions, code help, status
+- **Offline fallback** — Context-aware local responses on deployed site (knows about projects, documents, contacts, suggestions)
+
+### Universal Memory & Journal
+
+All 8 departments share a single localStorage-based universal memory store:
+- Every action (document scan, contact save, project creation, suggestion generation) is auto-logged to the universal journal
+- Documents, contacts, suggestions all linked to memory entries
+- Export/import full archive data as JSON
+
+### Business Archive Files
+
+| File | Description |
+|------|-------------|
+| `frontend/src/lib/businessArchive.ts` | Universal memory, journal, documents, contacts, projects, suggestions store |
+| `frontend/src/components/pages/BusinessArchivePage.tsx` | Main page with 8 department grid + Cline agent |
+| `frontend/src/components/trading/business-archive/index.tsx` | All department components (Fax, Contacts, Project Analyzer, Custom, Cline) |
+
 ## Support the Project
 
 If Soulmate helps you, consider supporting development:
