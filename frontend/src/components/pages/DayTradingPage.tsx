@@ -16,6 +16,7 @@ import { AIIndicatorsWidget } from "@/components/trading/AIIndicatorsWidget";
 import { SmartTradeTerminal, type SmartTradeOptions } from "@/components/trading/SmartTradeTerminal";
 import { DCABotPanel, type DCABot } from "@/components/trading/DCABotPanel";
 import { rsi, macd, bollingerBands, type Candle } from "@/lib/indicators";
+import { useDayTradingAcelineActions } from "@/lib/acelineActions";
 
 // ═══════════════════════════════════════════════════════════════════
 // Types
@@ -310,6 +311,7 @@ export function DayTradingPage() {
   const [loadingTickers, setLoadingTickers] = useState(false);
   const [loadingChart, setLoadingChart] = useState(false);
   const [portfolio, setPortfolio] = useState(() => loadPortfolio());
+  useDayTradingAcelineActions(() => ({ watchlist, selectedSymbol, portfolio, tickers }));
   const [orders, setOrders] = useState<Order[]>(() => loadOrders());
   const [dcaBots, setDCABots] = useState<DCABot[]>(() => loadDCABots());
   const [showAddSymbol, setShowAddSymbol] = useState(false);

@@ -5,6 +5,7 @@ import { aiApi, incllmv2Api } from "@/lib/api";
 import { playMessageAlert, playSendAlert } from "@/lib/notification-sound";
 import { WakkiiLiveStream } from "@/components/phone/WakkiiLiveStream";
 import { cn } from "@/lib/utils";
+import { useWakkiiAcelineActions } from "@/lib/acelineActions";
 import {
   Mic,
   MicOff,
@@ -74,6 +75,7 @@ export function WakkiiLinks({
   embedded = false,
 }: WakkiiLinksProps) {
   const { showAlert } = useStore();
+  useWakkiiAcelineActions();
   const {
     state,
     createRoom,

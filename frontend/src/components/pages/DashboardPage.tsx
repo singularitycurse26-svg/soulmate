@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { WakkiiLinks } from "@/components/phone/WakkiiLinks";
 import { RadioPlayer } from "@/components/phone/RadioPlayer";
+import { useDashboardAcelineActions } from "@/lib/acelineActions";
 
 function getYouTubeId(url: string): string | null {
   const patterns = [
@@ -75,6 +76,7 @@ const OS_ACCENT = "#6366f1";
 
 export function DashboardPage() {
   const { showAlert, setActivePage, authEmail } = useStore();
+  useDashboardAcelineActions();
   const [posts, setPosts] = useState<Post[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);

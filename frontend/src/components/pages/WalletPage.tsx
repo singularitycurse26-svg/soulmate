@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { IncentiveTokenABI, IncentiveTokenBytecode } from "@/contracts/IncentiveToken";
 import { IncentiveVestingABI, IncentiveVestingBytecode } from "@/contracts/IncentiveVesting";
 import { FounderMasterVaultABI, FounderMasterVaultBytecode } from "@/contracts/FounderMasterVault";
+import { useWalletAcelineActions } from "@/lib/acelineActions";
 import { IncentiveGamingStakingABI, IncentiveGamingStakingBytecode } from "@/contracts/IncentiveGamingStaking";
 import { IncentiveUBIABI, IncentiveUBIBytecode } from "@/contracts/IncentiveUBI";
 import { IncentiveBridgeABI, IncentiveBridgeBytecode } from "@/contracts/IncentiveBridge";
@@ -62,6 +63,7 @@ type WalletView = "main" | "send" | "receive" | "tags" | "history" | "buy" | "ad
 export function WalletPage() {
   const { walletAddress, walletKey, showAlert, setView: navigateView, isFounder } = useStore();
   const { t } = useTranslation();
+  useWalletAcelineActions();
   const [view, setView] = useState<WalletView>("main");
   const [balances, setBalances] = useState<Record<string, number>>({});
   const [usdValues, setUsdValues] = useState<Record<string, number>>({});

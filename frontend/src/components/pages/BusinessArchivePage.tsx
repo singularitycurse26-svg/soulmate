@@ -10,6 +10,7 @@ import {
 import {
   getDepartments, type Department,
 } from "@/lib/businessArchive";
+import { useBusinessArchiveAcelineActions } from "@/lib/acelineActions";
 import {
   Folder, Briefcase, Printer, BookUser, ScanSearch,
   FileText, Archive, Settings, Terminal,
@@ -22,6 +23,7 @@ const ICON_MAP: Record<string, any> = {
 export function BusinessArchivePage() {
   const [departments, setDepartments] = useState<Department[]>(getDepartments());
   const [activeDept, setActiveDept] = useState(1);
+  useBusinessArchiveAcelineActions();
 
   return (
     <div className="space-y-4">

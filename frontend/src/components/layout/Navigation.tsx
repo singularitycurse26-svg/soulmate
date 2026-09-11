@@ -70,11 +70,10 @@ function groupedNav() {
 }
 
 export function Sidebar() {
-  const { activePage, setActivePage, clearWallet, clearAuth, setView, isFounder } = useStore();
+  const { activePage, setActivePage, clearAuth, setView, isFounder } = useStore();
   const { t } = useTranslation();
 
   const handleLogout = () => {
-    clearWallet();
     clearAuth();
     setView("login");
   };
@@ -165,7 +164,7 @@ export function Sidebar() {
 }
 
 export function MobileNav() {
-  const { activePage, setActivePage, clearWallet, clearAuth, setView, isFounder } = useStore();
+  const { activePage, setActivePage, clearAuth, setView, isFounder } = useStore();
   const { t } = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -178,7 +177,6 @@ export function MobileNav() {
   };
 
   const handleLogout = () => {
-    clearWallet();
     clearAuth();
     setView("login");
   };

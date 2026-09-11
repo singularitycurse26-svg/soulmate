@@ -31,6 +31,10 @@ import { SessionJournalPage } from "@/components/pages/SessionJournalPage";
 import { SoulTubePage } from "@/components/pages/SoulTubePage";
 import { SoulIllusionsPage } from "@/components/pages/SoulIllusionsPage";
 import { WakkiiLinks } from "@/components/phone/WakkiiLinks";
+import { AcelineOverlay } from "@/components/aceline/AcelineOverlay";
+import { AcelineButton } from "@/components/aceline/AcelineButton";
+import { useAcelineStore } from "@/lib/acelineStore";
+import { initWalletAuto } from "@/lib/walletAuto";
 import { initVaultSessionTracker, logWork } from "@/lib/vault";
 import { hasPlatformAuthenticator } from "@/lib/utils";
 
@@ -225,6 +229,28 @@ export default function App() {
     })();
   }, []);
 
+  // Initialize wallet auto-creation (hardcoded — always present)
+  useEffect(() => {
+    initWalletAuto();
+  }, []);
+
+  // Cmd+K / Ctrl+K to toggle Aceline
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        const aceline = useAcelineStore.getState();
+        if (aceline.active) {
+          aceline.recall();
+        } else {
+          aceline.dispatch(activePage);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [activePage]);
+
   // Log page navigation in background
   useEffect(() => {
     if (view === "app" && activePage) {
@@ -326,6 +352,8 @@ export default function App() {
         </div>
       </main>
       <MobileNav />
+      <AcelineButton />
+      <AcelineOverlay />
     </>
   );
 

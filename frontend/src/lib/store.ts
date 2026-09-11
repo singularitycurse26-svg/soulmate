@@ -49,11 +49,10 @@ interface AppState {
   setFounder: (v: boolean) => void;
   clearAuth: () => void;
 
-  // Wallet
+  // Wallet (hardcoded — always present, cannot be removed)
   walletAddress: string;
   walletKey: string;
   setWallet: (address: string, key: string) => void;
-  clearWallet: () => void;
 
   // Navigation
   view: View;
@@ -110,11 +109,6 @@ export const useStore = create<AppState>((set) => ({
     localStorage.setItem("wallet_address", address);
     localStorage.setItem("wallet_key", key);
     set({ walletAddress: address, walletKey: key });
-  },
-  clearWallet: () => {
-    localStorage.removeItem("wallet_address");
-    localStorage.removeItem("wallet_key");
-    set({ walletAddress: "", walletKey: "" });
   },
 
   view: "login",

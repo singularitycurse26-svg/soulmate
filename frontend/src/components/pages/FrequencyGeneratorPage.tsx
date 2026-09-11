@@ -1,7 +1,9 @@
 import { useStore } from "@/lib/store";
+import { useFrequencyAcelineActions } from "@/lib/acelineActions";
 
 export function FrequencyGeneratorPage() {
   const { showAlert } = useStore();
+  useFrequencyAcelineActions();
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
