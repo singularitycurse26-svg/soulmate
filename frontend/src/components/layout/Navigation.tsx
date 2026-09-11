@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import {
   LayoutDashboard,
+  Briefcase,
   Mail,
   Phone,
   Users,
@@ -33,6 +34,7 @@ import incentivesCoin from "@/assets/incentives-coin.png";
 
 const navItems: { page: AppPage; labelKey: string; icon: any; group: string }[] = [
   { page: "dashboard", labelKey: "common:nav.dashboard", icon: LayoutDashboard, group: "Home" },
+  { page: "business", labelKey: "common:nav.business", icon: Briefcase, group: "Home" },
   { page: "marketplace", labelKey: "common:nav.marketplace", icon: ShoppingBag, group: "Social" },
   { page: "dating", labelKey: "common:nav.dating", icon: Heart, group: "Social" },
   { page: "wakkii", labelKey: "common:nav.wakkii", icon: Radio, group: "Social" },

@@ -12,6 +12,7 @@ type View =
 
 export type AppPage =
   | "dashboard"
+  | "business"
   | "email"
   | "phone"
   | "contacts"

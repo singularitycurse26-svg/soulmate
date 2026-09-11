@@ -22,6 +22,7 @@ import { DatingPage } from "@/components/pages/DatingPage";
 import { IncentivesPage } from "@/components/pages/IncentivesPage";
 import { DayTradingPage } from "@/components/pages/DayTradingPage";
 import { FrequencyGeneratorPage } from "@/components/pages/FrequencyGeneratorPage";
+import { BusinessArchivePage } from "@/components/pages/BusinessArchivePage";
 import { HealingPage } from "@/components/pages/HealingPage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Fingerprint, Loader2, BookOpen } from "lucide-react";
@@ -247,7 +248,7 @@ export default function App() {
     const viewParam = params.get("view");
     if (viewParam) {
       const validPages: AppPage[] = [
-        "dashboard", "email", "phone", "contacts", "ai", "games", "wallet",
+        "dashboard", "business", "email", "phone", "contacts", "ai", "games", "wallet",
         "security", "openclaw", "hermes", "marketplace", "dating", "incentives",
         "daytrading", "frequency", "healing", "journal", "soultube", "soulillusions", "wakkii",
       ];
@@ -294,6 +295,7 @@ export default function App() {
       <main className="md:ml-64 min-h-screen pt-14 md:pt-0 pb-20 md:pb-0" style={{ paddingTop: "calc(56px + env(safe-area-inset-top))", paddingBottom: "calc(56px + env(safe-area-inset-bottom))" }}>
         <div className="max-w-7xl mx-auto p-4 md:p-7">
           {activePage === "dashboard" && <DashboardPage />}
+          {activePage === "business" && <ErrorBoundary><BusinessArchivePage /></ErrorBoundary>}
           {activePage === "email" && <EmailPage />}
           {activePage === "phone" && (
             <PhoneGateWrapper />
