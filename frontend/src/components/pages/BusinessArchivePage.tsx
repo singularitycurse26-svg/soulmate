@@ -5,13 +5,14 @@ import {
   ContactsDept,
   ProjectAnalyzerDept,
   CustomDept,
+  ClineAgentDept,
 } from "@/components/trading/business-archive";
 import {
   getDepartments, type Department,
 } from "@/lib/businessArchive";
 import {
   Folder, Briefcase, Printer, BookUser, ScanSearch,
-  FileText, Archive, Settings,
+  FileText, Archive, Settings, Terminal,
 } from "lucide-react";
 
 const ICON_MAP: Record<string, any> = {
@@ -69,6 +70,24 @@ export function BusinessArchivePage() {
             </button>
           );
         })}
+
+        {/* Cline AI Agent button */}
+        <button
+          onClick={() => setActiveDept(9)}
+          className={cn(
+            "relative flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all col-span-2 md:col-span-1",
+            activeDept === 9
+              ? "bg-accent/10 border-accent/30 text-accent"
+              : "bg-bg-card border-accent/10 text-muted hover:text-white hover:border-accent/20"
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-accent/20">AI</span>
+            <Terminal className="w-5 h-5" />
+          </div>
+          <span className="text-[11px] font-medium text-center leading-tight">Cline Agent</span>
+          <span className="text-[8px] text-accent/60">GLM 5.1</span>
+        </button>
       </div>
 
       {/* Active department content */}
@@ -76,6 +95,7 @@ export function BusinessArchivePage() {
         {activeDept === 1 && <FaxMachineDept />}
         {activeDept === 4 && <ContactsDept />}
         {activeDept === 5 && <ProjectAnalyzerDept />}
+        {activeDept === 9 && <ClineAgentDept />}
         {[2, 3, 6, 7, 8].includes(activeDept) && (
           <CustomDept dept={departments.find(d => d.id === activeDept)!}
             onUpdate={(updates) => {

@@ -12,11 +12,13 @@ import {
   type ScannedDocument, type BusinessContact, type Suggestion, type BusinessProject,
   type Department, type ProjectAnalysis,
 } from "@/lib/businessArchive";
+import { incllmv2Api } from "@/lib/api";
 import {
   Printer, Camera, Upload, Trash2, FileText, Phone, MapPin, Mail,
   Brain, Lightbulb, AlertCircle, CheckCircle, Clock, Plus,
   Search, Folder, Settings, BookOpen, Zap, TrendingUp, Eye,
   Download, Upload as UploadIcon, BookUser, ScanSearch,
+  Terminal, Send, Mic, Sparkles, Cpu, ChevronDown, X,
 } from "lucide-react";
 
 // ═════════════════════════════════════════════════════════════════
@@ -694,6 +696,354 @@ export function CustomDept({ dept, onUpdate }: { dept: Department; onUpdate: (up
           <p className="text-[10px] mt-2">Click "Configure" to customize this department</p>
         </div>
       )}
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════
+// Cline AI Agent — Connected via incllmv2 (GLM 5.1 / Ollama)
+// Same pattern as Aceline in Wakkii Links
+// ═════════════════════════════════════════════════════════════════
+
+export function ClineAgentDept() {
+  const [messages, setMessages] = useState<Array<{ role: "user" | "ai"; text: string; actions?: string[] }>>([
+    {
+      role: "ai",
+      text: `Hi! I'm Cline, your AI coding assistant for the Business Archive. I can analyze projects, suggest improvements, write code snippets, and help manage your business documents. I connect through the Soulmate OS backend using GLM 5.1. What do you need help with?`,
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [thinking, setThinking] = useState(false);
+  const [model, setModel] = useState<string>(() => {
+    try { return localStorage.getItem("cline_model") || "trill"; } catch { return "trill"; }
+  });
+  const [showModels, setShowModels] = useState(false);
+  const [availableModels, setAvailableModels] = useState<Array<{ id: string; name: string; params: string }>>([]);
+  const [listening, setListening] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [memoryCount, setMemoryCount] = useState<number | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  const AI_MODELS = [
+    { id: "trill", name: "GLM 5.1", desc: "Standard · Balanced", icon: <Brain className="w-3 h-3" />, color: "text-blue-400" },
+    { id: "singularity", name: "Singularity", desc: "Analytical · Precision", icon: <Cpu className="w-3 h-3" />, color: "text-purple-400" },
+    { id: "splitbit", name: "SplitBit", desc: "Compressed · Efficient", icon: <Terminal className="w-3 h-3" />, color: "text-green-400" },
+  ];
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, thinking]);
+
+  useEffect(() => {
+    incllmv2Api.models().then(async (res) => {
+      try {
+        const data = await res.json();
+        if (data.models) setAvailableModels(data.models);
+      } catch {}
+    }).catch(() => {});
+  }, []);
+
+  const fetchMemoryCount = useCallback(async () => {
+    try {
+      const res = await incllmv2Api.memories();
+      const data = await res.json();
+      setMemoryCount(data.memories?.length || 0);
+    } catch {}
+  }, []);
+
+  useEffect(() => { fetchMemoryCount(); }, [fetchMemoryCount]);
+
+  const speak = (text: string) => {
+    if (!voiceEnabled || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const clean = text.replace(/[*_`#>]/g, "").slice(0, 500);
+    const utterance = new SpeechSynthesisUtterance(clean);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const startListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) { alert("Voice input not supported. Use Chrome or Edge."); return; }
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    recognition.onresult = (event: any) => {
+      let transcript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) transcript += event.results[i][0].transcript;
+      setInput(transcript);
+      if (event.results[event.results.length - 1].isFinal) setListening(false);
+    };
+    recognition.onerror = () => setListening(false);
+    recognition.onend = () => setListening(false);
+    recognition.start();
+    recognitionRef.current = recognition;
+    setListening(true);
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} }
+    setListening(false);
+  };
+
+  const generateLocalResponse = (query: string): string => {
+    const q = query.toLowerCase();
+    const projects = getProjects();
+    const docs = getDocuments();
+    const contacts = getContacts();
+    const suggestions = getSuggestions();
+
+    if (q.includes("project") || q.includes("analyz") || q.includes("status")) {
+      return `Here's the current Business Archive status:\n\n**Projects:** ${projects.length} tracked\n**Documents:** ${docs.length} filed\n**Contacts:** ${contacts.length} stored\n**Suggestions:** ${suggestions.filter(s => s.status === "new").length} pending\n\n${projects.length > 0 ? "Latest project: " + projects[0].name + " (" + projects[0].progress + "% complete)" : "No projects yet. Create one in the Project Analyzer department."}`;
+    }
+    if (q.includes("suggest") || q.includes("improv") || q.includes("missing")) {
+      const newSugs = suggestions.filter(s => s.status === "new").slice(0, 5);
+      if (newSugs.length === 0) return "No new suggestions. The Project Analyzer generates 25 suggestions every 15 minutes for active projects.";
+      return `Here are ${newSugs.length} suggestions:\n\n${newSugs.map((s, i) => `${i + 1}. [${s.priority}] ${s.title}`).join("\n")}`;
+    }
+    if (q.includes("document") || q.includes("fax") || q.includes("scan")) {
+      return `The Fax Machine has ${docs.length} documents filed. Use the camera to scan new documents — they auto-file by name to universal memory and journal. Categories include Contract, Invoice, Legal, Receipt, and more.`;
+    }
+    if (q.includes("contact") || q.includes("address") || q.includes("fax number")) {
+      return `You have ${contacts.length} contacts stored. Each contact can have fax numbers, phone, email, and full address. All contacts are saved to universal memory.`;
+    }
+    if (q.includes("memory") || q.includes("remember")) {
+      return `Universal memory has ${memoryCount || "unknown"} entries from the backend, plus all Business Archive data in localStorage. Every document scan, contact save, and project update is auto-logged.`;
+    }
+    if (q.includes("code") || q.includes("build") || q.includes("feature")) {
+      return `I can help you build features for the Business Archive or any Soulmate OS component. I work with the same backend as Aceline in Wakkii Links — using GLM 5.1 via the incllmv2 backend. Tell me what you want to build.`;
+    }
+    if (q.includes("hello") || q.includes("hi") || q.includes("hey")) {
+      return `Hello! I'm Cline, your AI coding assistant for the Business Archive. I can analyze projects, suggest improvements, help with documents, and write code. What do you need?`;
+    }
+    return `I'm running in offline mode (no local backend detected). I can still help with:\n\n• Project analysis and suggestions\n• Document and contact management\n• Code generation for Business Archive features\n• Universal memory and journal queries\n\nFor full AI capabilities, run the Soulmate server locally with Ollama + GLM 5.1.`;
+  };
+
+  const send = async () => {
+    if (!input.trim() || thinking) return;
+    const text = input.trim();
+    setInput("");
+    setMessages(prev => [...prev, { role: "user", text }]);
+    setThinking(true);
+
+    // Log to business journal
+    addJournalEntry({
+      text: `Cline query: ${text}`,
+      mood: "neutral",
+      tags: ["cline", "ai", "query"],
+      source: "cline-agent",
+    });
+
+    try {
+      const result = await incllmv2Api.jarvis(text, model, { agent: "cline", source: "business-archive" });
+      const data = await result.json();
+      const reply = data.response || "No response";
+      setMessages(prev => [...prev, { role: "ai", text: reply, actions: data.actions_taken || [] }]);
+      speak(reply);
+    } catch {
+      const reply = generateLocalResponse(text);
+      setMessages(prev => [...prev, { role: "ai", text: reply }]);
+      speak(reply);
+    } finally {
+      setThinking(false);
+    }
+  };
+
+  const quickActions = [
+    "Analyze my projects",
+    "What suggestions do you have?",
+    "Help me write code",
+    "Show business archive status",
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center">
+          <Terminal className="w-5 h-5 text-accent" />
+        </div>
+        <div className="flex-1">
+          <h3 className="font-bold text-base flex items-center gap-2">
+            Cline
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent/20 text-accent font-normal">
+              AI CODING AGENT
+            </span>
+          </h3>
+          <p className="text-xs text-muted">
+            GLM 5.1 via incllmv2 · Voice enabled · Connected to universal memory
+          </p>
+        </div>
+        <button
+          onClick={() => setVoiceEnabled(!voiceEnabled)}
+          className={cn("text-xs px-2 py-1 rounded-lg flex items-center gap-1 transition-colors",
+            voiceEnabled ? "bg-accent/20 text-accent" : "bg-bg-alt text-muted")}
+          title="Toggle voice output"
+        >
+          <Mic className="w-3 h-3" />
+        </button>
+        <button
+          onClick={() => setShowModels(!showModels)}
+          className={cn("text-xs px-2 py-1 rounded-lg flex items-center gap-1 transition-colors",
+            showModels ? "bg-accent/20 text-accent" : "bg-bg-alt text-muted")}
+          title="Switch AI model"
+        >
+          <Brain className="w-3 h-3" />
+          {AI_MODELS.find(m => m.id === model)?.name || "GLM 5.1"}
+        </button>
+      </div>
+
+      {/* Model picker */}
+      {showModels && (
+        <div className="p-3 rounded-xl bg-bg-alt space-y-1">
+          <p className="text-xs font-semibold text-muted mb-2">Select Model</p>
+          {AI_MODELS.map(m => (
+            <button
+              key={m.id}
+              onClick={() => {
+                setModel(m.id);
+                try { localStorage.setItem("cline_model", m.id); } catch {}
+                setShowModels(false);
+              }}
+              className={cn("w-full flex items-center justify-between p-2 rounded-lg text-left text-xs",
+                model === m.id ? "bg-accent/15" : "hover:bg-bg-card")}
+            >
+              <div className="flex items-center gap-2">
+                <span className={m.color}>{m.icon}</span>
+                <div>
+                  <span className="font-medium">{m.name}</span>
+                  <span className="text-muted ml-2 text-[10px]">{m.desc}</span>
+                </div>
+              </div>
+              {model === m.id && <CheckCircle className="w-3 h-3 text-accent" />}
+            </button>
+          ))}
+          {availableModels.length > 0 && (
+            <>
+              <p className="text-[10px] text-muted pt-2 border-t border-white/5 mt-2">Available Ollama models:</p>
+              {availableModels.map(m => (
+                <button
+                  key={m.id}
+                  onClick={() => {
+                    setModel(m.id);
+                    try { localStorage.setItem("cline_model", m.id); } catch {}
+                    setShowModels(false);
+                  }}
+                  className={cn("w-full flex items-center justify-between p-2 rounded-lg text-left text-xs",
+                    model === m.id ? "bg-accent/15" : "hover:bg-bg-card")}
+                >
+                  <div>
+                    <span className="font-medium">{m.name}</span>
+                    {m.params && <span className="text-muted ml-2 text-[10px]">{m.params}</span>}
+                  </div>
+                  {model === m.id && <CheckCircle className="w-3 h-3 text-accent" />}
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Memory info */}
+      {memoryCount !== null && (
+        <div className="flex items-center gap-2 text-[10px] text-muted">
+          <Brain className="w-3 h-3" />
+          <span>{memoryCount} memories stored</span>
+          <button
+            onClick={async () => {
+              try {
+                await incllmv2Api.consolidateMemories();
+                fetchMemoryCount();
+              } catch {}
+            }}
+            className="text-accent hover:text-accent/80"
+          >
+            Consolidate
+          </button>
+        </div>
+      )}
+
+      {/* Messages */}
+      <div className="space-y-3 max-h-[40vh] overflow-y-auto no-scrollbar">
+        {messages.map((msg, i) => (
+          <div key={i} className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}>
+            <div className={cn(
+              "max-w-[80%] p-3 rounded-xl text-sm",
+              msg.role === "user"
+                ? "bg-accent/15 text-text"
+                : "bg-bg-alt text-text border border-white/5"
+            )}>
+              <p className="whitespace-pre-wrap">{msg.text}</p>
+              {msg.actions && msg.actions.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-white/5 space-y-0.5">
+                  {msg.actions.map((a, j) => (
+                    <p key={j} className="text-[10px] text-muted flex items-center gap-1">
+                      <Zap className="w-2.5 h-2.5" /> {a}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+        {thinking && (
+          <div className="flex justify-start">
+            <div className="bg-bg-alt p-3 rounded-xl text-sm text-muted flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+              <div className="w-2 h-2 rounded-full bg-accent animate-pulse" style={{ animationDelay: "0.2s" }} />
+              <div className="w-2 h-2 rounded-full bg-accent animate-pulse" style={{ animationDelay: "0.4s" }} />
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Quick actions */}
+      <div className="flex flex-wrap gap-1">
+        {quickActions.map(action => (
+          <button
+            key={action}
+            onClick={() => { setInput(action); }}
+            className="text-[10px] px-2 py-1 rounded-lg bg-bg-alt text-muted hover:bg-accent/10 hover:text-accent transition"
+          >
+            {action}
+          </button>
+        ))}
+      </div>
+
+      {/* Input */}
+      <div className="flex gap-2">
+        <button
+          onClick={listening ? stopListening : startListening}
+          className={cn("p-2 rounded-lg transition",
+            listening ? "bg-danger/20 text-danger animate-pulse" : "bg-bg-alt text-muted hover:text-text")}
+        >
+          <Mic className="w-4 h-4" />
+        </button>
+        <input
+          type="text"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+          placeholder="Ask Cline anything..."
+          className="flex-1 px-3 py-2 rounded-lg bg-bg-alt border border-white/10 text-sm"
+        />
+        <button
+          onClick={send}
+          disabled={thinking || !input.trim()}
+          className="p-2 rounded-lg bg-accent/20 text-accent hover:bg-accent/30 transition disabled:opacity-50"
+        >
+          <Send className="w-4 h-4" />
+        </button>
+      </div>
+
+      <p className="text-[10px] text-muted flex items-center gap-1">
+        <Sparkles className="w-2.5 h-2.5" />
+        Connected via incllmv2 backend · GLM 5.1 · Falls back to offline mode on deployed site
+      </p>
     </div>
   );
 }
