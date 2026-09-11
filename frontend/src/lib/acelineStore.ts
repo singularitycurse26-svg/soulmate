@@ -25,12 +25,16 @@ export interface AcelineHistoryEntry {
   actionsTaken: string[];
 }
 
+type AcelinePersonality = "aceline" | "jarvis";
+
 interface AcelineState {
   // Core state
   active: boolean;
   location: AppPage | "standby";
   model: string;
   voiceEnabled: boolean;
+  personality: AcelinePersonality;
+  voiceMode: boolean;
 
   // Position/size (persisted)
   position: { x: number; y: number };
@@ -51,6 +55,8 @@ interface AcelineState {
   toggle: () => void;
   setModel: (model: string) => void;
   setVoiceEnabled: (enabled: boolean) => void;
+  setPersonality: (p: AcelinePersonality) => void;
+  setVoiceMode: (enabled: boolean) => void;
   setPosition: (pos: { x: number; y: number }) => void;
   setSize: (size: { w: number; h: number }) => void;
   addMessage: (msg: Omit<AcelineMessage, "id" | "timestamp">) => void;
@@ -70,6 +76,8 @@ function loadPersisted(): Partial<AcelineState> {
     return {
       model: data.model || "trill",
       voiceEnabled: data.voiceEnabled ?? true,
+      personality: data.personality || "aceline",
+      voiceMode: data.voiceMode ?? false,
       position: data.position || { x: window.innerWidth - 380, y: 80 },
       size: data.size || { w: 360, h: 520 },
       memory: data.memory || [],
@@ -79,6 +87,8 @@ function loadPersisted(): Partial<AcelineState> {
     return {
       model: "trill",
       voiceEnabled: true,
+      personality: "aceline" as AcelinePersonality,
+      voiceMode: false,
       position: { x: typeof window !== "undefined" ? window.innerWidth - 380 : 100, y: 80 },
       size: { w: 360, h: 520 },
       memory: [],
@@ -92,6 +102,8 @@ function persist(state: Partial<AcelineState>) {
     const toSave = {
       model: state.model,
       voiceEnabled: state.voiceEnabled,
+      personality: state.personality,
+      voiceMode: state.voiceMode,
       position: state.position,
       size: state.size,
       memory: state.memory,
@@ -113,6 +125,8 @@ export const useAcelineStore = create<AcelineState>((set, get) => {
     location: "standby",
     model: persisted.model || "trill",
     voiceEnabled: persisted.voiceEnabled ?? true,
+    personality: persisted.personality || "aceline",
+    voiceMode: persisted.voiceMode ?? false,
     position: persisted.position || { x: 100, y: 80 },
     size: persisted.size || { w: 360, h: 520 },
     messages: [],
@@ -156,6 +170,16 @@ export const useAcelineStore = create<AcelineState>((set, get) => {
     setVoiceEnabled: (enabled) => {
       set({ voiceEnabled: enabled });
       persist({ ...get(), voiceEnabled: enabled });
+    },
+
+    setPersonality: (p) => {
+      set({ personality: p });
+      persist({ ...get(), personality: p });
+    },
+
+    setVoiceMode: (enabled) => {
+      set({ voiceMode: enabled });
+      persist({ ...get(), voiceMode: enabled });
     },
 
     setPosition: (pos) => {
