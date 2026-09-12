@@ -41,6 +41,7 @@ import { useAcelineStore } from "@/lib/acelineStore";
 import { initWalletAuto } from "@/lib/walletAuto";
 import { initVaultSessionTracker, logWork } from "@/lib/vault";
 import { hasPlatformAuthenticator } from "@/lib/utils";
+import { AutoFitContainer } from "@/lib/useAutoFit.tsx";
 
 function PhoneGateWrapper() {
   const [bioSetupDone, setBioSetupDone] = useState(!!localStorage.getItem("bio_unlock_setup"));
@@ -322,8 +323,7 @@ export default function App() {
     <>
       <AlertContainer />
       <Sidebar />
-      <main className="md:ml-64 min-h-screen pt-14 md:pt-0 pb-20 md:pb-0" style={{ paddingTop: "calc(56px + env(safe-area-inset-top))", paddingBottom: "calc(56px + env(safe-area-inset-bottom))" }}>
-        <div className="max-w-7xl mx-auto p-4 md:p-7">
+      <AutoFitContainer page={activePage}>
           {activePage === "dashboard" && <ErrorBoundary><DashboardPage /></ErrorBoundary>}
           {activePage === "business" && <ErrorBoundary><BusinessArchivePage /></ErrorBoundary>}
           {activePage === "email" && <ErrorBoundary><EmailPage /></ErrorBoundary>}
@@ -358,8 +358,7 @@ export default function App() {
               />
             </ErrorBoundary>
           )}
-        </div>
-      </main>
+      </AutoFitContainer>
       <MobileNav />
       <AcelineButton />
       <AcelineOverlay />

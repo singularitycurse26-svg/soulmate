@@ -11,14 +11,47 @@
     color-scheme: dark;
   }
 
+  /* Auto-fit CSS variables — set by useAutoFit hook */
+  :root {
+    --vp-width: 100vw;
+    --vp-height: 100vh;
+    --vp-content-max: 1280px;
+    --vp-scale: 1;
+    --vp-base-font: 16px;
+    --vp-pad-x: 16px;
+    --vp-pad-y: 16px;
+    --vp-gap: 16px;
+  }
+
   body {
     @apply bg-bg text-white antialiased;
     font-family: "Inter", system-ui, -apple-system, sans-serif;
+    font-size: var(--vp-base-font, 16px);
     overscroll-behavior: none;
     background-image:
       radial-gradient(1200px 600px at 10% -10%, rgba(99, 102, 241, 0.12), transparent 55%),
       radial-gradient(900px 500px at 110% 0%, rgba(168, 85, 247, 0.08), transparent 50%);
     background-attachment: fixed;
+  }
+
+  /* Auto-fit responsive adjustments */
+  body[data-viewport="mobile"] .card { border-radius: 0.75rem; }
+  body[data-viewport="mobile"] .card-soft { border-radius: 0.75rem; }
+  body[data-viewport="wide"] .card { border-radius: 1.25rem; }
+
+  /* Tighter spacing on mobile */
+  body[data-viewport="mobile"] .space-y-4 > * + * { margin-top: 0.75rem; }
+  body[data-viewport="mobile"] .space-y-6 > * + * { margin-top: 1rem; }
+
+  /* Wider spacing on wide screens */
+  body[data-viewport="wide"] .space-y-4 > * + * { margin-top: 1.25rem; }
+  body[data-viewport="wide"] .space-y-6 > * + * { margin-top: 1.75rem; }
+
+  /* Focus visible for keyboard nav */
+  main:focus { outline: none; }
+  main:focus-visible {
+    outline: 2px solid var(--color-accent, #6366f1);
+    outline-offset: -2px;
   }
 
   ::-webkit-scrollbar {
