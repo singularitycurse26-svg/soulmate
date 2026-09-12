@@ -53,6 +53,11 @@ PAYMENT_METHODS = [
     "dave",
     "x_credit_card",
     "crypto_bsc",
+    "usdt",
+    "usdc",
+    "dai",
+    "busd",
+    "xrp",
 ]
 
 JOB_CATEGORIES = [

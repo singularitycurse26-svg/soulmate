@@ -28,6 +28,11 @@ const PAYMENT_METHODS = [
   { id: "dave", label: "Dave", icon: "📱" },
   { id: "x_credit_card", label: "X Credit Card", icon: "✖️" },
   { id: "crypto_bsc", label: "Crypto (BSC)", icon: "₿" },
+  { id: "usdt", label: "USDT (Tether)", icon: " tether" },
+  { id: "usdc", label: "USDC (Circle)", icon: " usdc" },
+  { id: "dai", label: "DAI", icon: " dai" },
+  { id: "busd", label: "BUSD", icon: " busd" },
+  { id: "xrp", label: "XRP", icon: "✕" },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
