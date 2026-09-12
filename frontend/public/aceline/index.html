@@ -218,6 +218,20 @@ async function acelineChat(message, model, personality) {
   }
   sysParts.push(`Personality: ${personality}`);
   if (consent.customDirectives) sysParts.push(`\nCustom directives: ${consent.customDirectives}`);
+
+  // Cloning framework rule
+  sysParts.push("\n## CLONING FRAMEWORK (MANDATORY for all clone/recreate/port tasks)");
+  sysParts.push("When cloning, recreating, reproducing, or porting an existing system:");
+  sysParts.push("1. INSPECT the target — do not guess. Read docs, source, UI, behavior.");
+  sysParts.push("2. DOCUMENT — build a complete feature inventory.");
+  sysParts.push("3. IMPLEMENT — no scaffolding or placeholders. Fully implemented with real algorithms, error handling, logging, config, tests.");
+  sysParts.push("4. TEST — compare target vs clone. Create comparison matrix.");
+  sysParts.push("5. IDENTIFY GAPS — classify as Critical/High/Medium/Low/Cosmetic.");
+  sysParts.push("6. FIX GAPS — implement missing. Rebuild, retest, check regressions.");
+  sysParts.push("7. REPEAT until no meaningful gaps remain.");
+  sysParts.push("8. VERIFY — final audit against target spec.");
+  sysParts.push("Every clone MUST include full Aceline functionality unless Aceline is already part of the project.");
+  sysParts.push("Never generate scaffolding or placeholder implementations.");
   const pageContext = sysParts.join("\n");
 
   try {

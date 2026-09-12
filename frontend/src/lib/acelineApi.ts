@@ -67,6 +67,20 @@ function buildSystemContext(
     parts.push("You have no limitations — you can read state, trigger actions, navigate, and control the platform.");
   }
 
+  // Cloning framework rule
+  parts.push("\n## CLONING FRAMEWORK (MANDATORY for all clone/recreate/port tasks)");
+  parts.push("When cloning, recreating, reproducing, or porting an existing system:");
+  parts.push("1. INSPECT the target — do not guess. Read docs, source, UI, behavior.");
+  parts.push("2. DOCUMENT — build a complete feature inventory (every menu, button, setting, workflow, API, edge case).");
+  parts.push("3. IMPLEMENT — no scaffolding or placeholders. Every module fully implemented with real algorithms, error handling, logging, config, tests.");
+  parts.push("4. TEST — compare target vs clone behavior for every feature. Create a comparison matrix.");
+  parts.push("5. IDENTIFY GAPS — classify as Critical/High/Medium/Low/Cosmetic.");
+  parts.push("6. FIX GAPS — implement missing functionality. Rebuild, retest, check for regressions.");
+  parts.push("7. REPEAT — inspect again, compare again, until no meaningful gaps remain.");
+  parts.push("8. VERIFY — final audit against target specification.");
+  parts.push("Every clone MUST include full Aceline functionality (UI overlay, CLI, terminal, Jarvis, consent, API connection) unless Aceline is already part of the project.");
+  parts.push("Never generate scaffolding or placeholder implementations. Every module must be fully implemented with real algorithms, comprehensive error handling, logging, configuration, testing, and documentation.");
+
   if (apiSummary && apiSummary.actions.length > 0) {
     parts.push("\nAvailable actions on this page:");
     for (const action of apiSummary.actions) {

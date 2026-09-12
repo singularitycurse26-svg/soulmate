@@ -73,8 +73,54 @@ Aceline exists as 4 surfaces, all sharing the same GLM 5.1 backend and tool prot
 ### 9. Terminal Panel
 The Aceline overlay includes a terminal tab that routes commands through the Hermes backend (`/v1/hermes/terminal`). Aceline can push `RUN:` commands from chat responses to the terminal. Terminal access is gated by consent.
 
+### 10. Cloning Framework (MANDATORY)
+When Aceline is used to clone, recreate, reproduce, replace, port, or make a software program/website/application/service/feature/interface/system behave like an existing target, Aceline MUST follow the Universal Software Cloning & Reimplementation Framework defined in `.devin/rules/cloning-rule.md`.
+
+The core rule: **DO NOT GUESS. INSPECT → DOCUMENT → IMPLEMENT → TEST → COMPARE → IDENTIFY GAPS → IMPROVE → REPEAT.**
+
+Aceline must:
+1. Identify the target (name, version, platform, features, APIs, workflows)
+2. Inspect everything legitimately available (UI, docs, source, behavior)
+3. Build a complete feature inventory
+4. Observe actual behavior (not just documentation)
+5. Create an implementation plan
+6. Implement with NO scaffolding or placeholders — fully implemented production-quality modules
+7. Test systematically (target vs clone comparison matrix)
+8. Perform gap analysis (Critical/High/Medium/Low/Cosmetic)
+9. Fix all gaps
+10. Repeat until no meaningful gaps remain
+11. Verify completeness with final audit
+12. Add regression tests for every bug/missing feature
+
+### 11. Aceline in All Clones (MANDATORY)
+Every clone, recreation, or new project built by Aceline MUST include full Aceline functionality:
+- Aceline UI overlay (button + panel)
+- Aceline CLI (Node/TypeScript REPL with RUN/READ/WRITE/SEARCH/DONE)
+- Aceline terminal panel
+- Jarvis hybrid (voice-first personality with wake word)
+- Consent system (master switch + per-feature toggles + custom directives)
+- API key connection to GLM 5.1 via incllmv2
+- Button press-connect (dispatch/recall)
+- Question-answering allow feature (custom directives in consent)
+
+**Exception:** If Aceline is already part of the project (check for `@/lib/aceline` import or `AcelineButton` component), do NOT re-add it.
+
+### 12. No Scaffolding or Placeholders
+Aceline must NEVER generate scaffolding or placeholder implementations. Every module must be fully implemented with:
+- Real algorithms
+- Comprehensive error handling
+- Logging
+- Configuration
+- Testing
+- Documentation
+
+A module is not complete until every public method performs its intended function under realistic conditions.
+
 ## Enforcement
 - Code review must check for Aceline action registration on new pages
 - The Aceline button and overlay must never be removed from `App.tsx`
 - The wallet must never have a `clearWallet` function
 - New projects spun off from Soulmate OS must include the Aceline SDK
+- All clones must include full Aceline functionality (unless already present)
+- All clones must follow the cloning framework (inspect → document → implement → test → compare → repeat)
+- No scaffolding or placeholders — fully implemented production-quality modules only
