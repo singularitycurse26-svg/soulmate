@@ -447,6 +447,10 @@ function displayHelp(): void {
     aceline invent on          Enable continuous auto mode
     aceline invent off         Disable auto mode
     aceline invent state       Show current invention state
+    aceline invent framework   Show the Innovation Framework rule
+    aceline invent acre        Show the ACRE cloning rule
+    aceline invent design      Show the Design Engineering rule
+    aceline invent rules       Show all 3 mandatory rules
 
   ${COLORS.dim}Environment:
     INCLLMV2_BASE              Backend URL (default: http://localhost:8547)${COLORS.reset}
@@ -671,8 +675,67 @@ async function main(): Promise<void> {
       return;
     }
 
+    if (subcmd === "framework") {
+      const resp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/framework`, { signal: AbortSignal.timeout(5000) });
+      const fw = await resp.json();
+      console.log(`\n  ${fw.name}`);
+      console.log(`  Core: ${fw.core_rule}`);
+      console.log(`  Master: ${fw.master_principle}`);
+      console.log(`  Sections: ${fw.sections.length}`);
+      for (const s of fw.sections) console.log(`    ${s}`);
+      rl.close();
+      return;
+    }
+
+    if (subcmd === "acre") {
+      const resp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/acre`, { signal: AbortSignal.timeout(5000) });
+      const acre = await resp.json();
+      console.log(`\n  ${acre.name}`);
+      console.log(`  Core: ${acre.core_rule}`);
+      console.log(`  Golden: ${acre.golden_rule}`);
+      console.log(`  Sections: ${acre.sections.length}`);
+      for (const s of acre.sections) console.log(`    ${s}`);
+      rl.close();
+      return;
+    }
+
+    if (subcmd === "design") {
+      const resp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/design`, { signal: AbortSignal.timeout(5000) });
+      const dr = await resp.json();
+      console.log(`\n  ${dr.name}`);
+      console.log(`  Master: ${dr.master_rule}`);
+      console.log(`  Standard: ${dr.ultimate_standard}`);
+      console.log(`  Rules: ${dr.rule_count}`);
+      for (const s of dr.sections) console.log(`    ${s}`);
+      rl.close();
+      return;
+    }
+
+    if (subcmd === "rules") {
+      const fwResp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/framework`, { signal: AbortSignal.timeout(5000) });
+      const fw = await fwResp.json();
+      const acreResp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/acre`, { signal: AbortSignal.timeout(5000) });
+      const acre = await acreResp.json();
+      const designResp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/design`, { signal: AbortSignal.timeout(5000) });
+      const design = await designResp.json();
+      console.log(`\n  ${COLORS.bold}3 Mandatory Rules Active:${COLORS.reset}\n`);
+      console.log(`  ${COLORS.cyan}1. ${fw.name}${COLORS.reset}`);
+      console.log(`     Core: ${fw.core_rule}`);
+      console.log(`     Sections: ${fw.sections.length}`);
+      console.log();
+      console.log(`  ${COLORS.green}2. ${acre.name}${COLORS.reset}`);
+      console.log(`     Core: ${acre.core_rule}`);
+      console.log(`     Sections: ${acre.sections.length}`);
+      console.log();
+      console.log(`  ${COLORS.magenta}3. ${design.name}${COLORS.reset}`);
+      console.log(`     Master: ${design.master_rule}`);
+      console.log(`     Rules: ${design.rule_count}`);
+      rl.close();
+      return;
+    }
+
     // Run one cycle
-    updateSurface("cli", "thinking", "start invention cycle", "Generating approaches using Innovation Framework + ACRE");
+    updateSurface("cli", "thinking", "start invention cycle", "Generating approaches using Innovation Framework + ACRE + Design Engineering");
     updateSurface("terminal", "working", "invention cycle", "Running test commands");
     updateSurface("ui", "waiting", "invention cycle", "Waiting for results");
     updateSurface("webpage", "waiting", "invention cycle", "Waiting for results");
