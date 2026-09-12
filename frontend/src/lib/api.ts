@@ -563,6 +563,49 @@ export const agentMarketApi = {
   docs: () => fetch(`${INCLLMV2_BASE}/v1/marketplace/docs`).then((r) => r.json()),
 };
 
+// ── Catalog API — Two-part universal memory and journaling ────────────
+export const catalogApi = {
+  // Project Archive
+  createProject: (data: { name: string; category?: string; status?: string; description?: string; repo_url?: string; local_path?: string; live_url?: string; build_command?: string; test_command?: string; deploy_command?: string; tech_stack?: string[]; tags?: string[] }) =>
+    incllmv2Fetch("/v1/catalog/projects", { method: "POST", body: JSON.stringify(data) }),
+  listProjects: (status?: string, category?: string, search?: string, limit?: number, offset?: number) =>
+    incllmv2Fetch(`/v1/catalog/projects?status=${status || ""}&category=${category || ""}&search=${encodeURIComponent(search || "")}&limit=${limit || 100}&offset=${offset || 0}`),
+  getProject: (id: string) => incllmv2Fetch(`/v1/catalog/projects/${id}`),
+  updateProject: (id: string, data: any) =>
+    incllmv2Fetch(`/v1/catalog/projects/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteProject: (id: string) =>
+    incllmv2Fetch(`/v1/catalog/projects/${id}`, { method: "DELETE" }),
+  rescanProjects: () =>
+    incllmv2Fetch("/v1/catalog/projects/scan", { method: "POST" }),
+
+  // Agent Log
+  logAgentAction: (data: { agent_type?: string; agent_name?: string; action_type: string; target_project?: string; target_file?: string; description?: string; result?: string; output?: string; build_structure?: any; workflow_format?: any; duration_ms?: number; tags?: string[] }) =>
+    incllmv2Fetch("/v1/catalog/agents/log", { method: "POST", body: JSON.stringify(data) }),
+  listAgentLog: (agent_type?: string, agent_name?: string, action_type?: string, target_project?: string, result?: string, limit?: number, offset?: number) =>
+    incllmv2Fetch(`/v1/catalog/agents/log?agent_type=${agent_type || ""}&agent_name=${agent_name || ""}&action_type=${action_type || ""}&target_project=${encodeURIComponent(target_project || "")}&result=${result || ""}&limit=${limit || 100}&offset=${offset || 0}`),
+  getAgentLog: (id: string) => incllmv2Fetch(`/v1/catalog/agents/log/${id}`),
+  agentStats: () => incllmv2Fetch("/v1/catalog/agents/stats"),
+
+  // Suggestions
+  createSuggestion: (data: { type?: string; target?: string; title: string; description?: string; priority?: string; proposed_by?: string }) =>
+    incllmv2Fetch("/v1/catalog/suggestions", { method: "POST", body: JSON.stringify(data) }),
+  listSuggestions: (status?: string, priority?: string, target?: string, limit?: number, offset?: number) =>
+    incllmv2Fetch(`/v1/catalog/suggestions?status=${status || ""}&priority=${priority || ""}&target=${encodeURIComponent(target || "")}&limit=${limit || 100}&offset=${offset || 0}`),
+  pendingSuggestions: (limit?: number) =>
+    incllmv2Fetch(`/v1/catalog/suggestions/pending?limit=${limit || 10}`),
+  reviewSuggestion: (id: string, status: string, reviewed_by?: string, implementation_notes?: string) =>
+    incllmv2Fetch(`/v1/catalog/suggestions/${id}`, { method: "PATCH", body: JSON.stringify({ status, reviewed_by: reviewed_by || "founder", implementation_notes: implementation_notes || "" }) }),
+  deleteSuggestion: (id: string) =>
+    incllmv2Fetch(`/v1/catalog/suggestions/${id}`, { method: "DELETE" }),
+
+  // Categories
+  listCategories: () => incllmv2Fetch("/v1/catalog/categories"),
+
+  // Stats
+  stats: () => incllmv2Fetch("/v1/catalog/stats"),
+  docs: () => fetch(`${INCLLMV2_BASE}/v1/catalog/docs`).then((r) => r.json()),
+};
+
 // --- Trill / Singularity / SplitBit LLM APIs ---
 // All route through incllmv2 (port 8547) with a model parameter.
 // incllmv2 handles the request using its RLOS+Ollama backend with

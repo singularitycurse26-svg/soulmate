@@ -19,6 +19,7 @@ import { OpenClawPage } from "@/components/pages/OpenClawPage";
 import { HermesPage } from "@/components/pages/HermesPage";
 import { MarketplacePage } from "@/components/pages/MarketplacePage";
 import { AgentMarketplacePage } from "@/components/pages/AgentMarketplacePage";
+import { ArchivePage } from "@/components/pages/ArchivePage";
 import { DatingPage } from "@/components/pages/DatingPage";
 import { IncentivesPage } from "@/components/pages/IncentivesPage";
 import { DayTradingPage } from "@/components/pages/DayTradingPage";
@@ -277,7 +278,7 @@ export default function App() {
     if (viewParam) {
       const validPages: AppPage[] = [
         "dashboard", "business", "email", "phone", "contacts", "ai", "games", "wallet",
-        "security", "openclaw", "hermes", "marketplace", "agent_market", "dating", "incentives",
+        "security", "openclaw", "hermes", "marketplace", "agent_market", "archive", "dating", "incentives",
         "daytrading", "frequency", "healing", "journal", "soultube", "soulillusions", "wakkii",
       ];
       if (validPages.includes(viewParam as AppPage)) {
@@ -337,6 +338,7 @@ export default function App() {
           {activePage === "hermes" && <ErrorBoundary><HermesPage /></ErrorBoundary>}
           {activePage === "marketplace" && <ErrorBoundary><MarketplacePage /></ErrorBoundary>}
           {activePage === "agent_market" && <ErrorBoundary><AgentMarketplacePage /></ErrorBoundary>}
+          {activePage === "archive" && <ErrorBoundary><ArchivePage /></ErrorBoundary>}
           {activePage === "dating" && <ErrorBoundary><DatingPage /></ErrorBoundary>}
           {activePage === "incentives" && <ErrorBoundary><IncentivesPage /></ErrorBoundary>}
           {activePage === "daytrading" && <ErrorBoundary><DayTradingPage /></ErrorBoundary>}

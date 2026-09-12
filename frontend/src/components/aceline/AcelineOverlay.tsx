@@ -36,6 +36,7 @@ const PAGE_LABELS: Record<AppPage, string> = {
   soulillusions: "SoulIllusions",
   wakkii: "Wakkii Links",
   agent_market: "AI Agent Marketplace",
+  archive: "Soulmate OS Catalog",
 };
 
 type PanelMode = "chat" | "terminal";

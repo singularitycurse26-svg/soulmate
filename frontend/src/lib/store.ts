@@ -32,7 +32,8 @@ export type AppPage =
   | "soultube"
   | "soulillusions"
   | "wakkii"
-  | "agent_market";
+  | "agent_market"
+  | "archive";
 
 interface Alert {
   id: number;

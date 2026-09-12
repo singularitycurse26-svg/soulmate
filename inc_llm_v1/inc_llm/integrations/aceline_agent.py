@@ -59,7 +59,7 @@ MAX_OUTPUT_CHARS = 4000
 COMMAND_TIMEOUT = 120
 SOULMATE_PAGES = [
     "dashboard", "business", "email", "phone", "contacts", "ai", "games",
-    "wallet", "security", "openclaw", "hermes", "marketplace", "agent_market",
+    "wallet", "security", "openclaw", "hermes", "marketplace", "agent_market", "archive",
     "dating", "incentives", "daytrading", "frequency", "healing", "journal",
     "soultube", "soulillusions", "wakkii",
 ]
