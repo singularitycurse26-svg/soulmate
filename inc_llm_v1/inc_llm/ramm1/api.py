@@ -58,23 +58,41 @@ def _get(name: str) -> Any:
 
 # ── Status + pool ──
 
-@router.get("/status")
-async def status() -> dict[str, Any]:
-    """Get the full Ramm1 status."""
-    os_status = _get("os").get_local_status() if _get("os") else {}
-    pool_status = _get("pool").get_status() if _get("pool") else {}
-    memory_stats = _get("memory").get_stats() if _get("memory") else {}
-    builder_status = _get("builder").get_status() if _get("builder") else {}
-    scraper_status = _get("scraper").get_status() if _get("scraper") else {}
-    hybrid_status = _get("hybrid_link").get_status() if _get("hybrid_link") else {}
+def get_ramm1_status() -> dict[str, Any]:
+    """Synchronous status helper — for use from non-async contexts (e.g. terminal agent)."""
+    try:
+        os_status = _get("os").get_local_status() if _get("os") else {}
+    except Exception:
+        os_status = {}
+    try:
+        pool_status = _get("pool").get_status() if _get("pool") else {}
+    except Exception:
+        pool_status = {}
+    try:
+        memory_stats = _get("memory").get_stats() if _get("memory") else {}
+    except Exception:
+        memory_stats = {}
+    try:
+        builder_status = _get("builder").get_status() if _get("builder") else {}
+    except Exception:
+        builder_status = {}
+    try:
+        hybrid_status = _get("hybrid_link").get_status() if _get("hybrid_link") else {}
+    except Exception:
+        hybrid_status = {}
     return {
         "ramm1_os": os_status,
         "pool": pool_status,
         "memory": memory_stats,
         "builder": builder_status,
-        "scraper": scraper_status,
         "hybrid_link": hybrid_status,
     }
+
+
+@router.get("/status")
+async def status() -> dict[str, Any]:
+    """Get the full Ramm1 status."""
+    return get_ramm1_status()
 
 
 @router.get("/pool")

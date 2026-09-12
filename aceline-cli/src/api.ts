@@ -116,3 +116,117 @@ export async function acreRule(): Promise<any> {
   });
   return resp.json();
 }
+
+// ── Ramm1 API — Universal LLM Free System (RAMM1 OS + RAM lock + LLM power) ──
+
+export interface Ramm1Status {
+  ramm1_os: {
+    reserved_gb: number;
+    total_gb: number;
+    free_gb: number;
+    reserved: boolean;
+    allocations: number;
+  };
+  pool: {
+    pool_total_gb: number;
+    pool_used_gb: number;
+    pool_free_gb: number;
+    peer_count: number;
+  };
+  memory: {
+    turn_count: number;
+    rlt_token_count: number;
+  };
+  builder: {
+    running: boolean;
+    queue_size: number;
+  };
+  hybrid_link: {
+    total_links: number;
+    propagate_enabled: boolean;
+  };
+}
+
+export async function ramm1Status(): Promise<Ramm1Status> {
+  const resp = await fetch(`${INCLLMV2_BASE}/v1/ramm1/status`, {
+    signal: AbortSignal.timeout(5000),
+  });
+  return resp.json();
+}
+
+export async function ramm1Pool(): Promise<any> {
+  const resp = await fetch(`${INCLLMV2_BASE}/v1/ramm1/pool`, {
+    signal: AbortSignal.timeout(5000),
+  });
+  return resp.json();
+}
+
+export async function ramm1MemoryRecall(query: string): Promise<any> {
+  const resp = await fetch(`${INCLLMV2_BASE}/v1/ramm1/memory/recall?query=${encodeURIComponent(query)}`, {
+    signal: AbortSignal.timeout(5000),
+  });
+  return resp.json();
+}
+
+export async function ramm1MemoryStats(): Promise<any> {
+  const resp = await fetch(`${INCLLMV2_BASE}/v1/ramm1/memory/stats`, {
+    signal: AbortSignal.timeout(5000),
+  });
+  return resp.json();
+}
+
+export async function ramm1BuilderStatus(): Promise<any> {
+  const resp = await fetch(`${INCLLMV2_BASE}/v1/ramm1/builder/status`, {
+    signal: AbortSignal.timeout(5000),
+  });
+  return resp.json();
+}
+
+export async function ramm1Scrape(url: string): Promise<any> {
+  const resp = await fetch(`${INCLLMV2_BASE}/v1/ramm1/scrape`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+    signal: AbortSignal.timeout(30000),
+  });
+  return resp.json();
+}
+
+export async function ramm1LinkList(): Promise<any> {
+  const resp = await fetch(`${INCLLMV2_BASE}/v1/ramm1/link/list`, {
+    signal: AbortSignal.timeout(5000),
+  });
+  return resp.json();
+}
+
+export async function ramm1LinkDiscover(endpoints: string[]): Promise<any> {
+  const resp = await fetch(`${INCLLMV2_BASE}/v1/ramm1/link/discover`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ endpoints }),
+    signal: AbortSignal.timeout(10000),
+  });
+  return resp.json();
+}
+
+export async function ramm1InstallStatus(): Promise<any> {
+  const resp = await fetch(`${INCLLMV2_BASE}/v1/ramm1/install/status`, {
+    signal: AbortSignal.timeout(5000),
+  });
+  return resp.json();
+}
+
+export async function ramm1InstallVerify(): Promise<any> {
+  const resp = await fetch(`${INCLLMV2_BASE}/v1/ramm1/install/verify`, {
+    signal: AbortSignal.timeout(5000),
+  });
+  return resp.json();
+}
+
+export async function ramm1Install(): Promise<any> {
+  const resp = await fetch(`${INCLLMV2_BASE}/v1/ramm1/install`, {
+    method: "POST",
+    signal: AbortSignal.timeout(60000),
+  });
+  return resp.json();
+}

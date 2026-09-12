@@ -3,7 +3,7 @@
 // Same brain as the web overlay: GLM 5.1 via incllmv2, same tool protocol as Cline
 
 import * as readline from "readline";
-import { jarvisChat, checkBackend, getModels, autoInventState, autoInventToggle, autoInventRun, autoInventFramework, acreRule } from "./api.js";
+import { jarvisChat, checkBackend, getModels, autoInventState, autoInventToggle, autoInventRun, autoInventFramework, acreRule, ramm1Status, ramm1Pool, ramm1MemoryRecall, ramm1MemoryStats, ramm1BuilderStatus, ramm1Scrape, ramm1LinkList, ramm1LinkDiscover, ramm1InstallStatus, ramm1InstallVerify, ramm1Install } from "./api.js";
 import { parseTools, executeTool, type Tool } from "./tools.js";
 import {
   loadConsent,
@@ -185,6 +185,16 @@ function printHelp(): void {
     aceline auto-invent off   Disable auto-invention mode
     aceline auto-invent framework  Show the Innovation Framework rule
     aceline auto-invent acre      Show the ACRE cloning rule
+    aceline ramm1             Show RAMM1 OS status (RAM lock + pool + memory + builder)
+    aceline ramm1 pool        Show Universal RAM Supply pool details
+    aceline ramm1 memory      Show Universal Memory stats
+    aceline ramm1 recall "q"  Recall memory entries matching query
+    aceline ramm1 builder     Show Autonomous Builder status
+    aceline ramm1 scrape URL  Scrape a URL using the Ramm1 web scraper
+    aceline ramm1 links       List hybrid LLM links
+    aceline ramm1 install     Show installer status
+    aceline ramm1 verify      Verify the installation
+    aceline ramm1 install-run Run the installer (installs RAMM1 OS as Universal LLM Free System)
     aceline help         Show this help
 
   Environment:
@@ -360,6 +370,199 @@ async function main(): Promise<void> {
       rl.close();
       return;
     }
+  }
+
+  if (cmd === "ramm1") {
+    const subcmd = args[1];
+    const backendOk = await checkBackend();
+    if (!backendOk) {
+      console.log("  ⚠ Backend not running at localhost:8547");
+      rl.close();
+      return;
+    }
+
+    if (subcmd === "pool") {
+      const pool = await ramm1Pool();
+      console.log(`\n  💾 Universal RAM Supply`);
+      console.log(`    Pool total: ${pool.pool_total_gb?.toFixed(2) || 0} GB`);
+      console.log(`    Pool used:  ${pool.pool_used_gb?.toFixed(2) || 0} GB`);
+      console.log(`    Pool free:  ${pool.pool_free_gb?.toFixed(2) || 0} GB`);
+      console.log(`    Peers:      ${pool.peer_count || 0}`);
+      if (pool.peers && pool.peers.length > 0) {
+        for (const p of pool.peers) {
+          console.log(`      ${p.peer_id}: ${p.capacity_gb?.toFixed(2) || 0} GB (${p.status})`);
+        }
+      }
+      rl.close();
+      return;
+    }
+
+    if (subcmd === "memory") {
+      const stats = await ramm1MemoryStats();
+      console.log(`\n  🧠 Universal Memory`);
+      console.log(`    Turns:      ${stats.turn_count || 0}`);
+      console.log(`    RLT tokens: ${stats.rlt_token_count || 0}`);
+      console.log(`    Shared:     ${stats.shared_count || 0}`);
+      rl.close();
+      return;
+    }
+
+    if (subcmd === "recall") {
+      const query = args.slice(2).join(" ");
+      if (!query) {
+        console.log("  Usage: aceline ramm1 recall \"<query>\"");
+        rl.close();
+        return;
+      }
+      const results = await ramm1MemoryRecall(query);
+      const entries = results.entries || results.results || [];
+      if (entries.length === 0) {
+        console.log(`  No memory entries matching "${query}"`);
+      } else {
+        console.log(`\n  🧠 Memory recall (${entries.length} entries):\n`);
+        for (const e of entries.slice(0, 10)) {
+          console.log(`    ${e.timestamp || e.id || "?"}: ${(e.content || e.text || "").slice(0, 80)}`);
+        }
+      }
+      rl.close();
+      return;
+    }
+
+    if (subcmd === "builder") {
+      const status = await ramm1BuilderStatus();
+      console.log(`\n  🔨 Autonomous Builder`);
+      console.log(`    Running:    ${status.running ? "YES" : "NO"}`);
+      console.log(`    Queue size: ${status.queue_size || 0}`);
+      console.log(`    Completed:  ${status.completed_count || 0}`);
+      console.log(`    Failed:     ${status.failed_count || 0}`);
+      rl.close();
+      return;
+    }
+
+    if (subcmd === "scrape") {
+      const url = args[2];
+      if (!url) {
+        console.log("  Usage: aceline ramm1 scrape <URL>");
+        rl.close();
+        return;
+      }
+      console.log(`\n  🕷️ Scraping ${url}...`);
+      const result = await ramm1Scrape(url);
+      console.log(`    Title: ${result.title || "N/A"}`);
+      console.log(`    Content length: ${(result.content || "").length} chars`);
+      console.log(`    Cached: ${result.cached ? "YES" : "NO"}`);
+      if (result.content) {
+        console.log(`\n    ${(result.content as string).slice(0, 500)}...`);
+      }
+      rl.close();
+      return;
+    }
+
+    if (subcmd === "links") {
+      const links = await ramm1LinkList();
+      const list = links.links || [];
+      console.log(`\n  🔗 Hybrid LLM Links (${list.length})`);
+      if (list.length === 0) {
+        console.log("    No links yet. Use 'aceline ramm1 discover <endpoint>' to create one.");
+      } else {
+        for (const l of list) {
+          console.log(`    ${l.link_id}: ${l.protocol} → ${l.endpoint} (${l.status})`);
+        }
+      }
+      rl.close();
+      return;
+    }
+
+    if (subcmd === "install") {
+      const status = await ramm1InstallStatus();
+      console.log(`\n  📦 Ramm1 Installer Status`);
+      console.log(`    Installed: ${status.installed ? "YES" : "NO"}`);
+      if (status.installed && status.manifest) {
+        const m = status.manifest;
+        console.log(`    RAM reservation: ${m.ram_reservation_gb} GB (target: ${m.target_ram_reservation_gb} GB)`);
+        console.log(`    Components: ${(m.components || []).join(", ")}`);
+        console.log(`    API running: ${status.api_running ? "YES" : "NO"}`);
+      }
+      rl.close();
+      return;
+    }
+
+    if (subcmd === "verify") {
+      const verify = await ramm1InstallVerify();
+      console.log(`\n  ✓ Verification: ${verify.verified ? "PASSED" : "FAILED"}`);
+      if (verify.checks) {
+        for (const [check, passed] of Object.entries(verify.checks)) {
+          console.log(`    ${passed ? "✓" : "✗"} ${check}`);
+        }
+      }
+      if (!verify.verified && verify.message) {
+        console.log(`    ${verify.message}`);
+      }
+      rl.close();
+      return;
+    }
+
+    if (subcmd === "install-run") {
+      console.log(`\n  📦 Installing RAMM1 OS as Universal LLM Free System...`);
+      const result = await ramm1Install();
+      console.log(`    Success: ${result.success ? "YES" : "NO"}`);
+      console.log(`    ${result.message}`);
+      if (result.ram_reservation_gb) {
+        console.log(`    RAM reserved: ${result.ram_reservation_gb} GB`);
+      }
+      if (result.components_installed) {
+        console.log(`    Components: ${result.components_installed.join(", ")}`);
+      }
+      if (result.warnings && result.warnings.length > 0) {
+        for (const w of result.warnings) console.log(`    ⚠ ${w}`);
+      }
+      if (result.errors && result.errors.length > 0) {
+        for (const e of result.errors) console.log(`    ✗ ${e}`);
+      }
+      rl.close();
+      return;
+    }
+
+    // Default: show full status
+    const status = await ramm1Status();
+    console.log(`\n  ╔══════════════════════════════════════════════╗`);
+    console.log(`  ║  🦎 Universal Ramm1 — LLM + RAMM1 OS         ║`);
+    console.log(`  ║  Universal LLM Free System                    ║`);
+    console.log(`  ╚══════════════════════════════════════════════╝\n`);
+
+    const os = status.ramm1_os || {};
+    console.log(`  💾 RAMM1 OS — 3.5 GB RAM Lock`);
+    console.log(`    Reserved: ${os.reserved_gb?.toFixed(2) || 0} GB`);
+    console.log(`    Total:    ${os.total_gb?.toFixed(2) || 0} GB`);
+    console.log(`    Free:     ${os.free_gb?.toFixed(2) || 0} GB`);
+    console.log(`    Active:   ${os.reserved ? "YES" : "NO"}`);
+    console.log(`    Allocations: ${os.allocations || 0}`);
+
+    const pool = status.pool || {};
+    console.log(`\n  💧 Universal RAM Supply`);
+    console.log(`    Pool total: ${pool.pool_total_gb?.toFixed(2) || 0} GB`);
+    console.log(`    Pool used:  ${pool.pool_used_gb?.toFixed(2) || 0} GB`);
+    console.log(`    Pool free:  ${pool.pool_free_gb?.toFixed(2) || 0} GB`);
+    console.log(`    Peers:      ${pool.peer_count || 0}`);
+
+    const mem = status.memory || {};
+    console.log(`\n  🧠 Universal Memory`);
+    console.log(`    Turns:      ${mem.turn_count || 0}`);
+    console.log(`    RLT tokens: ${mem.rlt_token_count || 0}`);
+
+    const builder = status.builder || {};
+    console.log(`\n  🔨 Autonomous Builder`);
+    console.log(`    Running:    ${builder.running ? "YES" : "NO"}`);
+    console.log(`    Queue size: ${builder.queue_size || 0}`);
+
+    const link = status.hybrid_link || {};
+    console.log(`\n  🔗 Hybrid LLM Links`);
+    console.log(`    Total links:      ${link.total_links || 0}`);
+    console.log(`    Propagation:      ${link.propagate_enabled ? "ENABLED" : "DISABLED"}`);
+
+    console.log(`\n  API: http://localhost:8547/v1/ramm1/status`);
+    rl.close();
+    return;
   }
 
   if (cmd === "run") {

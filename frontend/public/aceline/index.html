@@ -160,6 +160,8 @@ let state = {
   listening: false,
   model: "trill",
   memory: [],
+  view: "chat",
+  ramm1Status: null,
 };
 
 let consent = {
@@ -258,6 +260,35 @@ function offlineResponse(query, personality) {
   return `${name} is in offline mode (no local backend). For full capabilities, run incllmv2 locally.`;
 }
 
+// ── Ramm1 API — Universal LLM Free System (RAMM1 OS + RAM lock + LLM power) ──
+async function ramm1Status() {
+  try {
+    const r = await fetch(`${INCLLMV2_BASE}/v1/ramm1/status`, { signal: AbortSignal.timeout(5000) });
+    return await r.json();
+  } catch { return null; }
+}
+
+async function ramm1InstallStatus() {
+  try {
+    const r = await fetch(`${INCLLMV2_BASE}/v1/ramm1/install/status`, { signal: AbortSignal.timeout(5000) });
+    return await r.json();
+  } catch { return null; }
+}
+
+async function ramm1InstallVerify() {
+  try {
+    const r = await fetch(`${INCLLMV2_BASE}/v1/ramm1/install/verify`, { signal: AbortSignal.timeout(5000) });
+    return await r.json();
+  } catch { return null; }
+}
+
+async function ramm1Install() {
+  try {
+    const r = await fetch(`${INCLLMV2_BASE}/v1/ramm1/install`, { method: "POST", signal: AbortSignal.timeout(60000) });
+    return await r.json();
+  } catch { return null; }
+}
+
 // ── Voice ──
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
@@ -342,30 +373,37 @@ function render() {
   html += `<div><div class="header-title">${name}<span class="header-badge ${isJarvis ? "jarvis" : ""}">${isJarvis ? "VOICE" : "STANDALONE"}</span></div>`;
   html += `<div class="header-sub">Standalone Mode • ${consent.features.glmBackend ? "GLM 5.1" : "Offline"}</div></div>`;
   html += `<div class="header-actions">`;
+  html += `<button class="header-btn ${state.view === "ramm1" ? "active" : ""}" onclick="setView('ramm1')" title="Universal Ramm1 — LLM + RAMM1 OS">🦎</button>`;
   html += `<button class="header-btn ${isJarvis ? "jarvis-active" : ""}" onclick="togglePersonality()" title="Switch personality">${isJarvis ? "✨" : "🤖"}</button>`;
   html += `<button class="header-btn ${state.voiceEnabled ? "active" : ""}" onclick="toggleVoice()" title="Toggle voice">🔊</button>`;
   html += `</div></div>`;
 
-  // Messages
-  html += `<div class="messages" id="messages">`;
-  if (state.messages.length === 0) {
-    html += `<div class="msg system">${name} is ready. Ask me anything.</div>`;
+  // Messages or Ramm1 view
+  if (state.view === "ramm1") {
+    html += renderRamm1View();
+  } else {
+    html += `<div class="messages" id="messages">`;
+    if (state.messages.length === 0) {
+      html += `<div class="msg system">${name} is ready. Ask me anything.</div>`;
+    }
+    for (const m of state.messages) {
+      const cls = m.role === "user" ? "user" : (isJarvis ? "ai jarvis" : "ai");
+      html += `<div class="msg ${cls}">${escapeHtml(m.text)}</div>`;
+    }
+    if (state.thinking) {
+      html += `<div class="thinking"><span></span><span></span><span></span></div>`;
+    }
+    html += `</div>`;
   }
-  for (const m of state.messages) {
-    const cls = m.role === "user" ? "user" : (isJarvis ? "ai jarvis" : "ai");
-    html += `<div class="msg ${cls}">${escapeHtml(m.text)}</div>`;
-  }
-  if (state.thinking) {
-    html += `<div class="thinking"><span></span><span></span><span></span></div>`;
-  }
-  html += `</div>`;
 
-  // Input
-  html += `<div class="input-bar">`;
-  html += `<button class="mic-btn ${state.listening ? "listening" : ""}" onclick="${state.listening ? "stopListening()" : "startListening()"}" ${!SR || !consent.features.voice ? "disabled" : ""}>🎤</button>`;
-  html += `<input id="msg-input" type="text" placeholder="Ask ${name}..." onkeydown="if(event.key==='Enter')sendMsg()" />`;
-  html += `<button onclick="sendMsg()" ${state.thinking ? "disabled" : ""}>➤</button>`;
-  html += `</div>`;
+  // Input (hidden in Ramm1 view)
+  if (state.view !== "ramm1") {
+    html += `<div class="input-bar">`;
+    html += `<button class="mic-btn ${state.listening ? "listening" : ""}" onclick="${state.listening ? "stopListening()" : "startListening()"}" ${!SR || !consent.features.voice ? "disabled" : ""}>🎤</button>`;
+    html += `<input id="msg-input" type="text" placeholder="Ask ${name}..." onkeydown="if(event.key==='Enter')sendMsg()" />`;
+    html += `<button onclick="sendMsg()" ${state.thinking ? "disabled" : ""}>➤</button>`;
+    html += `</div>`;
+  }
 
   app.innerHTML = html;
   const msgs = document.getElementById("messages");
@@ -375,6 +413,119 @@ function render() {
 function escapeHtml(s) {
   return s.replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">").replace(/\n/g, "<br>");
 }
+
+// ── Ramm1 View ──
+function renderRamm1View() {
+  let html = `<div style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px;">`;
+  html += `<div style="display:flex; align-items:center; justify-content:space-between;">`;
+  html += `<h2 style="font-size:16px; font-weight:700;">🦎 Universal Ramm1 — LLM + RAMM1 OS</h2>`;
+  html += `<button onclick="refreshRamm1()" style="background:var(--bg-alt); color:var(--text); border:1px solid rgba(255,255,255,0.1); padding:6px 12px; border-radius:8px; cursor:pointer; font-size:12px;">Refresh</button>`;
+  html += `</div>`;
+
+  if (!state.ramm1Status) {
+    html += `<div style="color:var(--muted); font-size:13px; text-align:center; padding:40px;">Loading Ramm1 status...</div>`;
+    html += `</div>`;
+    return html;
+  }
+
+  const s = state.ramm1Status;
+  const os = s.ramm1_os || {};
+  const pool = s.pool || {};
+  const mem = s.memory || {};
+  const builder = s.builder || {};
+  const link = s.hybrid_link || {};
+
+  // RAMM1 OS
+  html += `<div style="background:var(--bg-card); border:1px solid rgba(255,255,255,0.05); border-radius:12px; padding:14px;">`;
+  html += `<h3 style="font-size:13px; color:var(--success); margin:0 0 8px 0;">💾 RAMM1 OS — 3.5 GB RAM Lock</h3>`;
+  html += `<div style="font-size:12px; color:var(--muted); line-height:1.6;">`;
+  html += `Reserved: <span style="color:var(--text);">${(os.reserved_gb || 0).toFixed(2)} GB</span> • `;
+  html += `Total: <span style="color:var(--text);">${(os.total_gb || 0).toFixed(2)} GB</span> • `;
+  html += `Free: <span style="color:var(--text);">${(os.free_gb || 0).toFixed(2)} GB</span><br>`;
+  html += `Active: <span style="color:${os.reserved ? "var(--success)" : "var(--danger)"}">${os.reserved ? "YES" : "NO"}</span> • `;
+  html += `Allocations: ${os.allocations || 0}`;
+  html += `</div></div>`;
+
+  // Pool
+  html += `<div style="background:var(--bg-card); border:1px solid rgba(255,255,255,0.05); border-radius:12px; padding:14px;">`;
+  html += `<h3 style="font-size:13px; color:var(--blue); margin:0 0 8px 0;">💧 Universal RAM Supply</h3>`;
+  html += `<div style="font-size:12px; color:var(--muted); line-height:1.6;">`;
+  html += `Pool: <span style="color:var(--text);">${(pool.pool_total_gb || 0).toFixed(2)} GB</span> • `;
+  html += `Used: <span style="color:var(--text);">${(pool.pool_used_gb || 0).toFixed(2)} GB</span> • `;
+  html += `Free: <span style="color:var(--text);">${(pool.pool_free_gb || 0).toFixed(2)} GB</span> • `;
+  html += `Peers: ${pool.peer_count || 0}`;
+  html += `</div></div>`;
+
+  // Memory
+  html += `<div style="background:var(--bg-card); border:1px solid rgba(255,255,255,0.05); border-radius:12px; padding:14px;">`;
+  html += `<h3 style="font-size:13px; color:var(--accent); margin:0 0 8px 0;">🧠 Universal Memory</h3>`;
+  html += `<div style="font-size:12px; color:var(--muted); line-height:1.6;">`;
+  html += `Turns: <span style="color:var(--text);">${mem.turn_count || 0}</span> • `;
+  html += `RLT tokens: <span style="color:var(--text);">${mem.rlt_token_count || 0}</span>`;
+  html += `</div></div>`;
+
+  // Builder
+  html += `<div style="background:var(--bg-card); border:1px solid rgba(255,255,255,0.05); border-radius:12px; padding:14px;">`;
+  html += `<h3 style="font-size:13px; color:var(--success); margin:0 0 8px 0;">🔨 Autonomous Builder</h3>`;
+  html += `<div style="font-size:12px; color:var(--muted); line-height:1.6;">`;
+  html += `Running: <span style="color:${builder.running ? "var(--success)" : "var(--muted)"}">${builder.running ? "YES" : "NO"}</span> • `;
+  html += `Queue: ${builder.queue_size || 0}`;
+  html += `</div></div>`;
+
+  // Hybrid Link
+  html += `<div style="background:var(--bg-card); border:1px solid rgba(255,255,255,0.05); border-radius:12px; padding:14px;">`;
+  html += `<h3 style="font-size:13px; color:var(--blue); margin:0 0 8px 0;">🔗 Hybrid LLM Links</h3>`;
+  html += `<div style="font-size:12px; color:var(--muted); line-height:1.6;">`;
+  html += `Links: <span style="color:var(--text);">${link.total_links || 0}</span> • `;
+  html += `Propagation: <span style="color:${link.propagate_enabled ? "var(--success)" : "var(--muted)"}">${link.propagate_enabled ? "ENABLED" : "DISABLED"}</span>`;
+  html += `</div></div>`;
+
+  // Install actions
+  html += `<div style="background:var(--bg-card); border:1px solid rgba(255,255,255,0.05); border-radius:12px; padding:14px;">`;
+  html += `<h3 style="font-size:13px; color:var(--text); margin:0 0 8px 0;">📦 Installer</h3>`;
+  html += `<div style="display:flex; gap:8px; flex-wrap:wrap;">`;
+  html += `<button onclick="ramm1InstallRun()" style="background:rgba(233,30,99,0.2); color:var(--accent); border:none; padding:8px 14px; border-radius:8px; cursor:pointer; font-size:12px;">Install</button>`;
+  html += `<button onclick="ramm1Verify()" style="background:var(--bg-alt); color:var(--text); border:1px solid rgba(255,255,255,0.1); padding:8px 14px; border-radius:8px; cursor:pointer; font-size:12px;">Verify</button>`;
+  html += `</div></div>`;
+
+  html += `</div>`;
+  return html;
+}
+
+window.setView = (v) => {
+  state.view = v;
+  if (v === "ramm1") refreshRamm1();
+  render();
+};
+
+window.refreshRamm1 = async () => {
+  state.ramm1Status = await ramm1Status();
+  render();
+};
+
+window.ramm1InstallRun = async () => {
+  const result = await ramm1Install();
+  if (result) {
+    state.messages.push({ role: "ai", text: `🦎 Ramm1 install: ${result.message || "Done"}` });
+    await refreshRamm1();
+  } else {
+    state.messages.push({ role: "ai", text: "Ramm1 install failed — backend not running" });
+    render();
+  }
+};
+
+window.ramm1Verify = async () => {
+  const result = await ramm1InstallVerify();
+  if (result) {
+    const checks = result.checks || {};
+    const lines = [`🦎 Ramm1 verify: ${result.verified ? "PASSED" : "FAILED"}`];
+    for (const [check, passed] of Object.entries(checks)) {
+      lines.push(`  ${passed ? "✓" : "✗"} ${check}`);
+    }
+    state.messages.push({ role: "ai", text: lines.join("\n") });
+    render();
+  }
+};
 
 // ── Actions ──
 window.toggleConsent = (key) => {

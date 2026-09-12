@@ -186,6 +186,21 @@ def build_system_context(extra_context: dict = None) -> str:
         "7. REPEAT until no meaningful gaps remain.",
         "8. VERIFY — final audit against target spec.",
         "Never generate scaffolding or placeholder implementations.",
+        "",
+        "## UNIVERSAL RAMM1 — LLM + RAMM1 OS (Universal LLM Free System)",
+        "The RAMM1 OS is a 3.5 GB RAM lock that reserves memory for LLM inference.",
+        "It powers ALL LLMs used by Aceline — local, peer, and hybrid-linked.",
+        "The Universal RAM Supply pools RAM across local + peers for capacity-finding.",
+        "The Adaptive Model Selector picks the right model for available RAM.",
+        "Universal Memory records every turn, compresses to RLT tokens, and recalls.",
+        "The Autonomous Builder runs a work queue and never quits.",
+        "The Hybrid Link API talks to ANY LLM (OpenAI/Anthropic/Ollama/MCP/custom/legacy).",
+        "API: GET /v1/ramm1/status — check RAMM1 OS, pool, memory, builder, hybrid links.",
+        "API: GET /v1/ramm1/install/status — check installer status.",
+        "API: POST /v1/ramm1/install — install RAMM1 OS as Universal LLM Free System.",
+        "API: GET /v1/ramm1/install/verify — verify installation.",
+        "CLI: aceline ramm1 — show full Ramm1 status.",
+        "The RAMM1 OS powers LLMs that need lots of RAM by reserving and pooling memory.",
     ]
 
     if extra_context:
@@ -687,3 +702,35 @@ async def aceline_search(
     _authenticate(authorization, x_aceline_key)
     results = await asyncio.to_thread(execute_search, req.pattern, req.cwd, req.max_results)
     return {"results": results, "pattern": req.pattern}
+
+
+@router.get("/ramm1")
+async def aceline_ramm1_status(
+    authorization: str = Header(""),
+    x_aceline_key: str = Header("", alias="X-Aceline-Key"),
+):
+    """Get Universal Ramm1 status — RAMM1 OS, RAM lock, pool, memory, builder, hybrid links.
+
+    The RAMM1 OS is the Universal LLM Free System that powers all LLMs used by Aceline.
+    It reserves 3.5 GB of RAM (adaptive) for LLM inference and pools RAM across peers.
+    """
+    _authenticate(authorization, x_aceline_key)
+    try:
+        from inc_llm.ramm1.api import get_ramm1_status
+        return get_ramm1_status()
+    except Exception as e:
+        return {"error": str(e), "ramm1_available": False}
+
+
+@router.get("/ramm1/install")
+async def aceline_ramm1_install_status(
+    authorization: str = Header(""),
+    x_aceline_key: str = Header("", alias="X-Aceline-Key"),
+):
+    """Get Ramm1 installer status — check if the Universal LLM Free System is installed."""
+    _authenticate(authorization, x_aceline_key)
+    try:
+        from inc_llm.ramm1.install import Ramm1Installer
+        return Ramm1Installer().status()
+    except Exception as e:
+        return {"error": str(e), "installed": False}
