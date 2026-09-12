@@ -35,6 +35,7 @@ const PAGE_LABELS: Record<AppPage, string> = {
   soultube: "SoulTube",
   soulillusions: "SoulIllusions",
   wakkii: "Wakkii Links",
+  agent_market: "AI Agent Marketplace",
 };
 
 type PanelMode = "chat" | "terminal";

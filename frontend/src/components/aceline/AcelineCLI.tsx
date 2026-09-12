@@ -18,8 +18,8 @@ const GLM_MODEL = "glm-5.1";
 
 const SOULMATE_PAGES: AppPage[] = [
   "dashboard", "business", "email", "phone", "contacts", "ai", "games",
-  "wallet", "security", "openclaw", "hermes", "marketplace", "dating",
-  "incentives", "daytrading", "frequency", "healing", "journal",
+  "wallet", "security", "openclaw", "hermes", "marketplace", "agent_market",
+  "dating", "incentives", "daytrading", "frequency", "healing", "journal",
   "soultube", "soulillusions", "wakkii",
 ];
 

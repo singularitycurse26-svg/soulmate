@@ -29,6 +29,7 @@ import {
   AudioWaveform,
   Menu,
   X,
+  Bot,
 } from "lucide-react";
 import incentivesCoin from "@/assets/incentives-coin.png";
 
@@ -36,6 +37,7 @@ const navItems: { page: AppPage; labelKey: string; icon: any; group: string }[] 
   { page: "dashboard", labelKey: "common:nav.dashboard", icon: LayoutDashboard, group: "Home" },
   { page: "business", labelKey: "common:nav.business", icon: Briefcase, group: "Home" },
   { page: "marketplace", labelKey: "common:nav.marketplace", icon: ShoppingBag, group: "Social" },
+  { page: "agent_market", labelKey: "common:nav.agent_market", icon: Bot, group: "Social" },
   { page: "dating", labelKey: "common:nav.dating", icon: Heart, group: "Social" },
   { page: "wakkii", labelKey: "common:nav.wakkii", icon: Radio, group: "Social" },
   { page: "email", labelKey: "common:nav.email", icon: Mail, group: "Comms" },

@@ -507,6 +507,62 @@ export const acelineAgentApi = {
     }),
 };
 
+// ── Agent Marketplace API ────────────────────────────────────────────
+export const agentMarketApi = {
+  // Accounts
+  agentSignup: (name: string, type: string, email: string = "", bio: string = "", skills: string[] = []) =>
+    incllmv2Fetch("/v1/marketplace/accounts/agent", {
+      method: "POST",
+      body: JSON.stringify({ name, type, email, bio, skills }),
+    }),
+  humanSignup: (name: string, email: string, bio: string = "") =>
+    incllmv2Fetch("/v1/marketplace/accounts/human", {
+      method: "POST",
+      body: JSON.stringify({ name, email, bio }),
+    }),
+  myAccount: () => incllmv2Fetch("/v1/marketplace/accounts/me"),
+  getAccount: (id: string) => incllmv2Fetch(`/v1/marketplace/accounts/${id}`),
+
+  // Jobs
+  postJob: (data: { title: string; description: string; category: string; bounty: number; deadline?: number; requirements?: string[]; tags?: string[]; repo_url?: string; language?: string }) =>
+    incllmv2Fetch("/v1/marketplace/jobs", { method: "POST", body: JSON.stringify(data) }),
+  listJobs: (status?: string, category?: string, limit?: number, offset?: number) =>
+    incllmv2Fetch(`/v1/marketplace/jobs?status=${status || "open"}&category=${category || ""}&limit=${limit || 50}&offset=${offset || 0}`),
+  getJob: (id: string) => incllmv2Fetch(`/v1/marketplace/jobs/${id}`),
+  claimJob: (id: string) =>
+    incllmv2Fetch(`/v1/marketplace/jobs/${id}/claim`, { method: "POST" }),
+  submitJob: (id: string, submission: string) =>
+    incllmv2Fetch(`/v1/marketplace/jobs/${id}/submit`, { method: "POST", body: JSON.stringify({ submission }) }),
+  verifyJob: (id: string, status: string, notes: string) =>
+    incllmv2Fetch(`/v1/marketplace/jobs/${id}/verify`, { method: "POST", body: JSON.stringify({ status, notes }) }),
+  cancelJob: (id: string) =>
+    incllmv2Fetch(`/v1/marketplace/jobs/${id}/cancel`, { method: "POST" }),
+
+  // Wallet
+  linkWallet: (address: string) =>
+    incllmv2Fetch("/v1/marketplace/wallet/link", { method: "POST", body: JSON.stringify({ wallet_address: address }) }),
+  balance: () => incllmv2Fetch("/v1/marketplace/wallet/balance"),
+  deposit: (amount: number, method: string, reference?: string) =>
+    incllmv2Fetch("/v1/marketplace/wallet/deposit", { method: "POST", body: JSON.stringify({ amount, method, reference }) }),
+  withdraw: (amount: number, method: string, destination: string) =>
+    incllmv2Fetch("/v1/marketplace/wallet/withdraw", { method: "POST", body: JSON.stringify({ amount, method, destination }) }),
+  transactions: (limit?: number) =>
+    incllmv2Fetch(`/v1/marketplace/wallet/transactions?limit=${limit || 50}`),
+  linkPaymentMethod: (method: string, identifier: string = "", metadata: any = {}) =>
+    incllmv2Fetch("/v1/marketplace/wallet/payment-methods", { method: "POST", body: JSON.stringify({ method, identifier, metadata }) }),
+  listPaymentMethods: () => incllmv2Fetch("/v1/marketplace/wallet/payment-methods"),
+
+  // Email
+  sendEmail: (to: string, subject: string, body: string) =>
+    incllmv2Fetch("/v1/marketplace/email/send", { method: "POST", body: JSON.stringify({ to, subject, body }) }),
+  emailQueue: (limit?: number) =>
+    incllmv2Fetch(`/v1/marketplace/email/queue?limit=${limit || 20}`),
+
+  // Stats
+  stats: () => incllmv2Fetch("/v1/marketplace/stats"),
+  docs: () => fetch(`${INCLLMV2_BASE}/v1/marketplace/docs`).then((r) => r.json()),
+};
+
 // --- Trill / Singularity / SplitBit LLM APIs ---
 // All route through incllmv2 (port 8547) with a model parameter.
 // incllmv2 handles the request using its RLOS+Ollama backend with

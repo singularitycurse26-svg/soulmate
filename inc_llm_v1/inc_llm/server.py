@@ -47,6 +47,7 @@ from inc_llm.integrations.soul_movies_api import router as soul_movies_router, i
 from inc_llm.integrations.soul_tube_api import router as soul_tube_router, init_soul_tube_api
 from inc_llm.integrations.soulmate_os_web import router as soulmate_os_router
 from inc_llm.integrations.aceline_agent import router as aceline_agent_router, init_aceline_agent
+from inc_llm.integrations.agent_marketplace import router as agent_marketplace_router, init_marketplace
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,7 @@ app.include_router(soulmate_os_router)
 app.include_router(soul_movies_router)
 app.include_router(soul_tube_router)
 app.include_router(aceline_agent_router)
+app.include_router(agent_marketplace_router)
 
 _rate_limit_store: dict[str, list[float]] = {}
 
@@ -89,6 +91,7 @@ settings = Settings.from_env()
 harness = IncLLMHarness(settings)
 setup_openai_compat(app, harness, harness.api_keys)
 init_aceline_agent(harness, settings)
+init_marketplace(harness, settings)
 
 # === LLM Process Manager — auto-starts other LLM servers ===
 import subprocess as _subproc
