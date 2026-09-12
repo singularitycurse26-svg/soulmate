@@ -211,11 +211,12 @@ try:
             "router": ramm1_router,
         })
 
-        # Reserve RAM + start pressure monitor + start builder
+        # Reserve RAM + start pressure monitor + start watchdog + start builder
         import asyncio as _asyncio
         _loop = _asyncio.get_event_loop()
         if ramm1_os.reserve():
             _loop.create_task(ramm1_os.start_pressure_monitor())
+            _loop.create_task(ramm1_os.start_watchdog(check_interval_s=3.0))
         if settings.ramm1.autonomous_builder_enabled:
             _loop.create_task(ramm1_builder.start())
 

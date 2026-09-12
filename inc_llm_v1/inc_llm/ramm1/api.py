@@ -101,6 +101,33 @@ async def pool_status() -> dict[str, Any]:
     return _get("pool").get_status()
 
 
+@router.get("/watchdog")
+async def watchdog_status() -> dict[str, Any]:
+    """Get the always-connected detector (RAM Lock Watchdog) status.
+
+    The watchdog continuously checks if the 3.5 GB RAM lock is still held.
+    If the lock ever unlocks, it automatically re-reserves the RAM.
+    """
+    os_obj = _get("os")
+    return os_obj.get_watchdog_status()
+
+
+@router.post("/watchdog/start")
+async def watchdog_start() -> dict[str, Any]:
+    """Start the always-connected detector (RAM Lock Watchdog)."""
+    os_obj = _get("os")
+    await os_obj.start_watchdog()
+    return {"running": True, "message": "RAM Lock Watchdog started — always-connected detector active"}
+
+
+@router.post("/watchdog/stop")
+async def watchdog_stop() -> dict[str, Any]:
+    """Stop the always-connected detector (RAM Lock Watchdog)."""
+    os_obj = _get("os")
+    await os_obj.stop_watchdog()
+    return {"running": False, "message": "RAM Lock Watchdog stopped"}
+
+
 # ── Run external model ──
 
 class RunModelRequest(BaseModel):

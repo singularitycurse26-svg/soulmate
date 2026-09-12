@@ -73,6 +73,7 @@ class Ramm1OS:
         self._running: bool = False
         self._pressure_active: bool = False
         self._sized_target: float = 0.0  # actual target after tier scaling
+        self._watchdog: RamLockWatchdog | None = None  # always-connected detector
 
     # ── Reservation ──
 
@@ -219,6 +220,25 @@ class Ramm1OS:
         self._pressure_monitor_task = None
         logger.info("RAMM1 OS pressure monitor stopped")
 
+    async def start_watchdog(self, check_interval_s: float = 3.0) -> None:
+        """Start the always-connected detector — auto re-locks the RAM if it ever unlocks."""
+        if self._watchdog is not None and self._watchdog._running:
+            return
+        self._watchdog = RamLockWatchdog(self, check_interval_s=check_interval_s)
+        await self._watchdog.start()
+
+    async def stop_watchdog(self) -> None:
+        """Stop the always-connected detector."""
+        if self._watchdog is not None:
+            await self._watchdog.stop()
+            self._watchdog = None
+
+    def get_watchdog_status(self) -> dict[str, Any]:
+        """Get the always-connected detector status."""
+        if self._watchdog is None:
+            return {"running": False, "message": "Watchdog not started"}
+        return self._watchdog.get_status()
+
     async def _pressure_loop(self) -> None:
         """Background loop: watch available RAM, release/re-reserve under pressure."""
         while self._running:
@@ -317,6 +337,7 @@ class Ramm1OS:
             free_gb = sum(b.size_gb for b in self._free_blocks)
             avail_gb = psutil.virtual_memory().available / (1024 ** 3) if psutil else 0.0
             total_gb = psutil.virtual_memory().total / (1024 ** 3) if psutil else 0.0
+            watchdog_status = self.get_watchdog_status() if self._watchdog else {"running": False}
             return {
                 "reserved_gb": round(self._reserved_gb, 3),
                 "target_gb": round(self._sized_target or self._target_gb, 3),
@@ -327,6 +348,7 @@ class Ramm1OS:
                 "host_available_gb": round(avail_gb, 3),
                 "host_total_gb": round(total_gb, 3),
                 "can_install": total_gb >= float(self.config.min_total_ram_gb) if psutil else False,
+                "watchdog": watchdog_status,
             }
 
     def get_free_gb(self) -> float:
@@ -345,6 +367,152 @@ class Ramm1OS:
             return self.get_free_gb() >= ram_gb
 
     async def close(self) -> None:
-        """Shut down RAMM1 OS — stop monitor and release reservation."""
+        """Shut down RAMM1 OS — stop monitor, watchdog, and release reservation."""
         await self.stop_pressure_monitor()
+        await self.stop_watchdog()
         self.release()
+
+
+# ════════════════════════════════════════════════════════════════════════
+# RAM LOCK WATCHDOG — always-connected detector
+# ════════════════════════════════════════════════════════════════════════
+
+class RamLockWatchdog:
+    """Always-connected detector — keeps the 3.5 GB RAM lock permanently held.
+
+    Runs as a background task that continuously checks if the RAMM1 OS reservation
+    is still active. If the lock ever unlocks (region lost, process crash recovery,
+    external free, pressure release that didn't re-reserve, or any other reason),
+    the watchdog automatically re-reserves the RAM and logs the event.
+
+    The watchdog is the safety net that ensures the RAM lock is ALWAYS connected.
+    """
+
+    def __init__(self, ramm1_os: "Ramm1OS", check_interval_s: float = 3.0) -> None:
+        self.os = ramm1_os
+        self.check_interval_s = check_interval_s
+        self._task: asyncio.Task | None = None
+        self._running: bool = False
+        self._lock_lost_count: int = 0
+        self._relock_count: int = 0
+        self._relock_fail_count: int = 0
+        self._last_check: float = 0.0
+        self._last_lock_lost: float = 0.0
+        self._last_relock: float = 0.0
+        self._consecutive_failures: int = 0
+        self._max_consecutive_failures: int = 10
+        self._backoff_s: float = 1.0
+        self._max_backoff_s: float = 30.0
+
+    async def start(self) -> None:
+        """Start the watchdog background task."""
+        if self._running:
+            return
+        self._running = True
+        self._task = asyncio.create_task(self._watchdog_loop())
+        logger.info("RAMM1 OS RAM Lock Watchdog started (interval: %.1fs) — always-connected detector active", self.check_interval_s)
+
+    async def stop(self) -> None:
+        """Stop the watchdog."""
+        self._running = False
+        if self._task:
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
+        self._task = None
+        logger.info("RAMM1 OS RAM Lock Watchdog stopped")
+
+    async def _watchdog_loop(self) -> None:
+        """Background loop: detect lock loss and automatically re-reserve."""
+        while self._running:
+            try:
+                self._last_check = time.time()
+                reserved = self.os.get_reserved_gb()
+                region_held = self.os._region is not None
+
+                if reserved <= 0 or not region_held:
+                    # Lock is lost — detect and re-reserve
+                    self._lock_lost_count += 1
+                    self._last_lock_lost = time.time()
+                    logger.warning(
+                        "RAMM1 OS RAM Lock Watchdog: LOCK LOST (reserved=%.2f GB, region_held=%s) — "
+                        "auto-reconnecting RAM lock...",
+                        reserved, region_held,
+                    )
+
+                    # Attempt re-reservation with backoff
+                    ok = await self._relock_with_backoff()
+
+                    if ok:
+                        self._relock_count += 1
+                        self._last_relock = time.time()
+                        self._consecutive_failures = 0
+                        self._backoff_s = 1.0
+                        logger.info(
+                            "RAMM1 OS RAM Lock Watchdog: RAM lock RE-CONNECTED successfully "
+                            "(relock #%d, reserved=%.2f GB)",
+                            self._relock_count, self.os.get_reserved_gb(),
+                        )
+                    else:
+                        self._relock_fail_count += 1
+                        self._consecutive_failures += 1
+                        logger.error(
+                            "RAMM1 OS RAM Lock Watchdog: re-lock FAILED (attempt #%d, "
+                            "consecutive failures=%d, backoff=%.1fs)",
+                            self._relock_fail_count, self._consecutive_failures, self._backoff_s,
+                        )
+                        if self._consecutive_failures >= self._max_consecutive_failures:
+                            logger.critical(
+                                "RAMM1 OS RAM Lock Watchdog: %d consecutive re-lock failures — "
+                                "giving up until pressure clears or manual intervention",
+                                self._consecutive_failures,
+                            )
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.warning("RAMM1 OS RAM Lock Watchdog error: %s", e)
+
+            await asyncio.sleep(self.check_interval_s)
+
+    async def _relock_with_backoff(self) -> bool:
+        """Attempt to re-reserve the RAM lock with exponential backoff."""
+        try:
+            # Clean up any stale region first
+            if self.os._region is not None:
+                try:
+                    self.os.release()
+                except Exception:
+                    pass
+
+            # Attempt reservation
+            ok = self.os.reserve()
+            if not ok:
+                # Increase backoff
+                self._backoff_s = min(self._backoff_s * 2, self._max_backoff_s)
+                await asyncio.sleep(self._backoff_s)
+            return ok
+        except Exception as e:
+            logger.warning("RAMM1 OS RAM Lock Watchdog: re-lock exception: %s", e)
+            self._backoff_s = min(self._backoff_s * 2, self._max_backoff_s)
+            await asyncio.sleep(self._backoff_s)
+            return False
+
+    def get_status(self) -> dict[str, Any]:
+        """Get the watchdog status — always-connected detector state."""
+        return {
+            "running": self._running,
+            "lock_held": self.os._region is not None and self.os.get_reserved_gb() > 0,
+            "reserved_gb": self.os.get_reserved_gb(),
+            "lock_lost_count": self._lock_lost_count,
+            "relock_count": self._relock_count,
+            "relock_fail_count": self._relock_fail_count,
+            "consecutive_failures": self._consecutive_failures,
+            "last_check": self._last_check,
+            "last_lock_lost": self._last_lock_lost,
+            "last_relock": self._last_relock,
+            "check_interval_s": self.check_interval_s,
+            "backoff_s": self._backoff_s,
+            "max_backoff_s": self._max_backoff_s,
+        }
