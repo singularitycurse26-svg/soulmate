@@ -197,6 +197,20 @@ try:
         init_scraper_api(ramm1_scraper)
         init_hybrid_link_api(ramm1_hybrid)
 
+        # Wire Ramm1 LLM into Aceline Core Plus
+        from inc_llm.integrations.core_plus import get_core_plus
+        get_core_plus().init_ramm1({
+            "os": ramm1_os,
+            "pool": ramm1_pool,
+            "selector": ramm1_selector,
+            "memory": ramm1_memory,
+            "builder": ramm1_builder,
+            "scraper": ramm1_scraper,
+            "peers": ramm1_peers,
+            "hybrid_link": ramm1_hybrid,
+            "router": ramm1_router,
+        })
+
         # Reserve RAM + start pressure monitor + start builder
         import asyncio as _asyncio
         _loop = _asyncio.get_event_loop()

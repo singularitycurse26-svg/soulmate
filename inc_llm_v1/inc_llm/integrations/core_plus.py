@@ -108,8 +108,8 @@ class SystemMap:
     def _rebuild(self):
         """Generate the map from the known system structure."""
         nodes = [
-            MapNode("aceline", "root", "Aceline Core Plus", "online", None, [], ["core", "universal_system", "agent_engine", "surfaces", "api"]),
-            MapNode("core", "core", "Aceline Core", "online", "aceline", [], ["universal_system", "agent_engine", "api"]),
+            MapNode("aceline", "root", "Aceline Core Plus", "online", None, [], ["core", "universal_system", "agent_engine", "surfaces", "api", "ramm1"]),
+            MapNode("core", "core", "Aceline Core", "online", "aceline", [], ["universal_system", "agent_engine", "api", "ramm1"]),
             MapNode("universal_system", "system", "Universal System", "online", "aceline", ["core"], ["memory", "journal", "backend"]),
             MapNode("memory", "memory", "Universal Memory", "online", "universal_system", ["universal_system"], []),
             MapNode("journal", "journal", "Universal Journal", "online", "universal_system", ["universal_system"], []),
@@ -127,6 +127,14 @@ class SystemMap:
             MapNode("telegram", "surface", "Telegram", "online", "surfaces", ["surfaces"], []),
             MapNode("api", "api", "API Layer", "online", "aceline", ["core", "backend"], ["surfaces", "telegram"]),
             MapNode("map", "map", "System Map", "online", "aceline", ["core"], []),
+            MapNode("ramm1", "ramm1", "Universal Ramm1 — LLM + RAMM1 OS", "online", "aceline", ["core"], ["ramm1_os", "ramm1_pool", "ramm1_selector", "ramm1_memory", "ramm1_builder", "ramm1_scraper", "ramm1_hybrid_link"]),
+            MapNode("ramm1_os", "ramm1_component", "RAMM1 OS — 3.5 GB RAM Lock", "online", "ramm1", ["ramm1"], ["ramm1_pool"]),
+            MapNode("ramm1_pool", "ramm1_component", "Universal RAM Supply", "online", "ramm1", ["ramm1"], ["ramm1_selector"]),
+            MapNode("ramm1_selector", "ramm1_component", "Adaptive Model Selector", "online", "ramm1", ["ramm1"], ["ramm1_memory"]),
+            MapNode("ramm1_memory", "ramm1_component", "Universal Memory + RLT", "online", "ramm1", ["ramm1"], ["ramm1_builder"]),
+            MapNode("ramm1_builder", "ramm1_component", "Autonomous Builder", "online", "ramm1", ["ramm1"], ["ramm1_scraper"]),
+            MapNode("ramm1_scraper", "ramm1_component", "Web Scraper", "online", "ramm1", ["ramm1"], ["ramm1_hybrid_link"]),
+            MapNode("ramm1_hybrid_link", "ramm1_component", "Hybrid LLM Link API", "online", "ramm1", ["ramm1"], []),
             MapNode("observation", "engine", "Observation Engine", "online", "aceline", ["surfaces"], ["side_notes", "suggestions"]),
             MapNode("side_notes", "engine", "Side Note Engine", "online", "aceline", ["observation"], ["suggestions"]),
             MapNode("suggestions", "engine", "Suggestion Engine", "online", "aceline", ["side_notes"], ["improvement"]),
@@ -739,8 +747,67 @@ class AcelineCorePlus:
         )
         self.rinse_repeat = RinseRepeatLoop()
         self.build_loop = ContinuousBuildLoop()
+        self.ramm1 = None  # Universal Ramm1 LLM — set by init_ramm1()
         self._initialized = False
         self._init_time = _now()
+
+    def init_ramm1(self, ramm1_components: dict) -> None:
+        """Wire the Universal Ramm1 LLM into Aceline Core.
+
+        ramm1_components: dict with keys os, pool, selector, memory, builder,
+                          scraper, peers, hybrid_link, router
+        """
+        self.ramm1 = ramm1_components
+        self.system_map.update_node("ramm1", status="online", health="healthy")
+        for comp in ["ramm1_os", "ramm1_pool", "ramm1_selector", "ramm1_memory",
+                     "ramm1_builder", "ramm1_scraper", "ramm1_hybrid_link"]:
+            self.system_map.update_node(comp, status="online")
+        self.side_notes.create(
+            category="architecture",
+            observation="Universal Ramm1 LLM wired into Aceline Core Plus — RAMM1 OS + RAM lock + pool + selector + memory + builder + scraper + hybrid link",
+            why="The RAMM1 OS powers all LLMs used by Aceline, including LLMs that need lots of RAM",
+            where="core_plus.py AcelineCorePlus.init_ramm1",
+            improvement="Use Ramm1 memory + selector for all Aceline LLM calls",
+        )
+        logger.info("Universal Ramm1 LLM wired into Aceline Core Plus")
+
+    def get_ramm1_status(self) -> dict[str, Any]:
+        """Get the Universal Ramm1 LLM status — RAMM1 OS, pool, memory, builder, hybrid links."""
+        if not self.ramm1:
+            return {"available": False, "message": "Ramm1 not initialized"}
+        try:
+            os_obj = self.ramm1.get("os")
+            pool = self.ramm1.get("pool")
+            selector = self.ramm1.get("selector")
+            memory = self.ramm1.get("memory")
+            builder = self.ramm1.get("builder")
+            scraper = self.ramm1.get("scraper")
+            hybrid = self.ramm1.get("hybrid_link")
+            return {
+                "available": True,
+                "ramm1_os": os_obj.get_local_status() if os_obj else {},
+                "pool": pool.get_status() if pool else {},
+                "selector": {"tier": selector.get_tier()} if selector else {},
+                "memory": memory.get_stats() if memory else {},
+                "builder": builder.get_status() if builder else {},
+                "scraper": scraper.get_status() if scraper else {},
+                "hybrid_link": hybrid.get_status() if hybrid else {},
+            }
+        except Exception as e:
+            return {"available": True, "error": str(e)}
+
+    def get_ramm1_model(self) -> dict[str, Any]:
+        """Get the recommended model from the Ramm1 adaptive selector.
+
+        This is the model Aceline should use for LLM calls — chosen based on
+        available RAM from the RAMM1 OS reservation + pool.
+        """
+        if not self.ramm1 or not self.ramm1.get("selector"):
+            return {"model": "", "tier": "unknown", "fits_local": False}
+        try:
+            return self.ramm1["selector"].select_local()
+        except Exception:
+            return {"model": "", "tier": "unknown", "fits_local": False}
 
     def initialize(self):
         """The self-building bootstrap."""
@@ -773,6 +840,8 @@ class AcelineCorePlus:
     def get_system_health(self) -> dict[str, Any]:
         """System Health View — Rule 67."""
         cap = self.capacity.get_status()
+        ramm1_status = self.get_ramm1_status()
+        ramm1_os = ramm1_status.get("ramm1_os", {}) if ramm1_status.get("available") else {}
         return {
             "core": "ONLINE",
             "agent": "WORKING" if self.build_loop._running else "IDLE",
@@ -788,6 +857,14 @@ class AcelineCorePlus:
             "total_rules": 518,
             "initialized": self._initialized,
             "uptime_since": self._init_time,
+            "ramm1": {
+                "available": ramm1_status.get("available", False),
+                "ram_reserved_gb": ramm1_os.get("reserved_gb", 0),
+                "ram_active": ramm1_os.get("reserved", False),
+                "pool_total_gb": ramm1_status.get("pool", {}).get("pool_total_gb", 0) if ramm1_status.get("available") else 0,
+                "llm_model": self.get_ramm1_model().get("model", ""),
+                "llm_tier": self.get_ramm1_model().get("tier", "unknown"),
+            },
         }
 
     def get_agent_work_view(self) -> dict[str, Any]:
@@ -817,6 +894,8 @@ class AcelineCorePlus:
             "suggestions": self.suggestions.get_recent(20),
             "rinse_repeat": self.rinse_repeat.get_status(),
             "explanation": self.explanation.explain(),
+            "ramm1": self.get_ramm1_status(),
+            "ramm1_model": self.get_ramm1_model(),
             "rules": {
                 "count": 7,
                 "total_rules": 518,
@@ -1086,6 +1165,26 @@ async def core_plus_agent_fail(data: dict):
     cp = get_core_plus()
     cp.build_loop.fail_current(data.get("error", ""))
     return {"status": "failed"}
+
+
+@router.get("/ramm1")
+async def core_plus_ramm1():
+    """Get the Universal Ramm1 LLM status — RAMM1 OS, RAM lock, pool, memory, builder, hybrid links.
+
+    The Ramm1 LLM powers all LLMs used by Aceline Core Plus, including LLMs that need lots of RAM.
+    """
+    cp = get_core_plus()
+    return cp.get_ramm1_status()
+
+
+@router.get("/ramm1/model")
+async def core_plus_ramm1_model():
+    """Get the recommended LLM model from the Ramm1 adaptive selector.
+
+    This is the model Aceline should use for LLM calls — chosen based on available RAM.
+    """
+    cp = get_core_plus()
+    return cp.get_ramm1_model()
 
 
 @router.get("/rules")
