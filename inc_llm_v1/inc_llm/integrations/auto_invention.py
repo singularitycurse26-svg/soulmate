@@ -836,3 +836,38 @@ async def get_acre_rule():
         ],
         "full_rule": ACRE_RULE,
     }
+
+
+# ── 4-Surface State (shared between CLI and web UI) ──────────────────
+
+_surfaces_state: dict = {
+    "ui": {"name": "UI", "status": "idle", "action": "", "thought": "", "functions": ["render", "navigate", "interact", "display", "overlay", "consent"]},
+    "cli": {"name": "CLI", "status": "idle", "action": "", "thought": "", "functions": ["run", "read", "write", "search", "chat", "auto-invent", "memory", "journal"]},
+    "webpage": {"name": "Webpage", "status": "idle", "action": "", "thought": "", "functions": ["render", "pwa", "offline", "install", "sync", "notify"]},
+    "terminal": {"name": "Terminal", "status": "idle", "action": "", "thought": "", "functions": ["execute", "build", "test", "deploy", "monitor", "stream"]},
+}
+
+
+class SurfaceUpdateRequest(BaseModel):
+    surface: str
+    status: str
+    action: str = ""
+    thought: str = ""
+
+
+@router.get("/surfaces")
+async def get_surfaces():
+    """Get the current state of all 4 Aceline surfaces."""
+    return {"surfaces": _surfaces_state}
+
+
+@router.post("/surfaces")
+async def update_surface(req: SurfaceUpdateRequest):
+    """Update a surface's state (from CLI or web UI)."""
+    if req.surface not in _surfaces_state:
+        raise HTTPException(400, f"Unknown surface: {req.surface}")
+    s = _surfaces_state[req.surface]
+    s["status"] = req.status
+    s["action"] = req.action
+    s["thought"] = req.thought
+    return {"status": "updated", "surface": req.surface, "state": s}
