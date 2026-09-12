@@ -3,7 +3,7 @@
 // Same brain as the web overlay: GLM 5.1 via incllmv2, same tool protocol as Cline
 
 import * as readline from "readline";
-import { jarvisChat, checkBackend, getModels, autoInventState, autoInventToggle, autoInventRun, autoInventFramework } from "./api.js";
+import { jarvisChat, checkBackend, getModels, autoInventState, autoInventToggle, autoInventRun, autoInventFramework, acreRule } from "./api.js";
 import { parseTools, executeTool, type Tool } from "./tools.js";
 import {
   loadConsent,
@@ -184,6 +184,7 @@ function printHelp(): void {
     aceline auto-invent on    Enable continuous auto-invention mode
     aceline auto-invent off   Disable auto-invention mode
     aceline auto-invent framework  Show the Innovation Framework rule
+    aceline auto-invent acre      Show the ACRE cloning rule
     aceline help         Show this help
 
   Environment:
@@ -269,6 +270,18 @@ async function main(): Promise<void> {
       console.log(`  Surfaces: ${fw.surfaces.join(", ")}`);
       console.log(`  Sections: ${fw.sections.length}`);
       for (const s of fw.sections) console.log(`    ${s}`);
+      rl.close();
+      return;
+    }
+
+    if (subcmd === "acre") {
+      const acre = await acreRule();
+      console.log(`\n  ${acre.name}`);
+      console.log(`  Core: ${acre.core_rule}`);
+      console.log(`  Golden: ${acre.golden_rule}`);
+      console.log(`  Purpose: ${acre.purpose}`);
+      console.log(`  Sections: ${acre.sections.length}`);
+      for (const s of acre.sections) console.log(`    ${s}`);
       rl.close();
       return;
     }

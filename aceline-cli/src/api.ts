@@ -109,3 +109,10 @@ export async function autoInventFramework(): Promise<any> {
   });
   return resp.json();
 }
+
+export async function acreRule(): Promise<any> {
+  const resp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/acre`, {
+    signal: AbortSignal.timeout(5000),
+  });
+  return resp.json();
+}
