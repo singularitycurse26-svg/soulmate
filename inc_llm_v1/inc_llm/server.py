@@ -54,6 +54,7 @@ from inc_llm.integrations.observer import router as observer_router, init_observ
 from inc_llm.integrations.messaging_api import router as messaging_api_router, init_messaging_api
 from inc_llm.integrations.telegram_aceline_bridge import router as telegram_bridge_router, init_telegram_bridge
 from inc_llm.integrations.auto_invention import router as auto_invention_router, init_auto_invention
+from inc_llm.integrations.core_plus import router as core_plus_router, init_core_plus
 from inc_llm.messaging.mcp_adapter import router as mcp_router, init_mcp_adapter
 
 logger = logging.getLogger(__name__)
@@ -83,6 +84,7 @@ app.include_router(observer_router)
 app.include_router(messaging_api_router)
 app.include_router(telegram_bridge_router)
 app.include_router(auto_invention_router)
+app.include_router(core_plus_router)
 app.include_router(mcp_router)
 
 _rate_limit_store: dict[str, list[float]] = {}
@@ -131,6 +133,7 @@ init_mcp_adapter(hybrid_bus=_hybrid_bus, uma=_uma)
 init_messaging_api(uma=_uma, hybrid_bus=_hybrid_bus)
 init_telegram_bridge(harness, settings, hybrid_bus=_hybrid_bus, uma=_uma)
 init_auto_invention(harness, settings, glm_queue=getattr(harness, "glm_queue", None))
+init_core_plus()
 
 # === LLM Process Manager — auto-starts other LLM servers ===
 import subprocess as _subproc

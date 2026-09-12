@@ -453,7 +453,8 @@ function displayHelp(): void {
     aceline invent self-building  Show the Self-Building System rule
     aceline invent suggestion  Show the Suggestion Engine rule
     aceline invent auto-adapt  Show the Auto-Adapt System rule
-    aceline invent rules       Show all 6 mandatory rules
+    aceline invent core-plus   Show the Aceline Core Plus rule
+    aceline invent rules       Show all 7 mandatory rules (518 total)
 
   ${COLORS.dim}Environment:
     INCLLMV2_BASE              Backend URL (default: http://localhost:8547)${COLORS.reset}
@@ -750,6 +751,19 @@ async function main(): Promise<void> {
       return;
     }
 
+    if (subcmd === "core-plus") {
+      const resp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/core-plus`, { signal: AbortSignal.timeout(5000) });
+      const cp = await resp.json();
+      console.log(`\n  ${cp.name}`);
+      console.log(`  Purpose: ${cp.master_purpose}`);
+      console.log(`  Principle: ${cp.most_important_principle}`);
+      console.log(`  Rinse-Repeat: ${cp.rinse_repeat}`);
+      console.log(`  Loop: ${cp.fundamental_loop}`);
+      console.log(`  Rules: ${cp.rule_count}`);
+      rl.close();
+      return;
+    }
+
     if (subcmd === "rules") {
       const fwResp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/framework`, { signal: AbortSignal.timeout(5000) });
       const fw = await fwResp.json();
@@ -763,7 +777,9 @@ async function main(): Promise<void> {
       const se = await seResp.json();
       const aaResp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/auto-adapt`, { signal: AbortSignal.timeout(5000) });
       const aa = await aaResp.json();
-      console.log(`\n  ${COLORS.bold}6 Mandatory Rules Active:${COLORS.reset}\n`);
+      const cpResp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/core-plus`, { signal: AbortSignal.timeout(5000) });
+      const cp = await cpResp.json();
+      console.log(`\n  ${COLORS.bold}7 Mandatory Rules Active (518 total):${COLORS.reset}\n`);
       console.log(`  ${COLORS.cyan}1. ${fw.name}${COLORS.reset}`);
       console.log(`     Core: ${fw.core_rule}`);
       console.log(`     Sections: ${fw.sections.length}`);
@@ -787,6 +803,11 @@ async function main(): Promise<void> {
       console.log(`  ${COLORS.red}6. ${aa.name}${COLORS.reset}`);
       console.log(`     Master: ${aa.master_rule}`);
       console.log(`     Rules: ${aa.rule_count}`);
+      console.log();
+      console.log(`  ${COLORS.cyan}7. ${cp.name}${COLORS.reset}`);
+      console.log(`     Purpose: ${cp.master_purpose.substring(0, 80)}...`);
+      console.log(`     Rules: ${cp.rule_count}`);
+      console.log(`     Rinse-Repeat: ${cp.rinse_repeat.substring(0, 80)}...`);
       rl.close();
       return;
     }

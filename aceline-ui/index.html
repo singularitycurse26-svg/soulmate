@@ -522,6 +522,7 @@ html, body {
 .rule-number.r4 { background: rgba(220,220,170,0.2); color: var(--yellow); }
 .rule-number.r5 { background: rgba(86,156,214,0.2); color: var(--blue); }
 .rule-number.r6 { background: rgba(244,135,113,0.2); color: var(--red); }
+.rule-number.r7 { background: rgba(255,206,84,0.2); color: #ffce54; }
 
 .rule-name { font-size: 13px; font-weight: 600; color: var(--text-bright); }
 .rule-count { margin-left: auto; font-size: 11px; color: var(--text-dim); }
@@ -773,7 +774,8 @@ html, body {
     <div class="activity-icon" data-view="memory" title="Memory">🧠</div>
     <div class="activity-icon" data-view="journal" title="Journal">📋</div>
     <div class="activity-icon" data-view="invent" title="Auto-Invention">⚡</div>
-    <div class="activity-icon" data-view="rules" title="6 Rules">📐</div>
+    <div class="activity-icon" data-view="rules" title="7 Rules">📐</div>
+    <div class="activity-icon" data-view="coreplus" title="Core Plus">🌟</div>
     <div class="activity-spacer"></div>
     <div class="activity-icon" title="Settings">⚙</div>
   </div>
@@ -790,7 +792,8 @@ html, body {
         <div class="panel-item" data-view="memory"><span class="icon">🧠</span> Memory <span class="badge" id="memBadge">0</span></div>
         <div class="panel-item" data-view="journal"><span class="icon">📋</span> Journal <span class="badge" id="jourBadge">0</span></div>
         <div class="panel-item" data-view="invent"><span class="icon">⚡</span> Auto-Invention</div>
-        <div class="panel-item" data-view="rules"><span class="icon">📐</span> 6 Rules</div>
+        <div class="panel-item" data-view="rules"><span class="icon">📐</span> 7 Rules</div>
+        <div class="panel-item" data-view="coreplus"><span class="icon">🌟</span> Core Plus</div>
       </div>
       <div class="panel-section" style="margin-top: 20px;">
         <div class="panel-header" style="border:none; padding: 4px 12px;">SURFACES</div>
@@ -810,6 +813,7 @@ html, body {
       <div class="tab" data-view="surfaces">▦ Surfaces</div>
       <div class="tab" data-view="invent">⚡ Invention</div>
       <div class="tab" data-view="rules">📐 Rules</div>
+      <div class="tab" data-view="coreplus">🌟 Core Plus</div>
     </div>
 
     <!-- Editor Area -->
@@ -819,16 +823,17 @@ html, body {
       <div class="view active" id="view-chat">
         <div class="chat-view">
           <div class="chat-messages" id="chatMessages">
-            <div class="chat-msg system">Aceline Signature CLI v2.0 — 6 Mandatory Rules Active</div>
+            <div class="chat-msg system">Aceline Signature CLI v2.0 — 7 Mandatory Rules Active (518 total)</div>
             <div class="chat-msg assistant">
               <div class="role">Aceline</div>
-              Hello! I'm Aceline, your autonomous software engineering system. I have 6 mandatory rules active:<br>
+              Hello! I'm Aceline, your autonomous software engineering system. I have 7 Mandatory Rules Active (518 total):<br>
               1. Innovation Framework (20 sections)<br>
               2. ACRE Cloning Engine (30 sections)<br>
               3. Design Engineering (76 Rules)<br>
               4. Self-Building System (100 rules)<br>
               5. Suggestion Engine (80 rules)<br>
-              6. Auto-Adapt System (115 rules)<br><br>
+              6. Auto-Adapt System (115 rules)<br>
+              7. Aceline Core Plus (98 rules) — self-building UI, universal system, rinse-repeat loop<br><br>
               What would you like to build, improve, or invent?
             </div>
           </div>
@@ -899,8 +904,86 @@ html, body {
       <!-- Rules View -->
       <div class="view" id="view-rules">
         <div class="rules-view">
-          <h2 style="margin-bottom:16px; color:var(--text-bright); font-size:16px;">6 Mandatory Rules</h2>
+          <h2 style="margin-bottom:16px; color:var(--text-bright); font-size:16px;">7 Mandatory Rules (518 total)</h2>
           <div id="rulesList"></div>
+        </div>
+      </div>
+
+      <!-- Core Plus View -->
+      <div class="view" id="view-coreplus">
+        <div class="coreplus-view" style="padding:16px; overflow-y:auto; height:100%;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+            <h2 style="color:var(--text-bright); font-size:18px; margin:0;">🌟 Aceline Core Plus</h2>
+            <div style="display:flex; gap:8px;">
+              <button id="cpRefresh" style="background:var(--btn-bg); color:var(--text); border:1px solid var(--border); padding:4px 12px; border-radius:4px; cursor:pointer; font-size:12px;">Refresh</button>
+              <button id="cpContinuous" style="background:var(--btn-bg); color:var(--text); border:1px solid var(--border); padding:4px 12px; border-radius:4px; cursor:pointer; font-size:12px;">Start Continuous</button>
+              <button id="cpRinseRepeat" style="background:rgba(244,135,113,0.2); color:var(--red); border:1px solid var(--red); padding:4px 12px; border-radius:4px; cursor:pointer; font-size:12px;">Rinse-Repeat</button>
+            </div>
+          </div>
+
+          <!-- System Health -->
+          <div id="cpHealth" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:8px; margin-bottom:16px;"></div>
+
+          <!-- Two-column layout -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;" id="cpColumns">
+            <!-- Agent Work View -->
+            <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px;">
+              <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">🤖 Agent Work</h3>
+              <div id="cpAgent" style="font-size:12px; color:var(--text);"></div>
+            </div>
+
+            <!-- Capacity -->
+            <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px;">
+              <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">📊 Capacity</h3>
+              <div id="cpCapacity" style="font-size:12px; color:var(--text);"></div>
+            </div>
+          </div>
+
+          <!-- UI Capacity -->
+          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px; margin-bottom:16px;">
+            <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">🖥️ UI Capacity Engine</h3>
+            <div id="cpUICapacity" style="font-size:12px; color:var(--text);"></div>
+          </div>
+
+          <!-- System Map -->
+          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px; margin-bottom:16px;">
+            <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">🗺️ System Map</h3>
+            <div id="cpMap" style="font-size:12px; color:var(--text); max-height:300px; overflow-y:auto;"></div>
+          </div>
+
+          <!-- Side Notes + Suggestions -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+            <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px;">
+              <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">📝 Side Notes</h3>
+              <div id="cpSideNotes" style="font-size:12px; color:var(--text); max-height:250px; overflow-y:auto;"></div>
+            </div>
+            <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px;">
+              <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">💡 Suggestions</h3>
+              <div id="cpSuggestions" style="font-size:12px; color:var(--text); max-height:250px; overflow-y:auto;"></div>
+            </div>
+          </div>
+
+          <!-- Self-Explanation -->
+          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px; margin-bottom:16px;">
+            <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">🧠 Self-Explanation</h3>
+            <div id="cpExplain" style="font-size:12px; color:var(--text);"></div>
+          </div>
+
+          <!-- Rinse-Repeat Loop -->
+          <div style="background:rgba(244,135,113,0.1); border:1px solid var(--red); border-radius:6px; padding:12px; margin-bottom:16px;">
+            <h3 style="color:var(--red); font-size:13px; margin:0 0 8px 0;">🔄 Rinse-Repeat UI Generation Loop</h3>
+            <div id="cpRinse" style="font-size:12px; color:var(--text);"></div>
+          </div>
+
+          <!-- Ask Aceline -->
+          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px;">
+            <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">❓ Ask Aceline</h3>
+            <div style="display:flex; gap:8px;">
+              <input id="cpAskInput" type="text" placeholder="Ask: How do you work? What are you? What is the rinse-repeat loop?" style="flex:1; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:6px 10px; border-radius:4px; font-size:12px;">
+              <button id="cpAskBtn" style="background:var(--blue); color:white; border:none; padding:6px 16px; border-radius:4px; cursor:pointer; font-size:12px;">Ask</button>
+            </div>
+            <div id="cpAskAnswer" style="margin-top:8px; font-size:12px; color:var(--text); white-space:pre-wrap;"></div>
+          </div>
         </div>
       </div>
 
@@ -1075,7 +1158,7 @@ async function sendChat() {
 
   try {
     const context = {
-      pageContext: 'Aceline Web UI — 6 mandatory rules active (Innovation Framework, ACRE, Design Engineering, Self-Building System, Suggestion Engine, Auto-Adapt System). 4 surfaces: UI, CLI, Webpage, Terminal.',
+      pageContext: 'Aceline Web UI — 7 Mandatory Rules Active (518 total) (Innovation Framework, ACRE, Design Engineering, Self-Building System, Suggestion Engine, Auto-Adapt System, Aceline Core Plus). 4 surfaces: UI, CLI, Webpage, Terminal.',
     };
     const response = await jarvisChat(msg, context);
     addMsg('assistant', response);
@@ -1197,9 +1280,10 @@ async function loadRules() {
   const list = document.getElementById('rulesList');
   list.innerHTML = '<div style="color:var(--text-dim);">Loading rules...</div>';
   try {
-    const [fw, acre, design, sb, se, aa] = await Promise.all([
+    const [fw, acre, design, sb, se, aa, cp] = await Promise.all([
       getRule('framework'), getRule('acre'), getRule('design'),
       getRule('self-building'), getRule('suggestion-engine'), getRule('auto-adapt'),
+      getRule('core-plus'),
     ]);
     const rules = [
       { n: 1, data: fw, cls: 'r1', count: fw.sections ? fw.sections.length : 20, core: fw.core_rule },
@@ -1208,6 +1292,7 @@ async function loadRules() {
       { n: 4, data: sb, cls: 'r4', count: sb.rule_count || 100, core: sb.master_rule },
       { n: 5, data: se, cls: 'r5', count: se.rule_count || 80, core: se.master_rule },
       { n: 6, data: aa, cls: 'r6', count: aa.rule_count || 115, core: aa.master_rule },
+      { n: 7, data: cp, cls: 'r7', count: cp.rule_count || 98, core: cp.most_important_principle },
     ];
     list.innerHTML = '';
     rules.forEach(r => {
@@ -1337,6 +1422,263 @@ document.getElementById('toolSurfaces').addEventListener('click', () => switchVi
 document.getElementById('toolRules').addEventListener('click', () => switchView('rules'));
 
 // ── Init ──
+// ═══ Core Plus Functions ═══
+async function loadCorePlus() {
+  try {
+    const resp = await fetch(`${BASE}/v1/core-plus`, { signal: AbortSignal.timeout(5000) });
+    const state = await resp.json();
+
+    // System Health
+    const health = state.system_health || {};
+    const healthEl = document.getElementById('cpHealth');
+    if (healthEl) {
+      const items = [
+        { label: 'Core', value: health.core, color: 'var(--green)' },
+        { label: 'Agent', value: health.agent, color: 'var(--blue)' },
+        { label: 'Memory', value: health.memory, color: 'var(--green)' },
+        { label: 'Journal', value: health.journal, color: 'var(--green)' },
+        { label: 'Backend', value: health.backend, color: 'var(--green)' },
+        { label: 'API', value: health.api, color: 'var(--green)' },
+        { label: 'Telegram', value: health.telegram, color: 'var(--green)' },
+        { label: 'RAM', value: health.ram, color: health.ram === 'CRITICAL' ? 'var(--red)' : health.ram === 'WARNING' ? 'var(--yellow)' : 'var(--green)' },
+        { label: 'Storage', value: health.storage, color: health.storage === 'CRITICAL' ? 'var(--red)' : health.storage === 'WARNING' ? 'var(--yellow)' : 'var(--green)' },
+        { label: 'UI', value: health.ui, color: 'var(--green)' },
+        { label: 'Rules', value: `${health.rules_active} (${health.total_rules})`, color: 'var(--cyan)' },
+      ];
+      healthEl.innerHTML = items.map(i =>
+        `<div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:4px; padding:8px;">
+          <div style="color:var(--text-dim); font-size:10px; text-transform:uppercase;">${i.label}</div>
+          <div style="color:${i.color}; font-size:13px; font-weight:bold;">${i.value || '—'}</div>
+        </div>`
+      ).join('');
+    }
+
+    // Agent Work
+    const agent = state.agent_work || {};
+    const agentEl = document.getElementById('cpAgent');
+    if (agentEl) {
+      if (agent.active_task) {
+        agentEl.innerHTML = `
+          <div><b>Task:</b> ${agent.active_task.objective || '—'}</div>
+          <div><b>Status:</b> ${agent.active_task.status || '—'}</div>
+          <div><b>Step:</b> ${agent.current_step || '—'}</div>
+          <div><b>Next:</b> ${agent.next_step || '—'}</div>
+          <div><b>Progress:</b> ${(agent.progress * 100).toFixed(0)}%</div>
+          <div style="margin-top:4px;"><b>Queued:</b> ${agent.queued} | <b>Completed:</b> ${agent.completed} | <b>Failed:</b> ${agent.failed}</div>
+          <div><b>Continuous:</b> ${agent.continuous_mode ? 'ON' : 'OFF'}</div>
+        `;
+      } else {
+        agentEl.innerHTML = `
+          <div style="color:var(--text-dim);">No active task</div>
+          <div><b>Queued:</b> ${agent.queued || 0} | <b>Completed:</b> ${agent.completed || 0} | <b>Failed:</b> ${agent.failed || 0}</div>
+          <div><b>Continuous:</b> ${agent.continuous_mode ? 'ON' : 'OFF'}</div>
+        `;
+      }
+    }
+
+    // Capacity
+    const cap = state.capacity || {};
+    const capEl = document.getElementById('cpCapacity');
+    if (capEl) {
+      if (cap.ram) {
+        capEl.innerHTML = `
+          <div><b>RAM:</b> ${cap.ram.available_gb}GB / ${cap.ram.total_gb}GB (${cap.ram.used_pct}%) <span style="color:${cap.ram.level === 'critical' ? 'var(--red)' : cap.ram.level === 'warning' ? 'var(--yellow)' : 'var(--green)'}">${cap.ram.level.toUpperCase()}</span></div>
+          <div><b>CPU:</b> ${cap.cpu.cores} cores, ${cap.cpu.usage_pct}% <span style="color:${cap.cpu.level === 'warning' ? 'var(--yellow)' : 'var(--green)'}">${cap.cpu.level.toUpperCase()}</span></div>
+          <div><b>Storage:</b> ${cap.storage.free_gb}GB / ${cap.storage.total_gb}GB (${cap.storage.used_pct}%) <span style="color:${cap.storage.level === 'critical' ? 'var(--red)' : cap.storage.level === 'warning' ? 'var(--yellow)' : 'var(--green)'}">${cap.storage.level.toUpperCase()}</span></div>
+          <div style="margin-top:4px; color:var(--text-dim);">Overall: <b style="color:${cap.overall_level === 'critical' ? 'var(--red)' : cap.overall_level === 'warning' ? 'var(--yellow)' : 'var(--green)'}">${cap.overall_level.toUpperCase()}</b></div>
+        `;
+      } else {
+        capEl.innerHTML = '<div style="color:var(--text-dim);">Loading...</div>';
+      }
+    }
+
+    // UI Capacity
+    const uicap = state.ui_capacity || {};
+    const uiCapEl = document.getElementById('cpUICapacity');
+    if (uiCapEl) {
+      const levelColor = uicap.level === 'full' ? 'var(--red)' : uicap.level === 'warning' ? 'var(--yellow)' : 'var(--green)';
+      uiCapEl.innerHTML = `
+        <div><b>Viewport:</b> ${uicap.viewport?.width || 0}x${uicap.viewport?.height || 0}</div>
+        <div><b>Components:</b> ${uicap.components?.total || 0} (visible: ${uicap.components?.visible || 0}, hidden: ${uicap.components?.hidden || 0}, collapsed: ${uicap.components?.collapsed || 0}, virtualized: ${uicap.components?.virtualized || 0})</div>
+        <div><b>DOM Size:</b> ${uicap.dom_size || 0} / ${uicap.max_dom_nodes || 5000}</div>
+        <div><b>Level:</b> <span style="color:${levelColor}">${(uicap.level || 'normal').toUpperCase()}</span></div>
+        ${uicap.ui_full ? '<div style="color:var(--red); margin-top:4px;">⚠ UI FULL — QUANTIZE → CONTINUE CODING</div>' : ''}
+        <div style="color:var(--text-dim); margin-top:4px; font-size:11px;">${uicap.action_if_full || ''}</div>
+      `;
+    }
+
+    // System Map
+    const map = state.system_map || {};
+    const mapEl = document.getElementById('cpMap');
+    if (mapEl && map.nodes) {
+      const nodeCount = map.node_count || Object.keys(map.nodes).length;
+      const edgeCount = map.edges ? map.edges.length : 0;
+      let html = `<div style="margin-bottom:8px; color:var(--text-dim);">${nodeCount} nodes, ${edgeCount} connections</div>`;
+      html += '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:4px;">';
+      for (const [nid, node] of Object.entries(map.nodes)) {
+        const statusColor = node.status === 'online' ? 'var(--green)' : 'var(--yellow)';
+        html += `<div style="background:var(--bg); border:1px solid var(--border); border-radius:3px; padding:4px 6px; font-size:11px;">
+          <span style="color:${statusColor};">●</span> <b>${node.name}</b>
+          <div style="color:var(--text-dim); font-size:10px;">${node.type}</div>
+        </div>`;
+      }
+      html += '</div>';
+      mapEl.innerHTML = html;
+    }
+
+    // Side Notes
+    const notes = state.side_notes || [];
+    const notesEl = document.getElementById('cpSideNotes');
+    if (notesEl) {
+      if (notes.length === 0) {
+        notesEl.innerHTML = '<div style="color:var(--text-dim);">No side notes yet</div>';
+      } else {
+        notesEl.innerHTML = notes.map(n => `
+          <div style="border-bottom:1px solid var(--border); padding:4px 0;">
+            <div style="color:var(--cyan); font-size:10px;">[${n.category}] ${n.timestamp?.substring(11, 19) || ''}</div>
+            <div>${n.observation}</div>
+            ${n.possible_improvement ? `<div style="color:var(--text-dim); font-size:11px;">→ ${n.possible_improvement}</div>` : ''}
+          </div>
+        `).join('');
+      }
+    }
+
+    // Suggestions
+    const sugs = state.suggestions || [];
+    const sugsEl = document.getElementById('cpSuggestions');
+    if (sugsEl) {
+      if (sugs.length === 0) {
+        sugsEl.innerHTML = '<div style="color:var(--text-dim);">No suggestions yet</div>';
+      } else {
+        const priorityColors = { CRITICAL: 'var(--red)', HIGH: 'var(--yellow)', MEDIUM: 'var(--blue)', LOW: 'var(--text-dim)', OPTIONAL: 'var(--text-dim)', EXPERIMENTAL: 'var(--magenta)' };
+        sugsEl.innerHTML = sugs.map(s => `
+          <div style="border-bottom:1px solid var(--border); padding:4px 0;">
+            <div style="font-size:10px;"><span style="color:${priorityColors[s.priority] || 'var(--text)'}; font-weight:bold;">${s.priority}</span> <span style="color:var(--text-dim);">[${s.category}] ${s.timestamp?.substring(11, 19) || ''}</span></div>
+            <div>${s.proposed_solution}</div>
+            <div style="color:var(--text-dim); font-size:11px;">Status: ${s.status}</div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Self-Explanation
+    const explain = state.explanation || {};
+    const explainEl = document.getElementById('cpExplain');
+    if (explainEl) {
+      explainEl.innerHTML = `
+        <div><b>What I am:</b> ${explain.what_i_am || '—'}</div>
+        <div><b>What I'm doing:</b> ${explain.what_i_am_doing || '—'}</div>
+        <div><b>Why:</b> ${explain.why || '—'}</div>
+        <div><b>What changed:</b> ${explain.what_changed || '—'}</div>
+        <div><b>What failed:</b> ${explain.what_failed || '—'}</div>
+        <div><b>What I learned:</b> ${explain.what_i_learned || '—'}</div>
+        <div><b>What I recommend:</b> ${explain.what_i_recommend || '—'}</div>
+        <div><b>Next task:</b> ${explain.next_task || '—'}</div>
+      `;
+    }
+
+    // Rinse-Repeat
+    const rinse = state.rinse_repeat || {};
+    const rinseEl = document.getElementById('cpRinse');
+    if (rinseEl) {
+      const cur = rinse.current || {};
+      rinseEl.innerHTML = `
+        <div style="color:var(--text); margin-bottom:6px;">${rinse.description || '—'}</div>
+        <div><b>Loop Active:</b> ${rinse.loop_active ? 'YES' : 'NO'}</div>
+        <div><b>Total Cycles:</b> ${rinse.total_cycles || 0}</div>
+        <div><b>Current Cycle:</b> ${rinse.current_cycle || 0}</div>
+        <div><b>Multiplier:</b> ${rinse.multiplier || 10}x</div>
+        ${cur.cycle_number ? `<div><b>Current Status:</b> ${cur.status}</div><div><b>Capacity:</b> ${cur.previous_ui_capacity} → ${cur.new_ui_capacity}</div><div><b>Best Creations Carried:</b> ${cur.best_creations_carried}</div>` : ''}
+      `;
+    }
+
+  } catch (e) {
+    console.error('Core Plus load error:', e);
+  }
+}
+
+async function askAceline(question) {
+  try {
+    const resp = await fetch(`${BASE}/v1/core-plus/explain/ask`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question }),
+      signal: AbortSignal.timeout(10000),
+    });
+    const data = await resp.json();
+    document.getElementById('cpAskAnswer').textContent = data.answer || 'No response';
+  } catch (e) {
+    document.getElementById('cpAskAnswer').textContent = 'Error: ' + e.message;
+  }
+}
+
+async function initCorePlus() {
+  const refreshBtn = document.getElementById('cpRefresh');
+  const continuousBtn = document.getElementById('cpContinuous');
+  const rinseBtn = document.getElementById('cpRinseRepeat');
+  const askBtn = document.getElementById('cpAskBtn');
+  const askInput = document.getElementById('cpAskInput');
+
+  if (refreshBtn) refreshBtn.onclick = loadCorePlus;
+  if (continuousBtn) continuousBtn.onclick = async () => {
+    try {
+      const resp = await fetch(`${BASE}/v1/core-plus/agent/continuous`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: true }),
+      });
+      const data = await resp.json();
+      continuousBtn.textContent = 'Continuous: ON';
+      continuousBtn.style.background = 'rgba(86,156,214,0.2)';
+      await fetch(`${BASE}/v1/core-plus/agent/start`, { method: 'POST' });
+      loadCorePlus();
+    } catch (e) { console.error(e); }
+  };
+  if (rinseBtn) rinseBtn.onclick = async () => {
+    try {
+      const resp = await fetch(`${BASE}/v1/core-plus/rinse-repeat/initiate`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trigger: 'manual', previous_capacity: 1000, best_creations: 0 }),
+      });
+      const data = await resp.json();
+      await fetch(`${BASE}/v1/core-plus/rinse-repeat/${data.cycle_id}/update`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'building' }),
+      });
+      loadCorePlus();
+    } catch (e) { console.error(e); }
+  };
+  if (askBtn) askBtn.onclick = () => {
+    const q = askInput.value.trim();
+    if (q) askAceline(q);
+  };
+  if (askInput) askInput.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      const q = askInput.value.trim();
+      if (q) askAceline(q);
+    }
+  };
+
+  // Update UI capacity from viewport
+  const updateUICap = async () => {
+    try {
+      await fetch(`${BASE}/v1/core-plus/ui-capacity/update`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          viewport_w: window.innerWidth,
+          viewport_h: window.innerHeight,
+          component_count: document.querySelectorAll('*').length,
+          dom_size: document.querySelectorAll('*').length,
+          visible_elements: document.querySelectorAll('.view.active *').length,
+        }),
+      });
+    } catch (e) {}
+  };
+  window.addEventListener('resize', () => { updateUICap(); loadCorePlus(); });
+
+  loadCorePlus();
+  setInterval(loadCorePlus, 10000);
+}
+
 async function init() {
   const ok = await checkBackend();
   const dot = document.getElementById('statusDot');
@@ -1349,7 +1691,7 @@ async function init() {
     sb.textContent = '● Backend: Online';
     sb.style.cursor = 'pointer';
     termLog('Backend connected at ' + BASE, 'ok');
-    termLog('6 mandatory rules active', 'ok');
+    termLog('7 Mandatory Rules Active (518 total)', 'ok');
     termLog('4 surfaces initialized: UI, CLI, Webpage, Terminal', 'ok');
 
     // Load surfaces
@@ -1359,6 +1701,9 @@ async function init() {
     // Load invent state
     loadInventState();
     setInterval(loadInventState, 10000);
+
+    // Load Core Plus
+    initCorePlus();
   } else {
     dot.className = 'status-dot';
     text.textContent = 'Backend offline';
