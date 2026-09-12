@@ -873,6 +873,62 @@ If Soulmate helps you, consider supporting development:
 
 </div>
 
+---
+
+## Aceline — 4-Surface Roaming AI Agent Platform
+
+Aceline is a roaming AI agent that exists as **4 surfaces**, all sharing the same brain (GLM 5.1 via incllmv2), the same tool protocol (`RUN/READ/WRITE/SEARCH/DONE`), and the same memory shape.
+
+### Surfaces
+
+1. **Web UI Overlay** — Floating draggable panel in Soulmate OS. Appears on every page. Triggered by the bottom-right Aceline button or `Cmd+K`. Reads page state via the action registry, triggers registered actions, navigates between pages, and chats via GLM 5.1.
+
+2. **CLI REPL** — Node/TypeScript CLI at `aceline-cli/`. Same tool protocol as `cline_agent.py`. Connects to GLM 5.1 via incllmv2. Commands: `aceline` (REPL), `aceline chat "msg"`, `aceline run "cmd"`, `aceline memory`, `aceline consent`, `aceline models`, `aceline help`.
+
+3. **Standalone Webpage** — Full-page Aceline at `/aceline/`. No Soulmate OS chrome. Hostable on any static host. Same consent system, voice, and personality toggle. PWA-installable.
+
+4. **In-App Terminal** — Terminal tab inside the Aceline overlay. Routes commands through the Hermes backend (`/v1/hermes/terminal`). Command history, up/down arrow navigation. Aceline can push `RUN:` commands from chat to the terminal.
+
+5. **Browser Extension** — Manifest V3 extension at `aceline-extension/`. Injects a floating Aceline button onto any website. Reads page DOM, builds a page-API summary, and lets you control the page (click buttons, fill forms, read text) via voice or text. Per-domain consent modal.
+
+### Runtime Consent
+
+Every Aceline surface shows a consent popup on first use:
+- **Master switch** — "Allow full capabilities" (all on) or "Safe mode" (read-only)
+- **Per-feature toggles** — voice/Jarvis, wallet, GLM backend, terminal, file access, auto-API, browser extension, custom actions
+- **Remember my choice** — skip the modal on future launches
+- **Custom directives** — free-text field ("Tell Aceline to do something") injected into every system prompt
+
+### Jarvis Hybrid
+
+Aceline has two personalities sharing the same brain, memory, and GLM backend:
+- **Aceline** (text-first) — default roaming agent
+- **Jarvis** (voice-first) — uses `useJarvis.ts` voice settings, wake word, TTS/STT
+
+Toggle between them in the overlay header. Voice commands route through the same `acelineChat` pipeline. Both can speak responses via TTS.
+
+### Files
+
+| Surface | Files |
+|---------|-------|
+| Web overlay | `frontend/src/components/aceline/AcelineOverlay.tsx`, `AcelineButton.tsx` |
+| Consent | `frontend/src/lib/acelineConsent.ts`, `frontend/src/components/aceline/AcelineConsentModal.tsx` |
+| Voice | `frontend/src/lib/acelineVoice.ts` (wraps `useJarvis.ts`) |
+| Terminal | `frontend/src/components/aceline/AcelineTerminal.tsx` |
+| Store | `frontend/src/lib/acelineStore.ts` |
+| API | `frontend/src/lib/acelineApi.ts` |
+| Actions | `frontend/src/lib/acelineActions.ts` |
+| Registry | `frontend/src/lib/acelineRegistry.ts` |
+| CLI | `aceline-cli/src/index.ts`, `api.ts`, `tools.ts`, `consent.ts` |
+| Standalone | `frontend/public/aceline/index.html` |
+| Extension | `aceline-extension/manifest.json`, `content.js`, `content.css`, `background.js`, `popup.html` |
+| Rule | `.devin/rules/aceline-rule.md` |
+
+### URLs
+
+- Production: https://soulmate-os-app.netlify.app
+- Standalone Aceline: https://soulmate-os-app.netlify.app/aceline/
+
 <div align="center">
 
 Built with love for the local-first AI community

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Aceline">
+<link rel="icon" type="image/png" href="/incentives-coin.png">
+<link rel="apple-touch-icon" href="/incentives-coin.png">
+<title>Aceline — Standalone AI Agent</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0a0a0f;
+  --bg-card: #1a1a2e;
+  --bg-alt: #252540;
+  --accent: #E91E63;
+  --text: #ffffff;
+  --muted: #8888aa;
+  --success: #00e676;
+  --danger: #ff5252;
+  --blue: #60a5fa;
+}
+body {
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; height: 100vh; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
+  background: rgba(233,30,99,0.05);
+}
+.header-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: rgba(233,30,99,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.header-icon.jarvis { background: rgba(96,165,250,0.2); }
+.header-title { font-size: 14px; font-weight: 700; }
+.header-badge {
+  font-size: 8px; padding: 2px 6px; border-radius: 8px;
+  background: rgba(233,30,99,0.2); color: var(--accent); margin-left: 6px;
+}
+.header-badge.jarvis { background: rgba(96,165,250,0.2); color: var(--blue); }
+.header-sub { font-size: 10px; color: var(--muted); }
+.header-actions { margin-left: auto; display: flex; gap: 4px; }
+.header-btn {
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; padding: 6px; border-radius: 8px;
+  font-size: 14px; transition: all 0.2s;
+}
+.header-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.header-btn.active { color: var(--accent); background: rgba(233,30,99,0.1); }
+.header-btn.jarvis-active { color: var(--blue); background: rgba(96,165,250,0.1); }
+
+.messages {
+  flex: 1; overflow-y: auto; padding: 16px; display: flex;
+  flex-direction: column; gap: 8px;
+}
+.msg { max-width: 80%; padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.5; }
+.msg.user { background: rgba(233,30,99,0.15); align-self: flex-end; }
+.msg.ai { background: var(--bg-alt); align-self: flex-start; border: 1px solid rgba(255,255,255,0.05); }
+.msg.ai.jarvis { background: rgba(96,165,250,0.1); border-color: rgba(96,165,250,0.1); }
+.msg.system { background: rgba(255,255,255,0.05); align-self: center; font-size: 11px; color: var(--muted); }
+.thinking { display: flex; gap: 4px; padding: 10px 14px; }
+.thinking span {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  animation: pulse 1s infinite;
+}
+.thinking span:nth-child(2) { animation-delay: 0.2s; }
+.thinking span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pulse { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+.consent-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+  padding: 20px;
+}
+.consent-box {
+  background: var(--bg-card); border: 1px solid rgba(233,30,99,0.3);
+  border-radius: 16px; padding: 24px; max-width: 480px; width: 100%;
+  max-height: 85vh; overflow-y: auto;
+}
+.consent-box h2 { font-size: 16px; margin-bottom: 4px; }
+.consent-box p { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+.consent-feature {
+  display: flex; align-items: center; gap: 12px; padding: 10px;
+  border-radius: 10px; background: rgba(255,255,255,0.03); margin-bottom: 6px;
+}
+.consent-feature-info { flex: 1; }
+.consent-feature-label { font-size: 12px; font-weight: 600; }
+.consent-feature-desc { font-size: 10px; color: var(--muted); }
+.consent-toggle {
+  width: 36px; height: 20px; border-radius: 10px; border: none;
+  cursor: pointer; position: relative; background: var(--bg-alt);
+  transition: background 0.2s;
+}
+.consent-toggle.on { background: var(--accent); }
+.consent-toggle-knob {
+  position: absolute; top: 2px; width: 16px; height: 16px;
+  border-radius: 50%; background: white; transition: transform 0.2s;
+}
+.consent-toggle.on .consent-toggle-knob { transform: translateX(18px); }
+.consent-directives {
+  width: 100%; padding: 10px; border-radius: 10px;
+  background: var(--bg-alt); border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text); font-size: 12px; font-family: inherit;
+  resize: vertical; margin-bottom: 12px;
+}
+.consent-btns { display: flex; gap: 8px; }
+.consent-btn {
+  flex: 1; padding: 10px; border-radius: 12px; border: none;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.consent-btn.deny { background: var(--bg-alt); color: var(--muted); }
+.consent-btn.allow { background: var(--accent); color: white; }
+
+.input-bar {
+  padding: 12px; border-top: 1px solid rgba(255,255,255,0.1);
+  display: flex; gap: 8px; background: var(--bg-card);
+}
+.input-bar input {
+  flex: 1; padding: 10px 14px; border-radius: 12px;
+  background: var(--bg-alt); border: 1px solid rgba(255,255,255,0.1);
+  color: var(--text); font-size: 13px; outline: none;
+}
+.input-bar input:focus { border-color: rgba(233,30,99,0.5); }
+.input-bar button {
+  padding: 10px 14px; border-radius: 12px; border: none;
+  background: rgba(233,30,99,0.2); color: var(--accent);
+  cursor: pointer; font-size: 14px; transition: all 0.2s;
+}
+.input-bar button:hover { background: rgba(233,30,99,0.3); }
+.input-bar button:disabled { opacity: 0.5; }
+.mic-btn.listening { background: rgba(255,82,82,0.2); color: var(--danger); animation: pulse 1s infinite; }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ── Aceline Standalone — Full-page chat (no Soulmate OS chrome) ──
+
+const INCLLMV2_BASE = location.origin.includes("localhost") ? "http://localhost:8547" : "";
+const STORAGE_KEY = "aceline_standalone_v1";
+const CONSENT_KEY = "aceline_consent_v1";
+
+let state = {
+  messages: [],
+  personality: "aceline",
+  voiceEnabled: true,
+  thinking: false,
+  listening: false,
+  model: "trill",
+  memory: [],
+};
+
+let consent = {
+  given: false,
+  remembered: false,
+  masterAllow: false,
+  features: { voice: true, wallet: true, glmBackend: true, terminal: false, fileAccess: false, autoApi: true, customActions: true },
+  customDirectives: "",
+};
+
+// Load persisted state
+try {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    const d = JSON.parse(saved);
+    state.personality = d.personality || "aceline";
+    state.voiceEnabled = d.voiceEnabled ?? true;
+    state.model = d.model || "trill";
+    state.memory = d.memory || [];
+  }
+  const c = localStorage.getItem(CONSENT_KEY);
+  if (c) consent = { ...consent, ...JSON.parse(c) };
+} catch {}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    personality: state.personality,
+    voiceEnabled: state.voiceEnabled,
+    model: state.model,
+    memory: state.memory,
+  }));
+}
+
+function saveConsent() {
+  localStorage.setItem(CONSENT_KEY, JSON.stringify(consent));
+}
+
+// ── API ──
+let cachedToken = null;
+async function getToken() {
+  if (cachedToken) return cachedToken;
+  const r = await fetch(`${INCLLMV2_BASE}/v1/auth/auto`, { method: "POST" });
+  const d = await r.json();
+  if (!r.ok || d.status !== "ok") throw new Error(d.message || "auth failed");
+  cachedToken = d.token;
+  return cachedToken;
+}
+
+async function acelineChat(message, model, personality) {
+  const features = consent.features;
+  const sysParts = [];
+  if (personality === "jarvis") {
+    sysParts.push("You are Jarvis, voice-first AI assistant. Respond conversationally, keep it concise for TTS.");
+  } else {
+    sysParts.push("You are Aceline, a roaming AI agent in standalone web mode. You can chat and help with any task.");
+  }
+  sysParts.push(`Personality: ${personality}`);
+  if (consent.customDirectives) sysParts.push(`\nCustom directives: ${consent.customDirectives}`);
+  const pageContext = sysParts.join("\n");
+
+  try {
+    if (!features.glmBackend) throw new Error("GLM backend not granted");
+    const token = await getToken();
+    const r = await fetch(`${INCLLMV2_BASE}/v1/ai/jarvis`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ message, model: model || "dolphin-mistral:latest", context: { agent: "aceline", source: "standalone-web", personality, pageContext } }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || d.message || `HTTP ${r.status}`);
+    return d.response || "No response";
+  } catch (e) {
+    return offlineResponse(message, personality);
+  }
+}
+
+function offlineResponse(query, personality) {
+  const name = personality === "jarvis" ? "Jarvis" : "Aceline";
+  const q = query.toLowerCase();
+  if (q.includes("hello") || q.includes("hi")) return `Hello! ${name} here. I'm in standalone mode. The GLM backend may be offline — start incllmv2 locally for full capabilities.`;
+  if (q.includes("help") || q.includes("what can you do")) return `${name} can chat, answer questions, and help with tasks. For full GLM 5.1 capabilities, run the incllmv2 backend at localhost:8547.`;
+  return `${name} is in offline mode (no local backend). For full capabilities, run incllmv2 locally.`;
+}
+
+// ── Voice ──
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+
+function speak(text) {
+  if (!state.voiceEnabled || !consent.features.voice || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const clean = text.replace(/[*_`#>]/g, "").slice(0, 500);
+  const u = new SpeechSynthesisUtterance(clean);
+  u.rate = personality === "jarvis" ? 0.95 : 1.0;
+  u.pitch = 1.0;
+  window.speechSynthesis.speak(u);
+}
+
+function startListening() {
+  if (!SR || !consent.features.voice) return;
+  recognition = new SR();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = "en-US";
+  recognition.onresult = (e) => {
+    let t = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
+    document.getElementById("msg-input").value = t;
+    if (e.results[e.results.length - 1].isFinal) { state.listening = false; render(); }
+  };
+  recognition.onerror = () => { state.listening = false; render(); };
+  recognition.onend = () => { state.listening = false; render(); };
+  recognition.start();
+  state.listening = true;
+  render();
+}
+
+function stopListening() {
+  if (recognition) { try { recognition.stop(); } catch {} }
+  state.listening = false;
+  render();
+}
+
+// ── Render ──
+function render() {
+  const app = document.getElementById("app");
+  const isJarvis = state.personality === "jarvis";
+  const name = isJarvis ? "Jarvis" : "Aceline";
+
+  let html = "";
+
+  // Consent modal
+  if (!consent.given) {
+    html += `<div class="consent-overlay" id="consent-overlay">`;
+    html += `<div class="consent-box">`;
+    html += `<h2>🛡️ Aceline Runtime Consent</h2>`;
+    html += `<p>Choose what Aceline can do on this device</p>`;
+    const features = [
+      { key: "voice", label: "Voice / Jarvis", desc: "Speech recognition + text-to-speech" },
+      { key: "glmBackend", label: "GLM 5.1 Backend", desc: "Connect to local incllmv2 for full AI" },
+      { key: "wallet", label: "Wallet Access", desc: "Read Incentives wallet" },
+      { key: "terminal", label: "Terminal Execution", desc: "Run commands via terminal" },
+      { key: "fileAccess", label: "File Access", desc: "Read/write files on filesystem" },
+      { key: "autoApi", label: "Auto-API Building", desc: "Record page capabilities" },
+      { key: "customActions", label: "Custom Actions", desc: "Execute registered actions" },
+    ];
+    for (const f of features) {
+      const on = consent.features[f.key];
+      html += `<div class="consent-feature">`;
+      html += `<div class="consent-feature-info"><div class="consent-feature-label">${f.label}</div><div class="consent-feature-desc">${f.desc}</div></div>`;
+      html += `<button class="consent-toggle ${on ? "on" : ""}" onclick="toggleConsent('${f.key}')"><div class="consent-toggle-knob"></div></button>`;
+      html += `</div>`;
+    }
+    html += `<p style="margin-top:12px;font-size:11px;">Tell Aceline to do something (optional):</p>`;
+    html += `<textarea class="consent-directives" id="directives" placeholder="e.g. 'be terse', 'focus on coding'..." rows="3">${consent.customDirectives}</textarea>`;
+    html += `<div class="consent-btns">`;
+    html += `<button class="consent-btn deny" onclick="confirmConsent(false)">Safe Mode</button>`;
+    html += `<button class="consent-btn allow" onclick="confirmConsent(true)">Allow All</button>`;
+    html += `</div>`;
+    html += `</div></div>`;
+  }
+
+  // Header
+  html += `<div class="header">`;
+  html += `<div class="header-icon ${isJarvis ? "jarvis" : ""}">${isJarvis ? "🤖" : "✨"}</div>`;
+  html += `<div><div class="header-title">${name}<span class="header-badge ${isJarvis ? "jarvis" : ""}">${isJarvis ? "VOICE" : "STANDALONE"}</span></div>`;
+  html += `<div class="header-sub">Standalone Mode • ${consent.features.glmBackend ? "GLM 5.1" : "Offline"}</div></div>`;
+  html += `<div class="header-actions">`;
+  html += `<button class="header-btn ${isJarvis ? "jarvis-active" : ""}" onclick="togglePersonality()" title="Switch personality">${isJarvis ? "✨" : "🤖"}</button>`;
+  html += `<button class="header-btn ${state.voiceEnabled ? "active" : ""}" onclick="toggleVoice()" title="Toggle voice">🔊</button>`;
+  html += `</div></div>`;
+
+  // Messages
+  html += `<div class="messages" id="messages">`;
+  if (state.messages.length === 0) {
+    html += `<div class="msg system">${name} is ready. Ask me anything.</div>`;
+  }
+  for (const m of state.messages) {
+    const cls = m.role === "user" ? "user" : (isJarvis ? "ai jarvis" : "ai");
+    html += `<div class="msg ${cls}">${escapeHtml(m.text)}</div>`;
+  }
+  if (state.thinking) {
+    html += `<div class="thinking"><span></span><span></span><span></span></div>`;
+  }
+  html += `</div>`;
+
+  // Input
+  html += `<div class="input-bar">`;
+  html += `<button class="mic-btn ${state.listening ? "listening" : ""}" onclick="${state.listening ? "stopListening()" : "startListening()"}" ${!SR || !consent.features.voice ? "disabled" : ""}>🎤</button>`;
+  html += `<input id="msg-input" type="text" placeholder="Ask ${name}..." onkeydown="if(event.key==='Enter')sendMsg()" />`;
+  html += `<button onclick="sendMsg()" ${state.thinking ? "disabled" : ""}>➤</button>`;
+  html += `</div>`;
+
+  app.innerHTML = html;
+  const msgs = document.getElementById("messages");
+  if (msgs) msgs.scrollTop = msgs.scrollHeight;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">").replace(/\n/g, "<br>");
+}
+
+// ── Actions ──
+window.toggleConsent = (key) => {
+  consent.features[key] = !consent.features[key];
+  render();
+};
+
+window.confirmConsent = (allow) => {
+  const dirEl = document.getElementById("directives");
+  if (dirEl) consent.customDirectives = dirEl.value;
+  if (allow) {
+    for (const k in consent.features) consent.features[k] = true;
+    consent.masterAllow = true;
+  } else {
+    consent.masterAllow = false;
+  }
+  consent.given = true;
+  consent.remembered = true;
+  saveConsent();
+  render();
+};
+
+window.togglePersonality = () => {
+  state.personality = state.personality === "aceline" ? "jarvis" : "aceline";
+  saveState();
+  state.messages.push({ role: "ai", text: state.personality === "jarvis" ? "Jarvis mode. Speak to me or type." : "Aceline mode. How can I help?" });
+  render();
+};
+
+window.toggleVoice = () => {
+  state.voiceEnabled = !state.voiceEnabled;
+  saveState();
+  render();
+};
+
+window.sendMsg = async () => {
+  const input = document.getElementById("msg-input");
+  const text = input.value.trim();
+  if (!text || state.thinking) return;
+  input.value = "";
+  state.messages.push({ role: "user", text });
+  state.thinking = true;
+  render();
+  try {
+    const resp = await acelineChat(text, state.model, state.personality);
+    state.messages.push({ role: "ai", text: resp });
+    speak(resp);
+  } catch (e) {
+    state.messages.push({ role: "ai", text: `Error: ${e.message}` });
+  } finally {
+    state.thinking = false;
+    render();
+  }
+};
+
+render();
+</script>
+</body>
+</html>

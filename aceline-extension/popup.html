@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 320px;
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  background: #0a0a0f;
+  color: #fff;
+  padding: 16px;
+}
+h2 { font-size: 14px; margin-bottom: 12px; }
+.status {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px; border-radius: 10px;
+  background: #1a1a2e; margin-bottom: 12px;
+  font-size: 12px;
+}
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #00e676;
+}
+.dot.offline { background: #ff5252; }
+.btn {
+  width: 100%; padding: 10px; border-radius: 10px;
+  border: none; background: #E91E63; color: white;
+  cursor: pointer; font-size: 13px; font-weight: 600;
+  margin-bottom: 8px; transition: opacity 0.2s;
+}
+.btn:hover { opacity: 0.9; }
+.btn.secondary {
+  background: #252540; color: #8888aa;
+}
+.info {
+  font-size: 11px; color: #8888aa; line-height: 1.5;
+  margin-top: 8px;
+}
+</style>
+</head>
+<body>
+<h2>✨ Aceline Extension</h2>
+<div class="status">
+  <div class="dot" id="status-dot"></div>
+  <span id="status-text">Checking backend...</span>
+</div>
+<button class="btn" id="toggle-btn">Toggle Aceline on Page</button>
+<button class="btn secondary" id="consent-btn">Reset Consent</button>
+<div class="info">
+  Aceline injects a floating AI agent onto any webpage. It reads the page DOM,
+  builds a capability API, and lets you control the page via voice or text.
+  <br><br>
+  Backend: <code>localhost:8547</code> (incllmv2)
+</div>
+<script>
+// Check backend status
+fetch("http://localhost:8547/health", { signal: AbortSignal.timeout(3000) })
+  .then(r => r.json())
+  .then(() => {
+    document.getElementById("status-dot").classList.remove("offline");
+    document.getElementById("status-text").textContent = "Backend connected (GLM 5.1)";
+  })
+  .catch(() => {
+    document.getElementById("status-dot").classList.add("offline");
+    document.getElementById("status-text").textContent = "Backend offline (limited mode)";
+  });
+
+// Toggle overlay
+document.getElementById("toggle-btn").addEventListener("click", () => {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0]) {
+      chrome.tabs.sendMessage(tabs[0].id, { type: "toggle" });
+      window.close();
+    }
+  });
+});
+
+// Reset consent
+document.getElementById("consent-btn").addEventListener("click", () => {
+  chrome.storage.local.remove(["aceline_consent"], () => {
+    alert("Consent reset. Reload the page to see the consent modal again.");
+  });
+});
+</script>
+</body>
+</html>

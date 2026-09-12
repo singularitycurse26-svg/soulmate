@@ -48,6 +48,31 @@ The Aceline floating overlay is rendered globally in `App.tsx`. It is draggable,
 ### 5. Cmd+K Shortcut
 `Cmd+K` / `Ctrl+K` toggles the Aceline overlay. This shortcut is hardcoded in `App.tsx`.
 
+### 6. Runtime Consent
+Every Aceline surface (web overlay, CLI, standalone page, browser extension) must show a consent popup on first use:
+- Master allow/deny switch
+- Per-feature toggles (voice, wallet, GLM backend, terminal, file access, auto-API, browser extension, custom actions)
+- "Remember my choice" option
+- Free-text custom directives field ("Tell Aceline to do something")
+- Stored at `localStorage` (web) or `~/.aceline/consent.json` (CLI) or `chrome.storage.local` (extension)
+
+### 7. Jarvis Hybrid
+Aceline has two personalities sharing the same brain, memory, and GLM backend:
+- **Aceline** — text-first roaming agent (default)
+- **Jarvis** — voice-first assistant (uses `useJarvis.ts` voice settings)
+Both can be toggled in the overlay header. Voice commands route through the same `acelineChat` pipeline.
+
+### 8. Four Surfaces
+Aceline exists as 4 surfaces, all sharing the same GLM 5.1 backend and tool protocol:
+1. **Web UI overlay** — floating panel in Soulmate OS (`AcelineOverlay.tsx`)
+2. **CLI REPL** — `aceline-cli/` directory, Node/TypeScript, `RUN/READ/WRITE/SEARCH/DONE` protocol
+3. **Standalone webpage** — `frontend/public/aceline/index.html`, hostable anywhere
+4. **In-app terminal** — terminal tab inside the overlay (`AcelineTerminal.tsx`)
+5. **Browser extension** — `aceline-extension/`, Manifest V3, injects onto external sites
+
+### 9. Terminal Panel
+The Aceline overlay includes a terminal tab that routes commands through the Hermes backend (`/v1/hermes/terminal`). Aceline can push `RUN:` commands from chat responses to the terminal. Terminal access is gated by consent.
+
 ## Enforcement
 - Code review must check for Aceline action registration on new pages
 - The Aceline button and overlay must never be removed from `App.tsx`

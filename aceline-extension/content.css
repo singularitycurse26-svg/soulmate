@@ -1,0 +1,208 @@
+/* Aceline Extension — Content CSS */
+
+#__aceline-fab {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #E91E63, #9C27B0);
+  color: white;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2147483647;
+  box-shadow: 0 4px 20px rgba(233, 30, 99, 0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+  user-select: none;
+}
+#__aceline-fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 30px rgba(233, 30, 99, 0.6);
+}
+
+#__aceline-overlay {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 360px;
+  height: 500px;
+  background: #1a1a2e;
+  border: 1px solid rgba(233, 30, 99, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  z-index: 2147483647;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+}
+
+.__aceline-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(233, 30, 99, 0.05);
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.__aceline-hbtn {
+  background: none;
+  border: none;
+  color: #8888aa;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.__aceline-hbtn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.__aceline-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.__aceline-msg {
+  max-width: 80%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #fff;
+  word-wrap: break-word;
+}
+.__aceline-msg-user {
+  background: rgba(233, 30, 99, 0.15);
+  align-self: flex-end;
+}
+.__aceline-msg-ai {
+  background: #252540;
+  align-self: flex-start;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.__aceline-thinking {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  align-self: flex-start;
+}
+.__aceline-thinking span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #E91E63;
+  animation: __aceline-pulse 1s infinite;
+}
+.__aceline-thinking span:nth-child(2) { animation-delay: 0.2s; }
+.__aceline-thinking span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes __aceline-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.__aceline-input-bar {
+  padding: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  gap: 6px;
+  background: #1a1a2e;
+}
+
+#__aceline-input {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #252540;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 12px;
+  outline: none;
+  font-family: inherit;
+}
+#__aceline-input:focus {
+  border-color: rgba(233, 30, 99, 0.5);
+}
+
+.__aceline-send-btn {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: none;
+  background: rgba(233, 30, 99, 0.2);
+  color: #E91E63;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.__aceline-send-btn:hover {
+  background: rgba(233, 30, 99, 0.3);
+}
+
+.__aceline-mic-btn {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: none;
+  background: #252540;
+  color: #8888aa;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+.__aceline-mic-btn.listening {
+  background: rgba(255, 82, 82, 0.2);
+  color: #ff5252;
+  animation: __aceline-pulse 1s infinite;
+}
+
+#__aceline-consent {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2147483647;
+  padding: 20px;
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+}
+
+.__aceline-consent-box {
+  background: #1a1a2e;
+  border: 1px solid rgba(233, 30, 99, 0.3);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 400px;
+  width: 100%;
+  color: #fff;
+}
+.__aceline-consent-box h2 {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+.__aceline-consent-box label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #ccc;
+  cursor: pointer;
+}
+.__aceline-consent-box input[type="checkbox"] {
+  accent-color: #E91E63;
+}
