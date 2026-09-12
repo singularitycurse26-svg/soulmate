@@ -3,7 +3,7 @@
 // Same brain as the web overlay: GLM 5.1 via incllmv2, same tool protocol as Cline
 
 import * as readline from "readline";
-import { jarvisChat, checkBackend, getModels } from "./api.js";
+import { jarvisChat, checkBackend, getModels, autoInventState, autoInventToggle, autoInventRun, autoInventFramework } from "./api.js";
 import { parseTools, executeTool, type Tool } from "./tools.js";
 import {
   loadConsent,
@@ -180,6 +180,10 @@ function printHelp(): void {
     aceline memory       List stored memory
     aceline consent      Re-run consent setup
     aceline models       List available models
+    aceline auto-invent  Run one invention cycle (generate, test, pick best)
+    aceline auto-invent on    Enable continuous auto-invention mode
+    aceline auto-invent off   Disable auto-invention mode
+    aceline auto-invent framework  Show the Innovation Framework rule
     aceline help         Show this help
 
   Environment:
@@ -246,6 +250,103 @@ async function main(): Promise<void> {
     for (const m of models) console.log(`    ${m}`);
     rl.close();
     return;
+  }
+
+  if (cmd === "auto-invent" || cmd === "invent") {
+    const subcmd = args[1];
+    const backendOk = await checkBackend();
+    if (!backendOk) {
+      console.log("  ⚠ Backend not running at localhost:8547");
+      rl.close();
+      return;
+    }
+
+    if (subcmd === "framework") {
+      const fw = await autoInventFramework();
+      console.log(`\n  ${fw.name}`);
+      console.log(`  Core: ${fw.core_rule}`);
+      console.log(`  Master: ${fw.master_principle}`);
+      console.log(`  Surfaces: ${fw.surfaces.join(", ")}`);
+      console.log(`  Sections: ${fw.sections.length}`);
+      for (const s of fw.sections) console.log(`    ${s}`);
+      rl.close();
+      return;
+    }
+
+    if (subcmd === "on" || subcmd === "enable") {
+      const result = await autoInventToggle(true);
+      console.log(`\n  ✓ Auto-invention mode ON`);
+      console.log(`    Phase: ${result.phase}`);
+      console.log(`\n  The 4-panel overlay will appear in the web UI.`);
+      console.log(`  Aceline will continuously generate, test, and apply improvements.`);
+      rl.close();
+      return;
+    }
+
+    if (subcmd === "off" || subcmd === "disable") {
+      const result = await autoInventToggle(false);
+      console.log(`\n  ✓ Auto-invention mode OFF`);
+      console.log(`    Phase: ${result.phase}`);
+      rl.close();
+      return;
+    }
+
+    if (subcmd === "run" || !subcmd) {
+      console.log(`\n  ⚡ Starting auto-invention cycle...`);
+      console.log(`  Following the Universal Technology Invention & Innovation Framework.`);
+      console.log(`  Generating approaches, testing, and picking the best.\n`);
+
+      await autoInventRun();
+
+      // Poll state until done
+      for (let i = 0; i < 30; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const state = await autoInventState();
+        const phase = state.phase;
+        const approaches = state.approaches || [];
+        const terminal = state.terminal_output || [];
+        const autoTyped = state.auto_typed || [];
+
+        console.log(`\n  ── Phase: ${phase.toUpperCase()} ──`);
+
+        if (approaches.length > 0) {
+          console.log(`\n  Approaches (${approaches.length}):`);
+          for (const a of approaches) {
+            const icon = a.status === "passed" ? "✓" : a.status === "failed" ? "✗" : a.status === "testing" ? "⟳" : "○";
+            const score = a.score > 0 ? ` score=${a.score.toFixed(2)}` : "";
+            console.log(`    ${icon} ${a.name} [${a.approach_type}]${score}`);
+            if (a.result) console.log(`      → ${a.result}`);
+          }
+        }
+
+        if (terminal.length > 0) {
+          console.log(`\n  Terminal (last 5):`);
+          for (const line of terminal.slice(-5)) console.log(`    ${line}`);
+        }
+
+        if (autoTyped.length > 0) {
+          console.log(`\n  Auto-typed (last 3):`);
+          for (const line of autoTyped.slice(-3)) console.log(`    ${line}`);
+        }
+
+        if (phase === "done") {
+          if (state.winner) {
+            console.log(`\n  🏆 WINNER: ${state.winner.name}`);
+            console.log(`     Score: ${state.winner.score.toFixed(2)}`);
+            console.log(`     Surface: ${state.winner.surface}`);
+            console.log(`     ${state.winner.description}`);
+            console.log(`     ${state.winner.result}`);
+          }
+          break;
+        }
+        if (phase === "error") {
+          console.log(`\n  ✗ Error: ${state.error}`);
+          break;
+        }
+      }
+      rl.close();
+      return;
+    }
   }
 
   if (cmd === "run") {

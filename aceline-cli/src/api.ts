@@ -55,7 +55,7 @@ export async function jarvisChat(
 
 export async function checkBackend(): Promise<boolean> {
   try {
-    const resp = await fetch(`${INCLLMV2_BASE}/health`, { signal: AbortSignal.timeout(3000) });
+    const resp = await fetch(`${INCLLMV2_BASE}/v1/health`, { signal: AbortSignal.timeout(3000) });
     return resp.ok;
   } catch {
     return false;
@@ -75,4 +75,37 @@ export async function getModels(): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+// ── Auto-Invention API ────────────────────────────────────────────────
+
+export async function autoInventState(): Promise<any> {
+  const resp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/state`, {
+    signal: AbortSignal.timeout(5000),
+  });
+  return resp.json();
+}
+
+export async function autoInventToggle(enabled: boolean): Promise<any> {
+  const resp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/auto-mode`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enabled }),
+  });
+  return resp.json();
+}
+
+export async function autoInventRun(): Promise<any> {
+  const resp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/run`, {
+    method: "POST",
+    signal: AbortSignal.timeout(5000),
+  });
+  return resp.json();
+}
+
+export async function autoInventFramework(): Promise<any> {
+  const resp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/framework`, {
+    signal: AbortSignal.timeout(5000),
+  });
+  return resp.json();
 }

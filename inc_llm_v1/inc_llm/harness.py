@@ -347,6 +347,16 @@ class IncLLMHarness:
             await self.glm_queue.start()
             logger.info("GLM priority queue started (user preempts observer)")
         except Exception as e:
+            logger.warning("GLM queue start failed: %s", e)
+
+    async def _bg_observer_start(self) -> None:
+        """Start the Aceline Smart Work Watcher in the background."""
+        try:
+            if self.observer:
+                await self.observer.start()
+                logger.info("Observer started (background observation active)")
+        except Exception as e:
+            logger.warning("Observer start failed: %s", e)
             logger.warning("GLM priority queue start failed: %s", e)
 
     async def _bg_splitbit_maintenance(self) -> None:
