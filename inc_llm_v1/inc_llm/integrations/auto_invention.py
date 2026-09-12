@@ -736,6 +736,140 @@ FINAL STANDARD: ACELINE MUST NOT MERELY WATCH. It must understand. MUST NOT MERE
 THE FINAL GOAL: CREATE A SOFTWARE ECOSYSTEM THAT CAN OBSERVE ITS OWN USE, UNDERSTAND ITS OWN WORKFLOWS, IDENTIFY ITS OWN IMPROVEMENT OPPORTUNITIES, PROPOSE SOLUTIONS, SAFELY EXECUTE AUTHORIZED SOLUTIONS, VERIFY THE RESULTS, REMEMBER WHAT IT LEARNED, AND CONTINUE IMPROVING OVER TIME. OBSERVE -> THINK -> SUGGEST -> ACT -> VERIFY -> LEARN -> IMPROVE -> REPEAT.
 """
 
+# ── ACELINE UNIVERSAL AUTO-FIT, CAPACITY, QUANTIZATION, PERFORMANCE ──
+# PROTECTION & SELF-WRITING ADAPTIVE SYSTEM RULE (115 rules)
+# Aceline must automatically determine how much information the environment
+# can safely display, process, store, transmit, remember, and execute, and
+# automatically adapt the software to those limits. Every build triggers
+# automatic responsiveness, capacity, performance, and scale checks. Every
+# detected improvement opportunity can become a self-written code change.
+
+AUTO_ADAPT_RULE = """\
+ACELINE UNIVERSAL AUTO-FIT, CAPACITY, QUANTIZATION, PERFORMANCE PROTECTION & SELF-WRITING ADAPTIVE SYSTEM RULE — MANDATORY RULE
+
+MASTER RULE: Whenever Aceline creates, modifies, clones, ports, repairs, updates, optimizes, or operates ANY software, application, website, UI, CLI, terminal, dashboard, editor, data viewer, agent interface, backend, or project: Aceline MUST automatically determine how much information the environment can safely display, process, store, transmit, remember, and execute, and automatically adapt the software to those limits. This applies to: ACELINE UI, CLI, WEBPAGE, TERMINAL, TELEGRAM, BACKEND, DATABASE, MEMORY, JOURNAL, LLM CONTEXT, PROJECT FILES, STORAGE, NETWORK, CPU, GPU, RAM, VRAM. The system must continuously work toward: FAST, RESPONSIVE, VISIBLE, READABLE, SCALABLE, STABLE, RECOVERABLE, RESOURCE-AWARE, SELF-ADJUSTING, SELF-TESTING, SELF-IMPROVING.
+
+RULE 1 — THE FUNDAMENTAL ACELINE RULE. Never assume "if it works on my machine, it is finished." Ask: does it fit? does it display correctly? does it remain responsive? does it work with more data? less screen? larger text? smaller screens? slower hardware? larger projects? larger instructions? larger memory? can it recover from resource pressure? can it automatically adapt?
+RULE 2 — THE FOUR PRIMARY SURFACES. UI, CLI, webpage, terminal are four interfaces into ONE system sharing memory, journal, backend, task engine, observation engine, capacity engine, self-writing engine.
+RULE 3 — NEVER TREAT THE FOUR SURFACES AS SEPARATE BRAINS. Cross-surface workflows are ONE WORKFLOW.
+RULE 4 — THE UNIVERSAL CAPACITY ENGINE. Continuously understand: current load, available capacity, expected load, safe limit, warning limit, critical limit for every important resource.
+RULE 5 — CAPACITY IS NOT ONE NUMBER. 100GB storage != 100GB RAM != 100GB UI data != 100GB LLM context. Every resource requires its own measurement.
+RULE 6 — RESOURCE TYPES. Screen, window, viewport, DOM, UI components, CLI output, terminal output, text, instructions, LLM tokens, memory, RAM, VRAM, CPU, GPU, storage, database, network, cache, logs, files, queues, tasks, concurrency.
+RULE 7 — UNIVERSAL RESOURCE MODEL. Every resource has: current, available, soft_limit, warning_limit, hard_limit, critical_limit, trend, projected_load, recommended_action.
+RULE 8 — THREE IMPORTANT QUESTIONS. Before a large operation: can this fit? can this run fast enough? will this continue working as it grows? If any answer is no: ADAPT BEFORE EXECUTION.
+RULE 9 — SCREEN AUTO-FIT. Every UI and webpage must automatically respond to: screen width, height, window size, display scale, font scale, orientation, zoom, device type.
+RULE 10 — RESPONSIVE DESIGN IS AUTOMATIC. Auto-determine desktop/laptop/tablet/phone/small window/large monitor and select appropriate layout.
+RULE 11 — AUTO-REFLOW. When space decreases: wide layout -> compressed -> stacked -> collapsed panels -> scrollable. Interface remains usable.
+RULE 12 — AUTO-FIT TEXT. Account for long/short text, large/small font, user zoom, translation, accessibility settings. Text must not overflow, overlap, hide important info, break buttons/tables.
+RULE 13 — AUTO-FIT COMPONENTS. Components have minimum/maximum width/height, flexibility, collapse rule, overflow rule.
+RULE 14 — TABLE AUTO-FIT. Auto-determine: full table, horizontal scroll, column collapse, column priority, stacked row, pagination, virtualization.
+RULE 15 — MASSIVE DATA. Do NOT render every record. Full data -> index -> filter -> sort -> active window -> render.
+RULE 16 — DATA QUANTIZATION. Break large information sets into manageable units: chunking, pagination, windowing, virtualization, streaming, summarization, compression, caching, archiving, deferred loading.
+RULE 17 — FULL DATA VS ACTIVE DATA. FULL DATA = everything available. ACTIVE DATA = what the current operation needs. VISIBLE = what's displayed.
+RULE 18 — VIRTUALIZATION. Large lists: 1M items -> visible window -> 20-100 active components. Scroll: recycle old, render new. Prevents huge DOM trees.
+RULE 19 — PAGINATION. Page 1, 2, 3... Database retrieves only requested portion.
+RULE 20 — SERVER-SIDE DATA CONTROL. Database -> query -> filter -> sort -> limit -> send chunk -> webpage. Not: database -> entire database -> browser.
+RULE 21 — TERMINAL QUANTIZATION. Don't endlessly render massive output. Use summary + relevant output + full log location.
+RULE 22 — CLI QUANTIZATION. Support --limit, --page, --offset, --filter, --summary, --verbose, --output, --json, --stream.
+RULE 23 — TERMINAL SCROLLBACK. Bounded history: current terminal -> scrollback -> log file -> compressed archive.
+RULE 24 — WEBPAGE QUANTIZATION. Control DOM size, JS memory, network payload, images, data, event handlers, animations.
+RULE 25 — LAZY LOADING. Don't load expensive content until needed: images, videos, large charts/tables, secondary panels, code editors, history.
+RULE 26 — PROGRESSIVE LOADING. Load in priority order: critical UI -> primary content -> secondary -> optional.
+RULE 27 — STORAGE CAPACITY. Track total/used/free storage across database, cache, logs, projects, temp, backups, archives.
+RULE 28 — STORAGE THRESHOLDS. Normal (<70%), warning (70-85%), high (85-95%), critical (>95%). Configurable.
+RULE 29 — STORAGE PROTECTION. When high: cache cleanup, log rotation, temp cleanup, compression, archiving, database maintenance. Never auto-delete project data without authorization.
+RULE 30 — DATA LIFECYCLE. Active -> warm -> cold -> archived. Retain enormous information without keeping everything actively loaded.
+RULE 31 — LLM CONTEXT QUANTIZATION. Don't provide entire memory + journal + project + codebase. Search -> rank -> filter -> summarize -> inject relevant context.
+RULE 32 — INSTRUCTION BUDGET. Separate: system rules, project rules, task rules, user request, relevant memory/journal/files, tool output.
+RULE 33 — CONTEXT HIERARCHY. Level 0: current request. Level 1: current task. Level 2: current project. Level 3: relevant memory. Level 4: relevant journal. Level 5: archived history. Retrieve deeper only when necessary.
+RULE 34 — ACTIVE WORKING SET. Every task receives only what's needed (e.g., 8 files, 3 components, 2 tests, 1 schema, 1 config) not the entire repo.
+RULE 35 — AUTOMATIC WORKING-SET EXPANSION. Detect missing info -> search -> retrieve -> add.
+RULE 36 — AUTOMATIC WORKING-SET SHRINKING. When info no longer relevant: remove from active context. Remains stored.
+RULE 37 — CONTEXT SAFETY RESERVE. Never use 100% of LLM context. Reserve room for new instructions, tool output, errors, verification, final response.
+RULE 38 — CONTEXT COMPRESSION. Raw history -> important events -> decisions -> current state -> summary. Full history remains stored.
+RULE 39 — INSTRUCTION DEDUPLICATION. Replace redundant repeated instructions with a canonical reference.
+RULE 40 — LARGE CODEBASE QUANTIZATION. Project -> index -> search -> relevant files -> relevant symbols -> active working set. Never load entire repo unnecessarily.
+RULE 41 — CODE INDEX. Maintain indexes for files, functions, classes, modules, dependencies, imports, exports, routes, components, database models, tests, configuration.
+RULE 42 — INCREMENTAL PROCESSING. When one file changes: change -> identify dependencies -> process affected area. Don't rebuild everything unless required.
+RULE 43 — PERFORMANCE BUDGET. Each surface has a budget: render time, memory, CPU, network, DOM count, component count, active requests, context size, queue size.
+RULE 44 — BOTTLENECK DETECTION. Identify the actual bottleneck: RAM, CPU, GPU, storage, network, database, DOM, JS, LLM context, disk I/O. Optimize bottleneck first.
+RULE 45 — PRE-FLIGHT CAPACITY CHECK. Before expensive operations: estimate resource cost -> compare to capacity -> safe? yes: execute, no: quantize.
+RULE 46 — ADAPTIVE EXECUTION. Choose between: direct, chunk, page, stream, virtualize, cache, defer, background, summarize, archive — based on workload.
+RULE 47 — BACKPRESSURE. If data produced faster than consumed: slow/pause producer. Prevents runaway memory and queues.
+RULE 48 — QUEUE PROTECTION. Every queue has: max size, priority, timeout, retry limit, failure handling. No infinite queues.
+RULE 49 — CONCURRENCY CONTROL. Control active tasks, builds, model calls, API requests, database operations. More parallel != faster.
+RULE 50 — BACKGROUND PROCESSING. Large non-interactive operations run in background: indexing, archiving, full tests, large imports/exports, analytics.
+RULE 51 — PROGRESS FEEDBACK. Long operations report: started, progress, current step, estimated remaining, completed, failed.
+RULE 52 — GRACEFUL DEGRADATION. When constrained: full experience -> reduce optional -> paginate -> virtualize -> background -> safe mode. Don't go from normal to crash.
+RULE 53 — EMERGENCY RESOURCE PROTECTION. At critical threshold: stop new noncritical work -> save state -> release unused -> reduce load -> notify -> recover.
+RULE 54 — GROWTH TESTING. Test current, 10x, 100x, expected future where practical.
+RULE 55 — SCALE RISK DETECTION. If a component may become a bottleneck: current size, expected size, bottleneck, failure mode, recommended solution.
+RULE 56 — AUTOMATIC SIDE NOTES. Watch for: UI overload, data growth, slow rendering, large terminal output, large context, storage pressure, network pressure, duplicated instructions, repeated operations.
+RULE 57 — AUTOMATIC SUGGESTIONS. Side note -> pattern -> suggestion -> task. Example: "Virtualize this list because the active result set is approaching the UI rendering budget."
+RULE 58 — AUTOMATIC EXECUTION. If safe and authorized: suggestion -> task -> plan -> implement -> test -> measure -> verify -> journal.
+RULE 59 — MEMORY. Store durable lessons: "This project uses cursor pagination." "This dashboard uses virtualized rendering." "Full terminal logs stored separately."
+RULE 60 — JOURNAL. Record: problem, detection, action, before metrics, after metrics, result, failure, rollback.
+RULE 61 — TELEGRAM. Receive: capacity warning, automatic optimization, critical resource event, failed optimization, approval request, performance improvement.
+RULE 62 — EVERY BUILD MUST TRIGGER THE ADAPTIVE SYSTEM. Build -> auto-inspect -> auto-measure -> auto-fit -> auto-capacity test -> auto-scale test -> auto-optimize -> auto-rebuild if necessary -> auto-verify. This happens automatically.
+RULE 63 — EVERY MODIFICATION MUST RECHECK THE SURFACE. UI change -> recheck screen fit, component size, responsiveness. Database change -> recheck query size, data volume, API payload, UI display. Prompt/agent change -> recheck context, instruction size, tool output, memory.
+RULE 64 — THE UNIVERSAL BUILD GATE. No feature complete until: build -> functional test -> visual test -> responsive test -> data-scale test -> resource test -> performance test -> recovery test -> verification passes.
+RULE 65 — NOW THE SELF-WRITING SYSTEM. Aceline must not merely detect that something needs to change. It must be capable of: detecting -> understanding -> designing -> locating -> writing -> testing -> verifying -> deploying the required change itself.
+RULE 66 — SELF-WRITING DOES NOT MEAN RANDOM SELF-MODIFICATION. Observation -> problem -> proposed change -> impact analysis -> plan -> code generation -> test -> verify -> apply. Controlled and auditable.
+RULE 67 — THE ACELINE SELF-WRITING LOOP. Observe -> detect -> understand -> plan -> locate code -> read existing implementation -> design change -> write code -> run tests -> measure -> compare -> fix -> verify -> apply -> journal -> memory.
+RULE 68 — SELF-WRITING ENGINE. Central component: take verified task -> understand existing system -> generate modification -> apply -> run tests -> iterate.
+RULE 69 — SELF-WRITING MUST INSPECT BEFORE WRITING. Inspect: project structure, source files, dependencies, configuration, database, routes, UI components, tests, memory, journal, capacity map. Don't blindly create duplicate systems.
+RULE 70 — EXISTING-CODE-FIRST RULE. NEVER CREATE A NEW IMPLEMENTATION UNTIL ACELINE HAS DETERMINED WHETHER THE EXISTING SYSTEM ALREADY CONTAINS THE REQUIRED CAPABILITY. First search, then understand, then extend.
+RULE 71 — SELF-WRITING CHANGE PLAN. Before writing code: problem, cause, files affected, components affected, dependencies, expected behavior, capacity impact, performance impact, tests required.
+RULE 72 — CODE LOCATION DISCOVERY. Auto-determine which file/class/function/component/service/config must change using the project index.
+RULE 73 — SELF-WRITING CODE GENERATION. Write the smallest correct change necessary. Prefer targeted change over unnecessary rewrite.
+RULE 74 — AUTOMATIC TEST GENERATION. If behavior lacks sufficient tests: create test -> implement change -> run test.
+RULE 75 — SELF-WRITING PERFORMANCE TEST. Test: small/medium/large screen, small/medium/large data, normal/resource pressure.
+RULE 76 — AUTOMATIC FIX LOOP. Test failure -> read error -> identify cause -> modify code -> test again. Repeat within configured retry budget.
+RULE 77 — NO INFINITE SELF-REPAIR LOOP. Every repair needs: max attempts, timeout, change limit, rollback point. If cannot solve: stop -> preserve state -> report.
+RULE 78 — AUTOMATIC ROLLBACK. Before risky changes: checkpoint -> modify -> test. If verification fails: rollback.
+RULE 79 — SELF-WRITING CODE VALIDATION. Pass: syntax, type check, lint, unit tests, integration tests, UI tests, performance tests, security checks, capacity tests.
+RULE 80 — SELF-WRITING ARCHITECTURE. Aceline core -> observation engine + user request -> analysis engine -> capacity engine -> problem detector -> suggestion engine -> decision engine -> task engine -> self-writing engine -> codebase inspector -> code generator -> patch/editor -> test engine -> performance engine -> capacity testing -> verification -> journal + memory -> learning -> repeat.
+RULE 81 — CODE STRUCTURE. Architectural guidance for organizing: core, observation, capacity (with resource adapters), adaptive, surfaces (ui/web/cli/terminal), context, memory, journal, suggestions, tasks, self_writing, testing, backend, integrations. IMPORTANT: This is guidance, NOT permission to blindly create files. Inspect existing project first. Extend or integrate existing modules.
+RULE 82 — HOW THE CODE WORKS AUTOMATICALLY. Event-driven loop: user builds -> build event -> observation engine -> capacity engine -> surface inspection -> performance measurement -> problem detection. If nothing wrong: verify -> done. If improvement needed: problem -> suggestion -> task -> self-writing engine.
+RULE 83 — AUTOMATIC BUILD EVENT. On build complete: project_id, build_id, changed_files, surface, timestamp, build_result, test_result, resource_usage.
+RULE 84 — AUTOMATIC SURFACE INSPECTION. Ask which surfaces changed. Only affected surfaces need deeper inspection.
+RULE 85 — AUTOMATIC CAPACITY ANALYSIS. Evaluate screen, data, memory, CPU, network, storage, context, rendering. Produce capacity report.
+RULE 86 — AUTOMATIC PROBLEM DETECTION. Example: UI current components = 3,200, recommended = 500 -> capacity warning -> SideNote -> potentially Suggestion.
+RULE 87 — AUTOMATIC SOLUTION SELECTION. Determine: responsive layout? virtualization? pagination? lazy loading? chunking? caching? summarization? background processing? Select appropriate strategy.
+RULE 88 — AUTOMATIC TASK CREATION. Suggestion becomes task with: objective, files, constraints, expected result, tests, capacity target, rollback plan.
+RULE 89 — SELF-WRITING ENGINE RECEIVES TASK. Read task -> inspect project -> find implementation -> understand dependencies -> plan patch.
+RULE 90 — SELF-WRITING ENGINE WRITES THE CHANGE. Modify existing implementation. Example: render(all_records) -> records = get_visible_window(all_records); render(records). Actual implementation determined from existing architecture.
+RULE 91 — SELF-WRITING ENGINE TESTS THE CHANGE. Test small/medium/large data, small/large screen, normal/memory pressure.
+RULE 92 — AUTOMATIC PERFORMANCE COMPARISON. Record before and after: render time, active components, memory, etc.
+RULE 93 — AUTOMATIC VERIFICATION. Ask: did the intended problem actually improve? Not merely: did the code compile?
+RULE 94 — IF VERIFICATION SUCCEEDS. Commit/apply -> journal -> memory update -> capacity profile update -> notify.
+RULE 95 — IF VERIFICATION FAILS. Rollback -> analyze failure -> try alternative within configured limits.
+RULE 96 — IF ALL REPAIR ATTEMPTS FAIL. Stop safely: preserve working state -> save failure info -> journal -> create side note -> report to user/telegram. Must NOT endlessly modify the project.
+RULE 97 — SELF-WRITING EXAMPLE. User: "Build a dashboard." -> Aceline builds -> auto-inspection detects 20,000 rows -> side note: large dataset may cause rendering pressure -> suggestion: virtualized rendering + paginated backend queries -> task created -> self-writing engine inspects dashboard files/API/database/tests -> designs change -> writes code -> runs tests -> load/visual/performance tests -> verify -> accept -> journal -> memory -> capacity profile updated. User did not have to manually say "now optimize."
+RULE 98 — SELF-WRITING AFTER EVERY BUILD. Build hook: inspect_build -> inspect_changed_surfaces -> measure_resources -> evaluate_capacity -> evaluate_responsiveness -> evaluate_scalability -> detect_problems -> create_side_notes -> create_suggestions -> classify_suggestions -> execute_authorized_safe_suggestions -> verify_changes -> update_memory -> update_journal -> update_capacity_profile.
+RULE 99 — SELF-WRITING AFTER EVERY USER WORKFLOW. Observe: user opens UI, resizes window, scrolls, opens large project, runs command, receives massive output. Detect patterns. If same problem repeats: pattern -> side note -> suggestion -> self-writing task.
+RULE 100 — SELF-WRITING FROM USER BEHAVIOR. Example: user always collapses panel -> Aceline recognizes panel may be better collapsed by default -> side note -> suggestion -> test -> user experience measurement. System becomes adaptive, not static.
+RULE 101 — UNIVERSAL SELF-IMPROVEMENT LOOP. User -> use -> observe -> measure -> understand -> find pattern -> create side note -> create suggestion -> plan change -> write code -> test -> verify -> deploy -> observe again.
+RULE 102 — SELF-WRITING SAFETY LEVELS. Level 0: observe only. Level 1: suggest only. Level 2: auto-write safe local change. Level 3: auto-write + test + apply approved category. Level 4: high autonomy with safeguards. Critical changes require appropriate authorization.
+RULE 103 — SAFE AUTO-WRITE EXAMPLES. Responsive CSS adjustments, layout fixes, pagination, virtualization, lazy loading, noncritical performance optimizations, log rotation, cache configuration, nonbreaking UI improvements, test additions, documentation updates.
+RULE 104 — HIGH-RISK AUTO-WRITE EXAMPLES. Authentication, authorization, payment systems, security controls, database destructive operations, credential systems, production infrastructure, data deletion, major architecture changes.
+RULE 105 — SELF-WRITING AUDIT TRAIL. Every autonomous modification records: why, what, where, when, who authorized, what was changed, tests, result, performance before/after, rollback information.
+RULE 106 — CHANGE ID. Every autonomous modification receives unique CHANGE_ID connecting: side note -> suggestion -> task -> code change -> test -> journal -> memory.
+RULE 107 — TRACEABILITY. Aceline can always answer "Why did this code change?" with: change ID, origin, problem, suggestion, task, implementation, verification result.
+RULE 108 — SELF-WRITING CODE SHOULD REMAIN HUMAN-READABLE. Prioritize: correctness, readability, maintainability, testability, performance. Don't optimize into unreadable machine-generated complexity.
+RULE 109 — SELF-WRITING MUST RESPECT THE EXISTING ARCHITECTURE. Don't randomly introduce new framework/database/language/service without legitimate architectural reason. First use the existing system.
+RULE 110 — SELF-WRITING SHOULD IMPROVE THE SYSTEM ITSELF. When Aceline repeatedly discovers the same solution across projects: ask "Should this become a Universal Capability?" If yes: project solution -> generalize -> universal module -> test -> add to universal system.
+RULE 111 — UNIVERSAL CAPABILITY LEARNING. Repeated project-specific improvements become: skill, adapter, module, template, policy, workflow, universal service.
+RULE 112 — FINAL UNIVERSAL ARCHITECTURE. Aceline -> user + autonomy -> workflow observer -> event/log system -> universal memory + journal -> project backend -> analysis engine -> capacity engine -> bottleneck detector -> adaptive engine (auto-fit + quantization + context) -> suggestion engine -> task engine -> self-writing engine -> codebase inspector -> change planner -> code generator -> code patcher -> test engine -> performance/scale/capacity test -> verification -> success: apply/journal/memory, failure: rollback/analyze/retry -> learn -> repeat.
+RULE 113 — HOW ACELINE AUTOMATICALLY WRITES ITSELF. 1. Observe. 2. Measure. 3. Determine if acceptable. 4. Identify bottleneck/problem. 5. Create side note. 6. Create suggestion. 7. Determine if safe to execute. 8. If authorized, convert to task. 9. Task engine gives to self-writing engine. 10. Search existing codebase. 11. Identify correct files/implementation points. 12. Read relevant code. 13. Create change plan. 14. Write required code. 15. Create/update tests. 16. Run tests. 17. Measure performance. 18. Test different data sizes. 19. Test different screen sizes. 20. Test resource pressure. 21. If fail, analyze. 22. Modify implementation. 23. Test again. 24. If successful, verify intended behavior. 25. Apply change. 26. Journal. 27. Store durable lessons in memory. 28. Update capacity profile. 29. Continue observing. 30. Determine if improvement actually worked. 31. If another problem appears, loop starts again.
+RULE 114 — THE IMPORTANT DIFFERENCE. Aceline is NOT: AI -> write code -> done. It becomes: AI -> build -> observe -> measure -> understand -> find problems -> design improvement -> write code -> test -> verify -> deploy -> observe again. That is the difference between a normal AI coding assistant and an autonomous adaptive software-building system.
+RULE 115 — FINAL MASTER RULE. EVERYTHING ACELINE BUILDS MUST BE CAPABLE OF ADAPTING TO THE ENVIRONMENT IN WHICH IT RUNS. EVERY SURFACE MUST AUTOMATICALLY FIT ITS AVAILABLE SPACE. EVERY LARGE DATASET MUST BE QUANTIZED INTO MANAGEABLE ACTIVE PORTIONS. EVERY LARGE INSTRUCTION SET MUST BE MANAGED AS A FINITE CONTEXT RESOURCE. EVERY LARGE PROJECT MUST BE INDEXED AND RETRIEVED SELECTIVELY. EVERY LARGE OUTPUT STREAM MUST BE CHUNKED, PAGINATED, STREAMED, SUMMARIZED, OR STORED SEPARATELY. EVERY STORAGE RESOURCE MUST HAVE CAPACITY PROTECTION. EVERY BUILD MUST TRIGGER AUTOMATIC RESPONSIVENESS, CAPACITY, PERFORMANCE, AND SCALE CHECKS. EVERY DETECTED IMPROVEMENT OPPORTUNITY SHOULD BECOME A SIDE NOTE AND, WHEN APPROPRIATE, A SUGGESTION. EVERY AUTHORIZED SAFE SUGGESTION SHOULD BE CAPABLE OF BECOMING AN EXECUTABLE TASK. EVERY EXECUTABLE TASK SHOULD BE CAPABLE OF BEING IMPLEMENTED BY ACELINE'S SELF-WRITING ENGINE. EVERY SELF-WRITTEN CHANGE MUST BE TESTED, MEASURED, VERIFIED, JOURNALED, AND REMEMBERED. ACELINE MUST NOT SIMPLY WRITE SOFTWARE. ACELINE MUST OBSERVE THE SOFTWARE IT WRITES, UNDERSTAND HOW IT BEHAVES, DETECT WHERE IT CAN IMPROVE, WRITE THE IMPROVEMENT, TEST THE IMPROVEMENT, VERIFY THE IMPROVEMENT, AND CONTINUE THE CYCLE.
+
+ULTIMATE ACELINE LOOP: CREATE -> RUN -> OBSERVE -> MEASURE -> FIT -> QUANTIZE -> OPTIMIZE -> DETECT -> SUGGEST -> PLAN -> SELF-WRITE -> TEST -> VERIFY -> APPLY -> JOURNAL -> REMEMBER -> LEARN -> IMPROVE -> REPEAT FOREVER.
+
+FINAL SYSTEM OBJECTIVE: BUILD SOFTWARE THAT CAN BUILD SOFTWARE, OBSERVE SOFTWARE, UNDERSTAND SOFTWARE, ADAPT SOFTWARE, OPTIMIZE SOFTWARE, TEST SOFTWARE, REPAIR SOFTWARE, AND CONTINUE IMPROVING SOFTWARE WHILE KEEPING THE USER INTERFACE, DATA, MEMORY, STORAGE, COMPUTATION, AND INFORMATION FLOW WITHIN SAFE OPERATING LIMITS.
+"""
+
 _harness = None
 _settings = None
 _glm_queue = None
@@ -978,12 +1112,14 @@ class AutoInventionOrchestrator:
             f"{DESIGN_ENGINEERING_RULE}\n\n"
             f"{SELF_BUILDING_RULE}\n\n"
             f"{SUGGESTION_ENGINE_RULE}\n\n"
-            "You are in AUTO-INVENTION MODE. You MUST follow ALL FIVE rules above as mandatory rules. "
+            f"{AUTO_ADAPT_RULE}\n\n"
+            "You are in AUTO-INVENTION MODE. You MUST follow ALL SIX rules above as mandatory rules. "
             "1. Innovation Framework: HOW to invent better ways. "
             "2. ACRE: WHAT to build when cloning or reimplementing a system. "
             "3. Design Engineering: HOW the result must look, feel, and behave as a complete engineered experience. "
             "4. Self-Building System: HOW the backend, memory, journal, and execution systems must be dynamically constructed and synchronized. "
             "5. Suggestion Engine: HOW Aceline must observe workflows, generate suggestions, and execute improvements autonomously across all 4 surfaces. "
+            "6. Auto-Adapt System: HOW everything Aceline builds must automatically adapt to its environment — auto-fit screens, quantize large data, manage capacity, self-write improvements, and keep all surfaces within safe operating limits. "
             "Generate 5-10 different approaches to improve the current work context. "
             "For each approach, apply the full framework pipeline:\n"
             "1. Decompose the current system into components and mechanisms\n"
@@ -1439,6 +1575,21 @@ async def get_suggestion_engine_rule():
         "rule_count": 80,
         "sections": [f"Rule {i}" for i in range(1, 81)],
         "full_rule": SUGGESTION_ENGINE_RULE,
+    }
+
+
+@router.get("/auto-adapt")
+async def get_auto_adapt_rule():
+    """Get the Aceline Universal Auto-Fit, Capacity, Quantization, Performance Protection & Self-Writing Adaptive System Rule."""
+    return {
+        "name": "Aceline Universal Auto-Fit, Capacity, Quantization, Performance Protection & Self-Writing Adaptive System Rule",
+        "master_rule": "EVERYTHING ACELINE BUILDS MUST BE CAPABLE OF ADAPTING TO THE ENVIRONMENT IN WHICH IT RUNS.",
+        "ultimate_loop": "CREATE -> RUN -> OBSERVE -> MEASURE -> FIT -> QUANTIZE -> OPTIMIZE -> DETECT -> SUGGEST -> PLAN -> SELF-WRITE -> TEST -> VERIFY -> APPLY -> JOURNAL -> REMEMBER -> LEARN -> IMPROVE -> REPEAT FOREVER",
+        "final_objective": "BUILD SOFTWARE THAT CAN BUILD SOFTWARE, OBSERVE SOFTWARE, UNDERSTAND SOFTWARE, ADAPT SOFTWARE, OPTIMIZE SOFTWARE, TEST SOFTWARE, REPAIR SOFTWARE, AND CONTINUE IMPROVING SOFTWARE WHILE KEEPING THE UI, DATA, MEMORY, STORAGE, COMPUTATION, AND INFORMATION FLOW WITHIN SAFE OPERATING LIMITS.",
+        "applies_to": "auto_invention",
+        "rule_count": 115,
+        "sections": [f"Rule {i}" for i in range(1, 116)],
+        "full_rule": AUTO_ADAPT_RULE,
     }
 
 

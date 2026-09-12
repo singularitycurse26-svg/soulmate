@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aceline — Universal System</title>
+<style>
+:root {
+  --bg: #1e1e1e;
+  --bg-sidebar: #181818;
+  --bg-panel: #252526;
+  --bg-active: #37373d;
+  --bg-input: #2d2d30;
+  --bg-hover: #2a2d2e;
+  --bg-accent: #094771;
+  --text: #cccccc;
+  --text-bright: #ffffff;
+  --text-dim: #858585;
+  --text-muted: #6e6e6e;
+  --border: #3c3c3c;
+  --border-light: #464647;
+  --accent: #007acc;
+  --accent-hover: #1f8ad2;
+  --green: #4ec9b0;
+  --yellow: #dcdcaa;
+  --red: #f48771;
+  --orange: #ce9178;
+  --blue: #569cd6;
+  --purple: #c586c0;
+  --cyan: #4fc1ff;
+  --magenta: #d670d6;
+  --surface-ui: #4fc1ff;
+  --surface-cli: #4ec9b0;
+  --surface-web: #d670d6;
+  --surface-term: #dcdcaa;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  font-family: 'Segoe UI', 'Cascadia Code', 'Consolas', monospace;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app { display: flex; height: 100vh; width: 100vw; }
+
+/* ── Activity Bar (far left, like VS Code) ── */
+.activity-bar {
+  width: 48px;
+  background: var(--bg-sidebar);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 8px;
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.activity-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 22px;
+  position: relative;
+  transition: color 0.15s;
+}
+
+.activity-icon:hover { color: var(--text); }
+.activity-icon.active { color: var(--text-bright); }
+.activity-icon.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent);
+}
+
+.activity-spacer { flex: 1; }
+
+/* ── Side Panel ── */
+.side-panel {
+  width: 260px;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: width 0.2s;
+}
+
+.side-panel.collapsed { width: 0; border-right: none; }
+
+.panel-header {
+  padding: 8px 12px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panel-content { flex: 1; overflow-y: auto; padding: 8px 0; }
+
+.panel-section { margin-bottom: 4px; }
+
+.panel-item {
+  padding: 4px 12px 4px 24px;
+  cursor: pointer;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  transition: background 0.1s;
+}
+
+.panel-item:hover { background: var(--bg-hover); }
+.panel-item.active { background: var(--bg-accent); color: var(--text-bright); }
+
+.panel-item .icon { font-size: 14px; width: 16px; text-align: center; }
+.panel-item .badge {
+  margin-left: auto;
+  font-size: 10px;
+  background: var(--bg-active);
+  padding: 1px 6px;
+  border-radius: 8px;
+  color: var(--text-dim);
+}
+
+/* ── Main Area ── */
+.main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── Tab Bar ── */
+.tab-bar {
+  display: flex;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border);
+  height: 35px;
+  flex-shrink: 0;
+}
+
+.tab {
+  padding: 8px 16px;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 12px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.tab:hover { color: var(--text); background: var(--bg-hover); }
+.tab.active { color: var(--text-bright); background: var(--bg); border-top: 1px solid var(--accent); }
+
+.tab .close { font-size: 14px; opacity: 0.5; }
+.tab .close:hover { opacity: 1; }
+
+/* ── Editor / Chat Area ── */
+.editor-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.view {
+  flex: 1;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.view.active { display: flex; }
+
+/* ── Chat View (Cline-like) ── */
+.chat-view { display: flex; flex-direction: column; height: 100%; }
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-msg {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-msg.user {
+  align-self: flex-end;
+  background: var(--bg-accent);
+  color: var(--text-bright);
+}
+
+.chat-msg.assistant {
+  align-self: flex-start;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.chat-msg.system {
+  align-self: center;
+  background: var(--bg-active);
+  color: var(--text-dim);
+  font-size: 11px;
+  padding: 4px 12px;
+}
+
+.chat-msg .role {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  opacity: 0.7;
+}
+
+.chat-typing {
+  align-self: flex-start;
+  padding: 10px 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-style: italic;
+  display: none;
+}
+
+.chat-typing.active { display: block; }
+.chat-typing .dots::after { content: '...'; animation: dots 1.5s infinite; }
+@keyframes dots { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+
+.chat-input-area {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel);
+  flex-shrink: 0;
+}
+
+.chat-input-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.chat-input {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--text-bright);
+  font-family: inherit;
+  font-size: 13px;
+  resize: none;
+  min-height: 36px;
+  max-height: 200px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.chat-input:focus { border-color: var(--accent); }
+.chat-input::placeholder { color: var(--text-muted); }
+
+.chat-send {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.chat-send:hover { background: var(--accent-hover); }
+.chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.chat-tools {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  align-items: center;
+}
+
+.chat-tool-btn {
+  background: var(--bg-active);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: all 0.15s;
+}
+
+.chat-tool-btn:hover { color: var(--text); border-color: var(--border-light); }
+.chat-tool-btn.active { color: var(--accent); border-color: var(--accent); }
+
+.chat-status {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+}
+
+.status-dot.online { background: var(--green); }
+.status-dot.thinking { background: var(--yellow); animation: pulse 1s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* ── Surfaces View ── */
+.surfaces-view { padding: 16px; overflow-y: auto; }
+
+.surfaces-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.surface-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  transition: border-color 0.15s;
+}
+
+.surface-card:hover { border-color: var(--border-light); }
+
+.surface-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.surface-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.surface-icon.ui { background: rgba(79,193,255,0.15); color: var(--surface-ui); }
+.surface-icon.cli { background: rgba(78,201,176,0.15); color: var(--surface-cli); }
+.surface-icon.web { background: rgba(214,112,214,0.15); color: var(--surface-web); }
+.surface-icon.term { background: rgba(220,220,170,0.15); color: var(--surface-term); }
+
+.surface-name { font-size: 14px; font-weight: 600; color: var(--text-bright); }
+.surface-status { font-size: 11px; color: var(--text-dim); margin-left: auto; }
+
+.surface-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.surface-status-badge.idle { background: var(--bg-active); color: var(--text-dim); }
+.surface-status-badge.thinking { background: rgba(79,193,255,0.2); color: var(--cyan); }
+.surface-status-badge.working { background: rgba(220,220,170,0.2); color: var(--yellow); }
+.surface-status-badge.done { background: rgba(78,201,176,0.2); color: var(--green); }
+.surface-status-badge.error { background: rgba(244,135,113,0.2); color: var(--red); }
+
+.surface-body { font-size: 12px; color: var(--text); }
+.surface-action { color: var(--text-dim); margin-bottom: 4px; }
+.surface-thought { color: var(--cyan); font-style: italic; margin-bottom: 8px; }
+
+.surface-functions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.surface-fn {
+  font-size: 10px;
+  background: var(--bg-active);
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: var(--text-dim);
+}
+
+.surface-activity {
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.surface-activity-line {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 2px 0;
+  font-family: 'Cascadia Code', monospace;
+}
+
+/* ── Memory View ── */
+.memory-view { padding: 16px; overflow-y: auto; }
+
+.memory-entry {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+}
+
+.memory-key { color: var(--blue); font-weight: 600; font-size: 12px; }
+.memory-value { color: var(--text); font-size: 12px; margin-top: 4px; }
+.memory-meta { color: var(--text-muted); font-size: 10px; margin-top: 4px; }
+
+/* ── Journal View ── */
+.journal-view { padding: 16px; overflow-y: auto; }
+
+.journal-entry {
+  background: var(--bg-panel);
+  border-left: 3px solid var(--border);
+  border-radius: 0 6px 6px 0;
+  padding: 8px 14px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.journal-entry.ui { border-left-color: var(--surface-ui); }
+.journal-entry.cli { border-left-color: var(--surface-cli); }
+.journal-entry.web { border-left-color: var(--surface-web); }
+.journal-entry.terminal { border-left-color: var(--surface-term); }
+
+.journal-time { color: var(--text-muted); font-size: 10px; }
+.journal-action { color: var(--text); margin-top: 2px; }
+.journal-thought { color: var(--text-dim); font-size: 11px; margin-top: 2px; }
+
+/* ── Rules View ── */
+.rules-view { padding: 16px; overflow-y: auto; }
+
+.rule-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.rule-card:hover { border-color: var(--accent); }
+
+.rule-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.rule-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.rule-number.r1 { background: rgba(79,193,255,0.2); color: var(--cyan); }
+.rule-number.r2 { background: rgba(78,201,176,0.2); color: var(--green); }
+.rule-number.r3 { background: rgba(214,112,214,0.2); color: var(--magenta); }
+.rule-number.r4 { background: rgba(220,220,170,0.2); color: var(--yellow); }
+.rule-number.r5 { background: rgba(86,156,214,0.2); color: var(--blue); }
+.rule-number.r6 { background: rgba(244,135,113,0.2); color: var(--red); }
+
+.rule-name { font-size: 13px; font-weight: 600; color: var(--text-bright); }
+.rule-count { margin-left: auto; font-size: 11px; color: var(--text-dim); }
+
+.rule-core { font-size: 12px; color: var(--text); margin-top: 8px; font-style: italic; }
+
+.rule-details {
+  margin-top: 12px;
+  display: none;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.rule-card.expanded .rule-details { display: block; }
+
+.rule-section-item {
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 2px 0;
+  padding-left: 12px;
+}
+
+/* ── Invent View ── */
+.invent-view { padding: 16px; overflow-y: auto; }
+
+.invent-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.invent-btn {
+  background: var(--bg-active);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s;
+}
+
+.invent-btn:hover { border-color: var(--accent); color: var(--text-bright); }
+.invent-btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+.invent-btn.primary:hover { background: var(--accent-hover); }
+.invent-btn.danger { border-color: var(--red); color: var(--red); }
+
+.invent-state {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.invent-phase {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-bright);
+  margin-bottom: 8px;
+}
+
+.invent-meta { font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
+
+.invent-approaches { margin-top: 12px; }
+
+.invent-approach {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.invent-approach-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.invent-approach-icon { font-size: 14px; }
+.invent-approach-name { font-weight: 600; color: var(--text-bright); }
+.invent-approach-type { color: var(--text-dim); font-size: 11px; }
+.invent-approach-score { margin-left: auto; color: var(--green); font-weight: 600; }
+
+.invent-approach-desc { color: var(--text-dim); margin-top: 4px; font-size: 11px; }
+
+.invent-winner {
+  background: rgba(78,201,176,0.1);
+  border: 2px solid var(--green);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.invent-winner-name { font-size: 16px; font-weight: 700; color: var(--green); }
+.invent-winner-score { font-size: 14px; color: var(--text); margin-top: 4px; }
+.invent-winner-desc { font-size: 12px; color: var(--text-dim); margin-top: 8px; }
+
+/* ── Terminal Panel ── */
+.terminal-panel {
+  height: 200px;
+  background: #1a1a1a;
+  border-top: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.terminal-panel.collapsed { height: 32px; }
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  height: 32px;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.terminal-title { font-size: 11px; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.5px; }
+.terminal-toggle { margin-left: auto; color: var(--text-dim); font-size: 14px; }
+
+.terminal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px;
+  font-family: 'Cascadia Code', 'Consolas', monospace;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.terminal-line { padding: 1px 0; }
+.terminal-line.cmd { color: var(--yellow); }
+.terminal-line.out { color: var(--text-dim); }
+.terminal-line.err { color: var(--red); }
+.terminal-line.ok { color: var(--green); }
+
+.terminal-input-line {
+  display: flex;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.terminal-prompt { color: var(--green); margin-right: 6px; }
+
+.terminal-input {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-bright);
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+/* ── Status Bar ── */
+.status-bar {
+  height: 22px;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 11px;
+  color: white;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.status-bar-item { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+.status-bar-item:hover { background: rgba(255,255,255,0.15); padding: 0 4px; border-radius: 2px; }
+.status-bar-spacer { flex: 1; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--bg-active); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
+
+/* ── Responsive Auto-Adjust ── */
+@media (max-width: 1200px) {
+  .side-panel { width: 220px; }
+  .surfaces-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+}
+@media (max-width: 900px) {
+  .side-panel { width: 180px; }
+  .surfaces-grid { grid-template-columns: 1fr; }
+  .tab { padding: 8px 10px; font-size: 11px; }
+}
+@media (max-width: 700px) {
+  .side-panel { width: 0; border-right: none; }
+  .side-panel.mobile-open { width: 240px; border-right: 1px solid var(--border); position: absolute; z-index: 100; height: calc(100vh - 22px); }
+  .activity-bar { width: 44px; }
+  .activity-icon { width: 44px; height: 44px; font-size: 18px; }
+  .tab-bar { overflow-x: auto; }
+  .tab { padding: 8px 8px; font-size: 11px; white-space: nowrap; }
+  .terminal-panel { height: 150px; }
+  .terminal-panel.collapsed { height: 28px; }
+  .chat-msg { max-width: 95%; font-size: 12px; }
+  .status-bar { font-size: 10px; gap: 6px; }
+  .status-bar-item { font-size: 10px; }
+}
+@media (max-width: 480px) {
+  .activity-bar { width: 40px; }
+  .activity-icon { width: 40px; height: 40px; font-size: 16px; }
+  .chat-input { font-size: 12px; }
+  .chat-send { padding: 8px 10px; font-size: 12px; }
+  .chat-tools { flex-wrap: wrap; }
+  .invent-controls { flex-direction: column; }
+  .invent-btn { width: 100%; }
+  .surface-card { padding: 12px; }
+  .rule-card { padding: 12px; }
+}
+
+/* ── Auto-resize transitions ── */
+.side-panel, .terminal-panel, .main-area {
+  transition: width 0.2s ease, height 0.2s ease;
+}
+
+/* ── Full height fix for flex children ── */
+.view, .chat-view, .chat-messages, .editor-area {
+  min-height: 0;
+  min-width: 0;
+}
+
+/* ── Prevent layout overflow ── */
+.app, .main-area, .editor-area, .view {
+  overflow: hidden;
+}
+
+/* ── Dynamic viewport height (mobile browser chrome fix) ── */
+@supports (height: 100dvh) {
+  html, body, .app { height: 100dvh; }
+  .side-panel.mobile-open { height: calc(100dvh - 22px); }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Activity Bar -->
+  <div class="activity-bar">
+    <div class="activity-icon active" data-view="chat" title="Chat">💬</div>
+    <div class="activity-icon" data-view="surfaces" title="4 Surfaces">▦</div>
+    <div class="activity-icon" data-view="memory" title="Memory">🧠</div>
+    <div class="activity-icon" data-view="journal" title="Journal">📋</div>
+    <div class="activity-icon" data-view="invent" title="Auto-Invention">⚡</div>
+    <div class="activity-icon" data-view="rules" title="6 Rules">📐</div>
+    <div class="activity-spacer"></div>
+    <div class="activity-icon" title="Settings">⚙</div>
+  </div>
+
+  <!-- Side Panel -->
+  <div class="side-panel" id="sidePanel">
+    <div class="panel-header">
+      <span id="panelTitle">EXPLORER</span>
+    </div>
+    <div class="panel-content" id="panelContent">
+      <div class="panel-section">
+        <div class="panel-item active" data-view="chat"><span class="icon">💬</span> Chat <span class="badge" id="chatBadge">0</span></div>
+        <div class="panel-item" data-view="surfaces"><span class="icon">▦</span> 4 Surfaces</div>
+        <div class="panel-item" data-view="memory"><span class="icon">🧠</span> Memory <span class="badge" id="memBadge">0</span></div>
+        <div class="panel-item" data-view="journal"><span class="icon">📋</span> Journal <span class="badge" id="jourBadge">0</span></div>
+        <div class="panel-item" data-view="invent"><span class="icon">⚡</span> Auto-Invention</div>
+        <div class="panel-item" data-view="rules"><span class="icon">📐</span> 6 Rules</div>
+      </div>
+      <div class="panel-section" style="margin-top: 20px;">
+        <div class="panel-header" style="border:none; padding: 4px 12px;">SURFACES</div>
+        <div class="panel-item"><span class="icon" style="color:var(--surface-ui)">●</span> UI <span class="badge" id="uiStatus">idle</span></div>
+        <div class="panel-item"><span class="icon" style="color:var(--surface-cli)">●</span> CLI <span class="badge" id="cliStatus">idle</span></div>
+        <div class="panel-item"><span class="icon" style="color:var(--surface-web)">●</span> Webpage <span class="badge" id="webStatus">idle</span></div>
+        <div class="panel-item"><span class="icon" style="color:var(--surface-term)">●</span> Terminal <span class="badge" id="termStatus">idle</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Area -->
+  <div class="main-area">
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <div class="tab active" data-view="chat">💬 Aceline Chat</div>
+      <div class="tab" data-view="surfaces">▦ Surfaces</div>
+      <div class="tab" data-view="invent">⚡ Invention</div>
+      <div class="tab" data-view="rules">📐 Rules</div>
+    </div>
+
+    <!-- Editor Area -->
+    <div class="editor-area">
+
+      <!-- Chat View -->
+      <div class="view active" id="view-chat">
+        <div class="chat-view">
+          <div class="chat-messages" id="chatMessages">
+            <div class="chat-msg system">Aceline Signature CLI v2.0 — 6 Mandatory Rules Active</div>
+            <div class="chat-msg assistant">
+              <div class="role">Aceline</div>
+              Hello! I'm Aceline, your autonomous software engineering system. I have 6 mandatory rules active:<br>
+              1. Innovation Framework (20 sections)<br>
+              2. ACRE Cloning Engine (30 sections)<br>
+              3. Design Engineering (76 Rules)<br>
+              4. Self-Building System (100 rules)<br>
+              5. Suggestion Engine (80 rules)<br>
+              6. Auto-Adapt System (115 rules)<br><br>
+              What would you like to build, improve, or invent?
+            </div>
+          </div>
+          <div class="chat-typing" id="chatTyping">
+            <span class="dots">Aceline is thinking</span>
+          </div>
+          <div class="chat-input-area">
+            <div class="chat-input-wrapper">
+              <textarea class="chat-input" id="chatInput" placeholder="Ask Aceline anything..." rows="1"></textarea>
+              <button class="chat-send" id="chatSend">Send</button>
+            </div>
+            <div class="chat-tools">
+              <button class="chat-tool-btn" id="toolInvent">⚡ Auto-Invent</button>
+              <button class="chat-tool-btn" id="toolSurfaces">▦ Surfaces</button>
+              <button class="chat-tool-btn" id="toolRules">📐 Rules</button>
+              <div class="chat-status">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Connecting...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Surfaces View -->
+      <div class="view" id="view-surfaces">
+        <div class="surfaces-view">
+          <h2 style="margin-bottom:16px; color:var(--text-bright); font-size:16px;">4-Surface Activity Dashboard</h2>
+          <div class="surfaces-grid" id="surfacesGrid"></div>
+        </div>
+      </div>
+
+      <!-- Memory View -->
+      <div class="view" id="view-memory">
+        <div class="memory-view">
+          <h2 style="margin-bottom:16px; color:var(--text-bright); font-size:16px;">Universal Memory</h2>
+          <div id="memoryList"></div>
+        </div>
+      </div>
+
+      <!-- Journal View -->
+      <div class="view" id="view-journal">
+        <div class="journal-view">
+          <h2 style="margin-bottom:16px; color:var(--text-bright); font-size:16px;">Universal Journal</h2>
+          <div id="journalList"></div>
+        </div>
+      </div>
+
+      <!-- Invent View -->
+      <div class="view" id="view-invent">
+        <div class="invent-view">
+          <h2 style="margin-bottom:16px; color:var(--text-bright); font-size:16px;">Auto-Invention Engine</h2>
+          <div class="invent-controls">
+            <button class="invent-btn primary" id="inventRun">⚡ Run Invention Cycle</button>
+            <button class="invent-btn" id="inventOn">Enable Auto Mode</button>
+            <button class="invent-btn danger" id="inventOff">Disable Auto Mode</button>
+            <button class="invent-btn" id="inventState">Show State</button>
+          </div>
+          <div class="invent-state" id="inventStateDisplay">
+            <div class="invent-phase" id="inventPhase">Idle</div>
+            <div class="invent-meta" id="inventMeta">No cycle running</div>
+            <div class="invent-approaches" id="inventApproaches"></div>
+            <div class="invent-winner" id="inventWinner" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rules View -->
+      <div class="view" id="view-rules">
+        <div class="rules-view">
+          <h2 style="margin-bottom:16px; color:var(--text-bright); font-size:16px;">6 Mandatory Rules</h2>
+          <div id="rulesList"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Terminal Panel -->
+    <div class="terminal-panel collapsed" id="terminalPanel">
+      <div class="terminal-header" id="terminalHeader">
+        <span class="terminal-title">Terminal</span>
+        <span class="terminal-toggle">▾</span>
+      </div>
+      <div class="terminal-body" id="terminalBody">
+        <div class="terminal-line ok">Aceline Terminal connected</div>
+      </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-bar-item" id="sbBackend">● Backend: Checking...</div>
+      <div class="status-bar-item" id="sbRules">📐 6 Rules</div>
+      <div class="status-bar-item" id="sbSurfaces">▦ 4 Surfaces</div>
+      <div class="status-bar-spacer"></div>
+      <div class="status-bar-item" id="sbModel">Model: qwen2.5:0.5b</div>
+      <div class="status-bar-item" id="sbSize">--×--</div>
+      <div class="status-bar-item" id="sbTime">--:--</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const BASE = 'http://localhost:8547';
+let token = null;
+
+// ── API ──
+async function getToken() {
+  if (token) return token;
+  const r = await fetch(`${BASE}/v1/auth/auto`, { method: 'POST' });
+  const d = await r.json();
+  if (d.status === 'ok') { token = d.token; return token; }
+  throw new Error('auth failed');
+}
+
+async function checkBackend() {
+  try {
+    const r = await fetch(`${BASE}/v1/health`, { signal: AbortSignal.timeout(3000) });
+    return r.ok;
+  } catch { return false; }
+}
+
+async function jarvisChat(message, context = {}) {
+  const t = await getToken();
+  const r = await fetch(`${BASE}/v1/ai/jarvis`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
+    body: JSON.stringify({ message, model: 'glm-5.1', context: { agent: 'aceline', source: 'web-ui', ...context } }),
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.detail || d.message || `HTTP ${r.status}`);
+  return d.response || 'No response';
+}
+
+async function autoInventRun() {
+  const r = await fetch(`${BASE}/v1/auto-invention/run`, { method: 'POST' });
+  return r.json();
+}
+
+async function autoInventState() {
+  const r = await fetch(`${BASE}/v1/auto-invention/state`, { signal: AbortSignal.timeout(5000) });
+  return r.json();
+}
+
+async function autoInventToggle(enabled) {
+  const r = await fetch(`${BASE}/v1/auto-invention/auto-mode`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled }),
+  });
+  return r.json();
+}
+
+async function getSurfaces() {
+  try {
+    const r = await fetch(`${BASE}/v1/auto-invention/surfaces`, { signal: AbortSignal.timeout(5000) });
+    return await r.json();
+  } catch { return null; }
+}
+
+async function getRule(name) {
+  const r = await fetch(`${BASE}/v1/auto-invention/${name}`, { signal: AbortSignal.timeout(5000) });
+  return r.json();
+}
+
+// ── View Switching ──
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.activity-icon').forEach(i => i.classList.remove('active'));
+  document.querySelectorAll('.panel-item').forEach(i => i.classList.remove('active'));
+
+  const view = document.getElementById(`view-${name}`);
+  if (view) view.classList.add('active');
+
+  const tab = document.querySelector(`.tab[data-view="${name}"]`);
+  if (tab) tab.classList.add('active');
+
+  const icon = document.querySelector(`.activity-icon[data-view="${name}"]`);
+  if (icon) icon.classList.add('active');
+
+  const item = document.querySelector(`.panel-item[data-view="${name}"]`);
+  if (item) item.classList.add('active');
+
+  const titles = { chat: 'CHAT', surfaces: 'SURFACES', memory: 'MEMORY', journal: 'JOURNAL', invent: 'INVENTION', rules: 'RULES' };
+  document.getElementById('panelTitle').textContent = titles[name] || 'EXPLORER';
+
+  if (name === 'surfaces') loadSurfaces();
+  if (name === 'memory') loadMemory();
+  if (name === 'journal') loadJournal();
+  if (name === 'rules') loadRules();
+  if (name === 'invent') loadInventState();
+}
+
+document.querySelectorAll('.activity-icon[data-view]').forEach(el => {
+  el.addEventListener('click', () => switchView(el.dataset.view));
+});
+document.querySelectorAll('.tab[data-view]').forEach(el => {
+  el.addEventListener('click', () => switchView(el.dataset.view));
+});
+document.querySelectorAll('.panel-item[data-view]').forEach(el => {
+  el.addEventListener('click', () => switchView(el.dataset.view));
+});
+
+// ── Chat ──
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const chatSend = document.getElementById('chatSend');
+const chatTyping = document.getElementById('chatTyping');
+
+function addMsg(role, text) {
+  const div = document.createElement('div');
+  div.className = `chat-msg ${role}`;
+  if (role === 'assistant' || role === 'user') {
+    const roleDiv = document.createElement('div');
+    roleDiv.className = 'role';
+    roleDiv.textContent = role === 'user' ? 'You' : 'Aceline';
+    div.appendChild(roleDiv);
+    const textDiv = document.createElement('div');
+    textDiv.textContent = text;
+    div.appendChild(textDiv);
+  } else {
+    div.textContent = text;
+  }
+  chatMessages.appendChild(div);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  updateBadges();
+}
+
+function updateBadges() {
+  const count = chatMessages.querySelectorAll('.chat-msg.user').length;
+  document.getElementById('chatBadge').textContent = count;
+}
+
+async function sendChat() {
+  const msg = chatInput.value.trim();
+  if (!msg) return;
+  chatInput.value = '';
+  chatInput.style.height = 'auto';
+  addMsg('user', msg);
+  chatSend.disabled = true;
+  chatTyping.classList.add('active');
+  document.getElementById('statusDot').className = 'status-dot thinking';
+  document.getElementById('statusText').textContent = 'Thinking...';
+
+  try {
+    const context = {
+      pageContext: 'Aceline Web UI — 6 mandatory rules active (Innovation Framework, ACRE, Design Engineering, Self-Building System, Suggestion Engine, Auto-Adapt System). 4 surfaces: UI, CLI, Webpage, Terminal.',
+    };
+    const response = await jarvisChat(msg, context);
+    addMsg('assistant', response);
+    document.getElementById('statusDot').className = 'status-dot online';
+    document.getElementById('statusText').textContent = 'Ready';
+  } catch (e) {
+    addMsg('system', `Error: ${e.message}`);
+    document.getElementById('statusDot').className = 'status-dot';
+    document.getElementById('statusText').textContent = 'Error';
+  }
+
+  chatTyping.classList.remove('active');
+  chatSend.disabled = false;
+}
+
+chatSend.addEventListener('click', sendChat);
+chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+});
+chatInput.addEventListener('input', () => {
+  chatInput.style.height = 'auto';
+  chatInput.style.height = Math.min(chatInput.scrollHeight, 200) + 'px';
+});
+
+// ── Surfaces ──
+async function loadSurfaces() {
+  const data = await getSurfaces();
+  if (!data || !data.surfaces) return;
+  const grid = document.getElementById('surfacesGrid');
+  grid.innerHTML = '';
+
+  const icons = { ui: '🖥', cli: '⌨', webpage: '🌐', terminal: '▶' };
+  const labels = { ui: 'UI', cli: 'CLI', webpage: 'Webpage', terminal: 'Terminal' };
+
+  for (const [key, s] of Object.entries(data.surfaces)) {
+    const card = document.createElement('div');
+    card.className = 'surface-card';
+    const fns = (s.functions || []).map(f => `<span class="surface-fn">${f}</span>`).join('');
+    card.innerHTML = `
+      <div class="surface-card-header">
+        <div class="surface-icon ${key === 'terminal' ? 'term' : key}">${icons[key] || '●'}</div>
+        <div class="surface-name">${s.name || labels[key]}</div>
+        <div class="surface-status"><span class="surface-status-badge ${s.status}">${s.status}</span></div>
+      </div>
+      <div class="surface-body">
+        ${s.action ? `<div class="surface-action">Action: ${s.action}</div>` : ''}
+        ${s.thought ? `<div class="surface-thought">Thinking: ${s.thought}</div>` : ''}
+        <div class="surface-functions">${fns}</div>
+      </div>
+    `;
+    grid.appendChild(card);
+
+    const badgeId = key === 'webpage' ? 'webStatus' : key === 'terminal' ? 'termStatus' : key + 'Status';
+    const badge = document.getElementById(badgeId);
+    if (badge) badge.textContent = s.status;
+  }
+}
+
+// ── Memory ──
+async function loadMemory() {
+  try {
+    const r = await fetch(`${BASE}/v1/observer/stats`, { signal: AbortSignal.timeout(5000) });
+  } catch {}
+  // Load from the CLI's memory store via a simple endpoint or display local
+  const list = document.getElementById('memoryList');
+  list.innerHTML = '<div style="color:var(--text-dim); font-size:12px;">Loading memory from universal store...</div>';
+  try {
+    // Use the backend's knowledge/memory if available, otherwise show the fablemythos files
+    const r = await fetch(`${BASE}/v1/knowledge`, { signal: AbortSignal.timeout(5000) });
+    if (r.ok) {
+      const d = await r.json();
+      list.innerHTML = '';
+      if (d.entries && d.entries.length > 0) {
+        d.entries.slice(-20).forEach(m => {
+          const e = document.createElement('div');
+          e.className = 'memory-entry';
+          e.innerHTML = `<div class="memory-key">${m.key || m.title || 'entry'}</div><div class="memory-value">${m.value || m.content || ''}</div><div class="memory-meta">${m.source || 'system'} · ${m.timestamp || ''}</div>`;
+          list.appendChild(e);
+        });
+      } else {
+        list.innerHTML = '<div style="color:var(--text-dim);">No memory entries yet.</div>';
+      }
+      document.getElementById('memBadge').textContent = d.entries ? d.entries.length : 0;
+      return;
+    }
+  } catch {}
+  list.innerHTML = '<div style="color:var(--text-dim);">Memory store connected via backend. Use the CLI to save memories.</div>';
+}
+
+// ── Journal ──
+async function loadJournal() {
+  const list = document.getElementById('journalList');
+  list.innerHTML = '<div style="color:var(--text-dim); font-size:12px;">Loading journal...</div>';
+  try {
+    const r = await fetch(`${BASE}/v1/observer/workflows`, { signal: AbortSignal.timeout(5000) });
+    if (r.ok) {
+      const d = await r.json();
+      list.innerHTML = '';
+      const entries = d.workflows || d.entries || [];
+      if (entries.length > 0) {
+        entries.slice(-20).forEach(e => {
+          const div = document.createElement('div');
+          div.className = `journal-entry ${e.surface || 'cli'}`;
+          div.innerHTML = `<div class="journal-time">${e.timestamp || ''}</div><div class="journal-action">${e.action || e.event || ''}</div>${e.thought ? `<div class="journal-thought">${e.thought}</div>` : ''}`;
+          list.appendChild(div);
+        });
+      } else {
+        list.innerHTML = '<div style="color:var(--text-dim);">No journal entries yet. Run an invention cycle or chat with Aceline.</div>';
+      }
+      document.getElementById('jourBadge').textContent = entries.length;
+      return;
+    }
+  } catch {}
+  list.innerHTML = '<div style="color:var(--text-dim);">Journal connected via backend. Activity will appear here after invention cycles and chat sessions.</div>';
+}
+
+// ── Rules ──
+async function loadRules() {
+  const list = document.getElementById('rulesList');
+  list.innerHTML = '<div style="color:var(--text-dim);">Loading rules...</div>';
+  try {
+    const [fw, acre, design, sb, se, aa] = await Promise.all([
+      getRule('framework'), getRule('acre'), getRule('design'),
+      getRule('self-building'), getRule('suggestion-engine'), getRule('auto-adapt'),
+    ]);
+    const rules = [
+      { n: 1, data: fw, cls: 'r1', count: fw.sections ? fw.sections.length : 20, core: fw.core_rule },
+      { n: 2, data: acre, cls: 'r2', count: acre.sections ? acre.sections.length : 30, core: acre.core_rule },
+      { n: 3, data: design, cls: 'r3', count: design.rule_count || 75, core: design.master_rule },
+      { n: 4, data: sb, cls: 'r4', count: sb.rule_count || 100, core: sb.master_rule },
+      { n: 5, data: se, cls: 'r5', count: se.rule_count || 80, core: se.master_rule },
+      { n: 6, data: aa, cls: 'r6', count: aa.rule_count || 115, core: aa.master_rule },
+    ];
+    list.innerHTML = '';
+    rules.forEach(r => {
+      const card = document.createElement('div');
+      card.className = 'rule-card';
+      const sections = r.data.sections ? r.data.sections.slice(0, 10).map(s => `<div class="rule-section-item">${s}</div>`).join('') : '';
+      const more = r.data.sections && r.data.sections.length > 10 ? `<div class="rule-section-item" style="color:var(--text-muted)">... and ${r.data.sections.length - 10} more</div>` : '';
+      card.innerHTML = `
+        <div class="rule-card-header">
+          <div class="rule-number ${r.cls}">${r.n}</div>
+          <div class="rule-name">${r.data.name || 'Rule'}</div>
+          <div class="rule-count">${r.count} ${r.count > 50 ? 'rules' : 'sections'}</div>
+        </div>
+        ${r.core ? `<div class="rule-core">${r.core}</div>` : ''}
+        <div class="rule-details">${sections}${more}</div>
+      `;
+      card.addEventListener('click', () => card.classList.toggle('expanded'));
+      list.appendChild(card);
+    });
+  } catch (e) {
+    list.innerHTML = `<div style="color:var(--red);">Failed to load rules: ${e.message}</div>`;
+  }
+}
+
+// ── Invention ──
+let inventPolling = false;
+
+async function loadInventState() {
+  try {
+    const state = await autoInventState();
+    document.getElementById('inventPhase').textContent = (state.phase || 'idle').toUpperCase();
+    document.getElementById('inventMeta').textContent = `Auto mode: ${state.auto_mode} | Task: ${state.current_task || 'none'} | Surface: ${state.current_surface || 'none'}`;
+
+    const approachesDiv = document.getElementById('inventApproaches');
+    approachesDiv.innerHTML = '';
+    if (state.approaches && state.approaches.length > 0) {
+      state.approaches.forEach(a => {
+        const icon = a.status === 'passed' ? '✓' : a.status === 'failed' ? '✗' : a.status === 'testing' ? '⟳' : '○';
+        const div = document.createElement('div');
+        div.className = 'invent-approach';
+        div.innerHTML = `
+          <div class="invent-approach-header">
+            <span class="invent-approach-icon">${icon}</span>
+            <span class="invent-approach-name">${a.name}</span>
+            <span class="invent-approach-type">[${a.approach_type}]</span>
+            ${a.score > 0 ? `<span class="invent-approach-score">${a.score.toFixed(2)}</span>` : ''}
+          </div>
+          <div class="invent-approach-desc">${a.description || a.result || ''}</div>
+        `;
+        approachesDiv.appendChild(div);
+      });
+    }
+
+    const winnerDiv = document.getElementById('inventWinner');
+    if (state.winner) {
+      winnerDiv.style.display = 'block';
+      winnerDiv.innerHTML = `
+        <div class="invent-winner-name">🏆 ${state.winner.name}</div>
+        <div class="invent-winner-score">Score: ${state.winner.score.toFixed(2)} | Surface: ${state.winner.surface}</div>
+        <div class="invent-winner-desc">${state.winner.description || ''}</div>
+      `;
+    } else {
+      winnerDiv.style.display = 'none';
+    }
+  } catch (e) {
+    document.getElementById('inventPhase').textContent = 'Error';
+    document.getElementById('inventMeta').textContent = e.message;
+  }
+}
+
+document.getElementById('inventRun').addEventListener('click', async () => {
+  document.getElementById('inventPhase').textContent = 'STARTING...';
+  document.getElementById('inventMeta').textContent = 'Generating approaches using all 6 Rules...';
+  await autoInventRun();
+  if (!inventPolling) {
+    inventPolling = true;
+    pollInvent();
+  }
+});
+
+document.getElementById('inventOn').addEventListener('click', async () => {
+  await autoInventToggle(true);
+  document.getElementById('inventMeta').textContent = 'Auto mode ON';
+});
+
+document.getElementById('inventOff').addEventListener('click', async () => {
+  await autoInventToggle(false);
+  document.getElementById('inventMeta').textContent = 'Auto mode OFF';
+});
+
+document.getElementById('inventState').addEventListener('click', loadInventState);
+
+async function pollInvent() {
+  const state = await autoInventState();
+  await loadInventState();
+  if (state.phase === 'done' || state.phase === 'error' || state.phase === 'idle') {
+    inventPolling = false;
+    if (state.winner) {
+      addMsg('system', `🏆 Invention winner: ${state.winner.name} (score: ${state.winner.score.toFixed(2)})`);
+    }
+    return;
+  }
+  setTimeout(pollInvent, 2000);
+}
+
+// ── Terminal ──
+const terminalPanel = document.getElementById('terminalPanel');
+const terminalHeader = document.getElementById('terminalHeader');
+const terminalBody = document.getElementById('terminalBody');
+
+terminalHeader.addEventListener('click', () => {
+  terminalPanel.classList.toggle('collapsed');
+  terminalHeader.querySelector('.terminal-toggle').textContent = terminalPanel.classList.contains('collapsed') ? '▾' : '▴';
+});
+
+function termLog(text, type = 'out') {
+  const line = document.createElement('div');
+  line.className = `terminal-line ${type}`;
+  line.textContent = text;
+  terminalBody.appendChild(line);
+  terminalBody.scrollTop = terminalBody.scrollHeight;
+}
+
+// ── Tool buttons ──
+document.getElementById('toolInvent').addEventListener('click', () => switchView('invent'));
+document.getElementById('toolSurfaces').addEventListener('click', () => switchView('surfaces'));
+document.getElementById('toolRules').addEventListener('click', () => switchView('rules'));
+
+// ── Init ──
+async function init() {
+  const ok = await checkBackend();
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  const sb = document.getElementById('sbBackend');
+
+  if (ok) {
+    dot.className = 'status-dot online';
+    text.textContent = 'Ready';
+    sb.textContent = '● Backend: Online';
+    sb.style.cursor = 'pointer';
+    termLog('Backend connected at ' + BASE, 'ok');
+    termLog('6 mandatory rules active', 'ok');
+    termLog('4 surfaces initialized: UI, CLI, Webpage, Terminal', 'ok');
+
+    // Load surfaces
+    loadSurfaces();
+    setInterval(loadSurfaces, 5000);
+
+    // Load invent state
+    loadInventState();
+    setInterval(loadInventState, 10000);
+  } else {
+    dot.className = 'status-dot';
+    text.textContent = 'Backend offline';
+    sb.textContent = '● Backend: Offline';
+    sb.style.color = '#f48771';
+    termLog('Backend offline. Start with: cd inc_llm_v1 && python -m uvicorn inc_llm.server:app --port 8547', 'err');
+  }
+
+  // Clock
+  setInterval(() => {
+    const now = new Date();
+    document.getElementById('sbTime').textContent = now.toLocaleTimeString();
+  }, 1000);
+
+  // Auto-adjust layout on resize
+  autoAdjustLayout();
+}
+
+// ── Auto-Adjust Layout ──
+function autoAdjustLayout() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const sidePanel = document.getElementById('sidePanel');
+  const terminalPanel = document.getElementById('terminalPanel');
+
+  // Auto-collapse side panel on small screens
+  if (w < 700 && !sidePanel.classList.contains('mobile-open')) {
+    sidePanel.classList.remove('collapsed');
+  } else if (w >= 700 && sidePanel.classList.contains('mobile-open')) {
+    sidePanel.classList.remove('mobile-open');
+  }
+
+  // Auto-adjust terminal height based on viewport
+  if (h < 500) {
+    terminalPanel.classList.add('collapsed');
+  }
+
+  // Auto-adjust surfaces grid
+  const grid = document.getElementById('surfacesGrid');
+  if (grid) {
+    if (w > 1200) grid.style.gridTemplateColumns = '1fr 1fr';
+    else if (w > 700) grid.style.gridTemplateColumns = '1fr 1fr';
+    else grid.style.gridTemplateColumns = '1fr';
+  }
+
+  // Auto-scroll chat to bottom
+  const chat = document.getElementById('chatMessages');
+  if (chat) chat.scrollTop = chat.scrollHeight;
+
+  // Auto-resize chat input
+  const input = document.getElementById('chatInput');
+  if (input) {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, Math.min(200, window.innerHeight * 0.3)) + 'px';
+  }
+
+  // Update status bar info
+  const sbSize = document.getElementById('sbSize');
+  if (sbSize) sbSize.textContent = `${w}×${h}`;
+}
+
+// Debounced resize handler
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  if (resizeTimer) clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(autoAdjustLayout, 100);
+});
+
+// Also adjust on orientation change (mobile)
+window.addEventListener('orientationchange', () => {
+  setTimeout(autoAdjustLayout, 300);
+});
+
+// Mobile side panel toggle — tap activity icon when panel is hidden
+document.querySelector('.activity-bar').addEventListener('click', (e) => {
+  if (window.innerWidth < 700) {
+    const panel = document.getElementById('sidePanel');
+    if (e.target.classList.contains('activity-icon')) {
+      panel.classList.toggle('mobile-open');
+    }
+  }
+});
+
+init();
+</script>
+</body>
+</html>
