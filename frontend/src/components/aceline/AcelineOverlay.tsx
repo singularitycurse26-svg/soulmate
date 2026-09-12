@@ -37,6 +37,7 @@ const PAGE_LABELS: Record<AppPage, string> = {
   wakkii: "Wakkii Links",
   agent_market: "AI Agent Marketplace",
   archive: "Soulmate OS Catalog",
+  diagnostics: "System Diagnostics",
 };
 
 type PanelMode = "chat" | "terminal";

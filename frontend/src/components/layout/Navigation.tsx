@@ -31,6 +31,7 @@ import {
   X,
   Bot,
   Archive,
+  Stethoscope,
 } from "lucide-react";
 import incentivesCoin from "@/assets/incentives-coin.png";
 
@@ -56,6 +57,7 @@ const navItems: { page: AppPage; labelKey: string; icon: any; group: string }[] 
   { page: "frequency", labelKey: "common:nav.frequency", icon: AudioWaveform, group: "Money" },
   { page: "security", labelKey: "common:nav.security", icon: Shield, group: "System" },
   { page: "archive", labelKey: "common:nav.archive", icon: Archive, group: "System" },
+  { page: "diagnostics", labelKey: "common:nav.diagnostics", icon: Stethoscope, group: "System" },
 ];
 
 const founderNavItems: { page: AppPage; labelKey: string; icon: any }[] = [

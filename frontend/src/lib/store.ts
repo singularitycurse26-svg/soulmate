@@ -33,7 +33,8 @@ export type AppPage =
   | "soulillusions"
   | "wakkii"
   | "agent_market"
-  | "archive";
+  | "archive"
+  | "diagnostics";
 
 interface Alert {
   id: number;

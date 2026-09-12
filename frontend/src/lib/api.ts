@@ -606,6 +606,12 @@ export const catalogApi = {
   docs: () => fetch(`${INCLLMV2_BASE}/v1/catalog/docs`).then((r) => r.json()),
 };
 
+// ── Diagnostics API — Step-by-step system health checker ──────────────
+export const diagnosticsApi = {
+  run: () => incllmv2Fetch("/v1/diagnostics"),
+  quick: () => incllmv2Fetch("/v1/diagnostics/quick"),
+};
+
 // --- Trill / Singularity / SplitBit LLM APIs ---
 // All route through incllmv2 (port 8547) with a model parameter.
 // incllmv2 handles the request using its RLOS+Ollama backend with
