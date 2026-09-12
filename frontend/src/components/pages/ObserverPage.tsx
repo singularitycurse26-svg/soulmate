@@ -93,6 +93,7 @@ export function ObserverPage() {
   const [reports, setReports] = useState<MonthlyReport[]>([]);
   const [loading, setLoading] = useState(false);
   const [detecting, setDetecting] = useState(false);
+  const [innovating, setInnovating] = useState(false);
   const [expandedNote, setExpandedNote] = useState<string | null>(null);
   const [expandedReport, setExpandedReport] = useState<string | null>(null);
   const [frontendStats, setFrontendStats] = useState({ tracked: 0, filtered: 0, flushed: 0, queued: 0 });
@@ -141,6 +142,26 @@ export function ObserverPage() {
     setDetecting(false);
   }, [showAlert, loadAll, track]);
 
+  const runInnovation = useCallback(async () => {
+    setInnovating(true);
+    track("command", "run_innovation_framework", "observer");
+    try {
+      const result = await observerApi.innovate();
+      if (result?.status === "ok") {
+        showAlert(
+          "success",
+          `Innovation Framework: ${result.notes_created} notes generated across surfaces: ${(result.surfaces || []).join(", ")}`
+        );
+      } else {
+        showAlert("info", `Innovation: ${result?.status} — ${result?.event_count || 0} events analyzed`);
+      }
+      loadAll();
+    } catch (e: any) {
+      showAlert("danger", `Innovation failed: ${e.message}`);
+    }
+    setInnovating(false);
+  }, [showAlert, loadAll, track]);
+
   const approveNote = useCallback(async (noteId: string) => {
     trackClick(`approve-${noteId}`);
     try {
@@ -179,6 +200,17 @@ export function ObserverPage() {
         },
       },
       {
+        id: "run-innovation-framework",
+        label: "Run innovation framework",
+        description: "Run the Universal Technology Invention & Innovation Framework on the 4 Aceline surfaces (UI, CLI, webpage, terminal)",
+        category: "control",
+        execute: async () => {
+          const result = await observerApi.innovate();
+          loadAll();
+          return result;
+        },
+      },
+      {
         id: "approve-all-notes",
         label: "Approve all pending notes",
         description: "Approve all pending improvement notes at once",
@@ -211,9 +243,17 @@ export function ObserverPage() {
         actions={
           <div className="flex gap-2">
             <button
+              onClick={runInnovation}
+              disabled={innovating}
+              className="btn-primary flex items-center gap-1.5 text-xs px-3 py-1.5"
+            >
+              {innovating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Lightbulb className="w-3.5 h-3.5" />}
+              Innovate
+            </button>
+            <button
               onClick={runDetection}
               disabled={detecting}
-              className="btn-primary flex items-center gap-1.5 text-xs px-3 py-1.5"
+              className="btn-secondary flex items-center gap-1.5 text-xs px-3 py-1.5"
             >
               {detecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
               Detect Now

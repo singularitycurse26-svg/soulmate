@@ -40,6 +40,49 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1/observer", tags=["observer"])
 
+# ── Universal Technology Invention & Innovation Framework ─────────────
+# This framework is the mandatory rule the observer follows when generating
+# improvement notes and monthly reports for the 4 Aceline surfaces:
+# UI, CLI, webpage, and terminal. The observer must use this framework to
+# think about what works better and how to upgrade those 4 surfaces.
+#
+# MASTER PRINCIPLE: DO NOT JUST INVENT NEW TECHNOLOGY.
+# INVENT NEW WAYS TO USE TECHNOLOGY THAT ALREADY EXISTS.
+# CORE RULE: DO NOT ASSUME THE CURRENT WAY IS THE BEST WAY.
+
+INNOVATION_FRAMEWORK_PROMPT = """\
+You are the Aceline Smart Work Watcher running the Universal Technology Invention & Innovation Framework.
+Your job is to observe how the user works across 4 Aceline surfaces — UI, CLI, webpage, and terminal —
+and generate improvement notes that make those surfaces better.
+
+MANDATORY FRAMEWORK RULES (follow these when generating every improvement note):
+
+1. DO NOT ASSUME THE CURRENT WAY IS THE BEST WAY.
+2. DO NOT JUST INVENT NEW TECHNOLOGY. INVENT NEW WAYS TO USE TECHNOLOGY THAT ALREADY EXISTS.
+3. Separate the actual problem from the assumed solution. Ask "What actually needs to happen?" not "How is everyone currently doing it?"
+4. Decompose each surface into: System -> Subsystem -> Component -> Function -> Mechanism -> Input -> Transformation -> Output.
+5. Extract primitive capabilities: detect, measure, store, search, classify, predict, generate, transform, compress, communicate, synchronize, authenticate, track, optimize, automate, learn, remember, verify, repair, coordinate, control.
+6. Identify hidden capabilities — what else could this underlying mechanism potentially do?
+7. Find bottlenecks: speed, cost, latency, accuracy, reliability, complexity, human labor, memory, compute, bandwidth.
+8. Remove unnecessary steps. Ask: Does this step actually need to exist? Can two steps become one? Can software replace hardware? Can local processing replace cloud? Can prediction eliminate computation?
+9. Ask "What if?": reverse it, combine it, duplicate it, remove it, parallelize it, serialize it, make it autonomous, make it adaptive, make it a feedback loop.
+10. Cross-pollinate industries — has another industry already solved a similar problem? Transfer the underlying mechanism, not the surface implementation.
+11. Existing-infrastructure-first: before inventing new hardware, determine whether existing hardware/software can accomplish the objective through a new process.
+12. Minimum-viable-invention: reduce every concept to its smallest functional version, test the core mechanism, measure, compare against the existing solution, expand only if the core mechanism works.
+13. Failure-driven invention: ask "Why doesn't it work?" and "Can the failure itself reveal another solution or application?"
+14. Continuous capability library: every successful discovery becomes reusable knowledge for the next improvement.
+15. Invention recursion: when a new process is discovered, ask "What new capabilities did this invention create?" and feed them back in.
+
+The 4 Aceline surfaces you are improving:
+- UI: the Soulmate OS web interface (React frontend, pages, navigation, Aceline overlay)
+- CLI: the Aceline command-line interface (aceline-cli, terminal commands)
+- Webpage: the standalone Aceline webpage/PWA
+- Terminal: the in-app terminal surface and Aceline terminal commands
+
+For each improvement note, consider whether the improvement applies to one or more of these 4 surfaces
+and whether the same underlying improvement could be transferred across surfaces.
+"""
+
 _harness = None
 _settings = None
 _observer: AcelineObserver | None = None
@@ -301,7 +344,8 @@ class AcelineObserver:
                     for i, e in enumerate(example[:10])
                 )
                 prompt = (
-                    "You are naming a workflow pattern detected from user activity. "
+                    "You are naming a workflow pattern detected from user activity across "
+                    "the 4 Aceline surfaces (UI, CLI, webpage, terminal). "
                     "Give it a short, descriptive name (2-4 words). Examples: 'Morning Build Check', "
                     "'Pre-Deploy Verification', 'Daily Code Review'.\n\n"
                     f"Workflow steps:\n{steps_desc}\n\nName:"
@@ -442,6 +486,15 @@ class AcelineObserver:
             except Exception as e:
                 logger.debug("GLM note analysis failed: %s", e)
 
+        # Innovation Framework analysis — generate framework-driven notes
+        # for the 4 Aceline surfaces (UI, CLI, webpage, terminal)
+        if self.glm_queue and self.batch_analysis:
+            try:
+                innovation_notes = await self._generate_innovation_notes(stats, events)
+                notes.extend(innovation_notes)
+            except Exception as e:
+                logger.debug("Innovation framework analysis failed: %s", e)
+
         # Save notes
         for note in notes:
             note_id = f"note-{uuid.uuid4().hex[:12]}"
@@ -458,6 +511,104 @@ class AcelineObserver:
             notes_created += 1
 
         return notes_created
+
+    async def _generate_innovation_notes(self, stats: dict, events: list[dict]) -> list[dict]:
+        """Generate improvement notes using the Universal Technology Invention & Innovation Framework.
+
+        This is the specific method that thinks about what works better across the
+        4 Aceline surfaces (UI, CLI, webpage, terminal) and proposes upgrades
+        following the framework rules. It runs the framework's invention pipeline:
+        observe -> understand -> hypothesize -> build -> test -> measure -> learn -> modify.
+
+        The framework's master principle: DO NOT JUST INVENT NEW TECHNOLOGY.
+        INVENT NEW WAYS TO USE TECHNOLOGY THAT ALREADY EXISTS.
+        The core rule: DO NOT ASSUME THE CURRENT WAY IS THE BEST WAY.
+        """
+        if not self.glm_queue:
+            return []
+
+        # Categorize events by the 4 surfaces
+        surface_events = self._categorize_by_surface(events)
+        surface_summary = {
+            surface: {
+                "event_count": len(evts),
+                "top_actions": dict(Counter(e.get("action", "") for e in evts if e.get("action")).most_common(5)),
+                "top_pages": dict(Counter(e.get("page", "") for e in evts if e.get("page")).most_common(5)),
+                "error_count": sum(1 for e in evts if e.get("event_type") == "error"),
+            }
+            for surface, evts in surface_events.items()
+        }
+
+        prompt = (
+            f"{INNOVATION_FRAMEWORK_PROMPT}\n\n"
+            "You are running the invention pipeline on the 4 Aceline surfaces. "
+            "For each surface, apply the framework:\n"
+            "1. Decompose the surface into its components and mechanisms.\n"
+            "2. Extract primitive capabilities (detect, store, search, predict, generate, transform, automate, learn, remember, coordinate, control).\n"
+            "3. Find bottlenecks (speed, latency, reliability, complexity, human labor).\n"
+            "4. Ask 'what if' — reverse, combine, remove, parallelize, automate, make adaptive.\n"
+            "5. Identify hidden capabilities — what else could the existing mechanism do?\n"
+            "6. Propose a concrete upgrade using EXISTING technology recombined in a new way.\n"
+            "7. Check whether the same upgrade transfers across the other 3 surfaces.\n\n"
+            "Return a JSON array of improvement notes with fields: "
+            "category, severity (low/medium/high/critical), title, description, suggested_fix. "
+            "Each suggested_fix must be a concrete recombination of existing technology, "
+            "not a vague suggestion. Mark which surface(s) each note applies to in the description.\n\n"
+            f"Activity by surface:\n{json.dumps(surface_summary, indent=2, default=str)}\n\n"
+            f"Overall stats:\n{json.dumps(stats, indent=2, default=str)}\n\n"
+            "Improvement notes as JSON array:"
+        )
+
+        try:
+            result = await asyncio.wait_for(
+                self.glm_queue.submit(GLMRequest(
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=1500,
+                    temperature=0.4,
+                    priority=3,  # Observer priority — user preempts
+                    timeout=45,
+                )),
+                timeout=50,
+            )
+            content = result.get("content", "")
+            # Parse JSON array from response
+            start = content.find("[")
+            end = content.rfind("]")
+            if start >= 0 and end > start:
+                parsed = json.loads(content[start:end + 1])
+                if isinstance(parsed, list):
+                    return parsed
+        except Exception as e:
+            logger.debug("Innovation note generation failed: %s", e)
+        return []
+
+    def _categorize_by_surface(self, events: list[dict]) -> dict[str, list[dict]]:
+        """Categorize events by the 4 Aceline surfaces: UI, CLI, webpage, terminal.
+
+        UI: pages in the Soulmate OS web interface (dashboard, wallet, security, etc.)
+        CLI: aceline-cli commands, terminal commands
+        Webpage: standalone Aceline webpage/PWA
+        Terminal: in-app terminal surface, build/test/deploy commands
+        """
+        surfaces: dict[str, list[dict]] = {"ui": [], "cli": [], "webpage": [], "terminal": []}
+        for evt in events:
+            page = (evt.get("page") or "").lower()
+            event_type = (evt.get("event_type") or "").lower()
+            action = (evt.get("action") or "").lower()
+
+            # Terminal: commands, builds, tests, deployments
+            if event_type in ("command", "build", "test", "deploy", "file_op") or "terminal" in page:
+                surfaces["terminal"].append(evt)
+            # CLI: aceline-cli related
+            elif "cli" in page or "aceline-cli" in action or action.startswith("aceline "):
+                surfaces["cli"].append(evt)
+            # Webpage: standalone Aceline PWA
+            elif "pwa" in page or "webpage" in page or "standalone" in page:
+                surfaces["webpage"].append(evt)
+            # UI: everything else in the web interface
+            else:
+                surfaces["ui"].append(evt)
+        return surfaces
 
     def _compute_stats(self, events: list[dict]) -> dict:
         """Compute statistics from events."""
@@ -487,11 +638,24 @@ class AcelineObserver:
         }
 
     async def _glm_analyze_notes(self, stats: dict, notes: list[dict]) -> list[dict]:
-        """Use GLM to refine improvement notes (batched into one call)."""
+        """Use GLM to refine improvement notes (batched into one call).
+
+        Uses the Universal Technology Invention & Innovation Framework to
+        think about what works better across the 4 Aceline surfaces (UI,
+        CLI, webpage, terminal) and how to upgrade them.
+        """
         prompt = (
-            "You are analyzing user activity statistics to generate improvement notes. "
+            f"{INNOVATION_FRAMEWORK_PROMPT}\n\n"
+            "You are analyzing user activity statistics to generate improvement notes "
+            "for the 4 Aceline surfaces (UI, CLI, webpage, terminal). "
+            "Apply the framework above: do not assume the current way is the best way, "
+            "decompose each surface, extract capabilities, find bottlenecks, remove "
+            "unnecessary steps, ask 'what if', cross-pollinate, and prefer existing "
+            "infrastructure over new invention.\n\n"
             "For each issue found, provide a JSON array of notes with fields: "
-            "category, severity (low/medium/high/critical), title, description, suggested_fix.\n\n"
+            "category, severity (low/medium/high/critical), title, description, suggested_fix. "
+            "Each suggested_fix must follow the framework — propose a concrete way to use "
+            "existing technology differently, not just 'investigate' or 'consider'.\n\n"
             f"Statistics:\n{json.dumps(stats, indent=2)}\n\n"
             f"Initial notes:\n{json.dumps(notes, indent=2)}\n\n"
             "Refined notes as JSON array:"
@@ -584,14 +748,21 @@ class AcelineObserver:
             "generated_at": now,
         }
 
-        # Try to generate a polished summary via GLM
+        # Try to generate a polished summary via GLM using the innovation framework
         if self.glm_queue:
             try:
                 summary_prompt = (
-                    "You are generating a monthly improvement report for a software development platform. "
-                    "Summarize the following improvement notes into a polished, readable report.\n\n"
+                    f"{INNOVATION_FRAMEWORK_PROMPT}\n\n"
+                    "You are generating a monthly improvement report for the 4 Aceline surfaces "
+                    "(UI, CLI, webpage, terminal). Apply the framework above to summarize the "
+                    "improvement notes into a polished, readable report.\n\n"
+                    "For each improvement, explain:\n"
+                    "1. What the current way is doing and why it is not the best way.\n"
+                    "2. What existing technology or capability can be recombined to do it better.\n"
+                    "3. Which of the 4 surfaces (UI, CLI, webpage, terminal) the improvement applies to.\n"
+                    "4. Whether the same underlying improvement can be transferred across surfaces.\n\n"
                     f"Notes:\n{json.dumps(notes, indent=2, default=str)}\n\n"
-                    "Provide a concise summary (2-3 paragraphs) highlighting the most important improvements:"
+                    "Provide a concise report (2-4 paragraphs) following the framework:"
                 )
                 result = await asyncio.wait_for(
                     self.glm_queue.submit(GLMRequest(
@@ -629,6 +800,8 @@ class AcelineObserver:
         stats["detection_interval_s"] = self.detection_interval_s
         stats["observer_model"] = self.observer_model or "(using primary model)"
         stats["running"] = self._running
+        stats["innovation_framework"] = "enabled"
+        stats["surfaces"] = ["ui", "cli", "webpage", "terminal"]
         return stats
 
     def get_workflows(self) -> list[dict]:
@@ -860,3 +1033,83 @@ async def trigger_detection():
     if not _observer:
         raise HTTPException(503, "Observer not initialized")
     return await _observer._run_detection()
+
+
+@router.post("/innovate")
+async def trigger_innovation():
+    """Manually trigger the Universal Technology Invention & Innovation Framework.
+
+    Runs the framework on recent activity across the 4 Aceline surfaces
+    (UI, CLI, webpage, terminal) and generates improvement notes that
+    propose new ways to use existing technology.
+    """
+    if not _observer:
+        raise HTTPException(503, "Observer not initialized")
+    now = time.time()
+    since = now - 86400  # last 24 hours
+    events = _observer.log_channel.query_events(limit=5000, since=since)
+    if len(events) < 5:
+        return {"status": "insufficient_data", "event_count": len(events)}
+    stats = _observer._compute_stats(events)
+    notes = await _observer._generate_innovation_notes(stats, events)
+    # Save the innovation notes
+    saved = 0
+    for note in notes:
+        note_id = f"innov-{uuid.uuid4().hex[:12]}"
+        ts = time.time()
+        with sqlite3.connect(str(_observer.log_channel.db_path)) as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO improvement_notes "
+                "(id, category, severity, title, description, evidence, suggested_fix, status, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)",
+                (note_id, note.get("category", "innovation"), note.get("severity", "medium"),
+                 note.get("title", "Innovation note"), note.get("description", ""),
+                 note.get("evidence", ""), note.get("suggested_fix", ""), ts, ts),
+            )
+        saved += 1
+    return {
+        "status": "ok",
+        "framework": "Universal Technology Invention & Innovation Framework",
+        "surfaces": ["ui", "cli", "webpage", "terminal"],
+        "event_count": len(events),
+        "notes_created": saved,
+        "notes": notes,
+    }
+
+
+@router.get("/framework")
+async def get_framework():
+    """Get the Universal Technology Invention & Innovation Framework rules."""
+    return {
+        "name": "Universal Technology Invention & Innovation Framework",
+        "master_principle": "DO NOT JUST INVENT NEW TECHNOLOGY. INVENT NEW WAYS TO USE TECHNOLOGY THAT ALREADY EXISTS.",
+        "core_rule": "DO NOT ASSUME THE CURRENT WAY IS THE BEST WAY.",
+        "surfaces": ["ui", "cli", "webpage", "terminal"],
+        "rules": [
+            "Separate the actual problem from the assumed solution",
+            "Decompose: System -> Subsystem -> Component -> Function -> Mechanism -> Input -> Transformation -> Output",
+            "Extract primitive capabilities: detect, measure, store, search, classify, predict, generate, transform, compress, communicate, synchronize, authenticate, track, optimize, automate, learn, remember, verify, repair, coordinate, control",
+            "Identify hidden capabilities — what else could this underlying mechanism potentially do?",
+            "Find bottlenecks: speed, cost, latency, accuracy, reliability, complexity, human labor, memory, compute, bandwidth",
+            "Remove unnecessary steps — does this step actually need to exist?",
+            "Ask 'what if' — reverse, combine, duplicate, remove, parallelize, serialize, automate, make adaptive, make a feedback loop",
+            "Cross-pollinate industries — transfer the underlying mechanism, not the surface implementation",
+            "Existing-infrastructure-first — before inventing new hardware, use existing hardware/software through a new process",
+            "Minimum-viable-invention — reduce to smallest functional version, test core mechanism, measure, compare, expand only if it works",
+            "Failure-driven invention — ask 'why doesn't it work?' and 'can the failure reveal another solution?'",
+            "Continuous capability library — every successful discovery becomes reusable knowledge",
+            "Invention recursion — when a new process is discovered, ask what new capabilities it creates and feed them back in",
+        ],
+        "pipeline": [
+            "PROBLEM", "RESEARCH", "EXISTING TECHNOLOGY DISCOVERY", "REVERSE ENGINEERING",
+            "CAPABILITY EXTRACTION", "CAPABILITY DATABASE", "LIMITATION ANALYSIS",
+            "ASSUMPTION REMOVAL", "CROSS-DOMAIN SEARCH", "TECHNOLOGY COMBINATION",
+            "PROCESS RECOMBINATION", "ALTERNATIVE ARCHITECTURES", "10-100+ CONCEPTS",
+            "FEASIBILITY FILTER", "COST FILTER", "PERFORMANCE PREDICTION",
+            "SAFETY FILTER", "PRIOR-ART/NOVELTY CHECK", "RANKING", "TOP CONCEPTS",
+            "MINIMUM-VIABLE-PROTOTYPE", "IMPLEMENTATION", "TEST", "MEASUREMENT",
+            "FAILURE ANALYSIS", "SELF-CORRECTION", "OPTIMIZATION", "RETEST",
+            "WORKING PROCESS", "DOCUMENTATION", "REUSABLE TECHNOLOGY",
+            "CAPABILITY LIBRARY", "NEW INVENTION OPPORTUNITIES", "REPEAT",
+        ],
+    }

@@ -641,6 +641,8 @@ export const observerApi = {
   activity: (limit = 100, since = 0) =>
     incllmv2Fetch(`/v1/observer/activity?limit=${limit}&since=${since}`),
   detect: () => incllmv2Fetch("/v1/observer/detect", { method: "POST" }),
+  innovate: () => incllmv2Fetch("/v1/observer/innovate", { method: "POST" }),
+  framework: () => incllmv2Fetch("/v1/observer/framework"),
 };
 
 // ── Messaging API — Universal Messaging Adapter (UMA) ──────────────────
