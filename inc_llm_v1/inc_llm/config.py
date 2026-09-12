@@ -440,6 +440,83 @@ class UniversalMeshConfig:
 
 
 @dataclass
+class Ramm1Config:
+    """Universal Ramm1 — LLM + RAMM1 OS + Builder + Memory + Scraper + Hybrid Link API.
+
+    One integrated build. RAMM1 OS reserves 3.5 GB of RAM per machine and pools it
+    into a Universal RAM Supply so external big models can connect via API and run
+    on the pooled RAM. The LLM gets smarter every use via the universal link memory
+    mesh. A new web scraper + browser extension lets existing scrapers use ours.
+    A Hybrid API lets Ramm1 talk to ANY LLM (OpenAI, Anthropic, Ollama, MCP, custom,
+    even outdated), auto-create the link with consent, and virally propagate so each
+    linked LLM gains the ability to find and link to other LLMs.
+    """
+
+    enabled: bool = True
+
+    # RAMM1 OS — userspace resource allocator (3.5 GB RAM lock)
+    ram_reservation_gb: float = 3.5
+    min_total_ram_gb: float = 8.0          # refuse to install below this
+    ram_pressure_floor_gb: float = 1.5     # release reservation if available RAM drops below this
+    ram_scale_tiers: dict[str, float] = field(default_factory=lambda: {
+        "8-12": 2.0,     # 8-12 GB total → scale to 2 GB reservation
+        "12-16": 3.0,    # 12-16 GB total → 3 GB
+        "16+": 3.5,      # 16+ GB total → full 3.5 GB
+    })
+    pressure_check_interval_s: int = 5
+
+    # Peer mesh (Universal RAM Supply)
+    mesh_enabled: bool = True
+    peer_endpoint: str = ""
+    peer_token: str = ""
+    peer_db_path: str = "~/.inc_llm/ramm1_peers.db"
+    heartbeat_interval_s: int = 15
+
+    # Autonomous Builder (non-stop ecosystem builder)
+    autonomous_builder_enabled: bool = True
+    builder_poll_interval_s: int = 30
+    builder_work_queue_path: str = "C:/Users/hawpe/CascadeProjects/memory-vault/autonomous-agent/work-queue.json"
+    builder_agent_log_path: str = "C:/Users/hawpe/CascadeProjects/memory-vault/autonomous-agent/agent-log.json"
+
+    # API
+    api_port: int = 8547
+
+    # Model manifest
+    model_manifest_path: str = "~/.inc_llm/ramm1_manifest.json"
+
+    # Universal Memory + Recursive Link (gets smarter every use)
+    memory_enabled: bool = True
+    memory_share_turns: bool = True
+    memory_share_raw_turns: bool = False   # privacy default — share only compressed RLT tokens + metadata
+    memory_recall_top_k: int = 5
+    memory_smart_context_max_tokens: int = 200
+
+    # Ramm1 Web Scraper (new, way better)
+    scraper_enabled: bool = True
+    scraper_cache_path: str = "~/.inc_llm/ramm1_scraper_cache.db"
+    scraper_rate_limit_per_min: int = 30
+    scraper_js_fallback: bool = True
+    scraper_crawl_default_depth: int = 2
+    scraper_crawl_max_pages: int = 50
+    scraper_cache_ttl_s: int = 86400
+    scraper_user_agent: str = "UniversalRamm1/1.0 (+https://ramm1.local)"
+
+    # Hybrid API for Universal Recursive Link (talks to ALL LLMs, viral)
+    hybrid_link_enabled: bool = True
+    hybrid_link_discovery_endpoints: list[str] = field(default_factory=list)
+    hybrid_link_consent_required: bool = True
+    hybrid_link_propagate_enabled: bool = True
+    hybrid_link_db_path: str = "~/.inc_llm/ramm1_hybrid_links.db"
+    hybrid_link_probe_timeout_s: int = 5
+
+    # Installer — install RAMM1 OS as the Universal LLM Free System
+    install_as_service: bool = True
+    install_service_name: str = "UniversalRamm1"
+    install_service_description: str = "Universal Ramm1 — Free Universal LLM System (3.5 GB RAM Lock)"
+    install_autostart: bool = True
+
+
+@dataclass
 class HuggingFaceConfig:
     """HuggingFace publication configuration."""
 
@@ -816,6 +893,7 @@ class Settings:
     integrations: IntegrationsConfig = field(default_factory=IntegrationsConfig)
     rlos: RLOSConfig = field(default_factory=RLOSConfig)
     universal_mesh: UniversalMeshConfig = field(default_factory=UniversalMeshConfig)
+    ramm1: Ramm1Config = field(default_factory=Ramm1Config)
     publish: PublishConfig = field(default_factory=PublishConfig)
     ai_gaming: AIGamingConfig = field(default_factory=AIGamingConfig)
     security: SecurityConfig = field(default_factory=SecurityConfig)
@@ -865,7 +943,7 @@ class Settings:
             elif s.hardware_tier == HardwareTier.FULL:
                 s.models = ModelConfig.full()
         for key in ("models", "ollama", "memory", "universal_link", "rlt", "payment", "auth",
-                    "knowledge", "cache", "vault", "rlos", "universal_mesh", "publish",
+                    "knowledge", "cache", "vault", "rlos", "universal_mesh", "ramm1", "publish",
                     "ai_gaming", "security", "conversation_skills", "code_skills", "biometric",
                     "speed_skills", "meta_learner", "split_bit", "gaming_skills", "founder_wallet",
                     "youtube", "planning", "execution", "free_server_slots", "tools", "evolution",

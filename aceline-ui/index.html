@@ -776,6 +776,7 @@ html, body {
     <div class="activity-icon" data-view="invent" title="Auto-Invention">⚡</div>
     <div class="activity-icon" data-view="rules" title="7 Rules">📐</div>
     <div class="activity-icon" data-view="coreplus" title="Core Plus">🌟</div>
+    <div class="activity-icon" data-view="universal" title="Universal System">🌐</div>
     <div class="activity-spacer"></div>
     <div class="activity-icon" title="Settings">⚙</div>
   </div>
@@ -794,6 +795,7 @@ html, body {
         <div class="panel-item" data-view="invent"><span class="icon">⚡</span> Auto-Invention</div>
         <div class="panel-item" data-view="rules"><span class="icon">📐</span> 7 Rules</div>
         <div class="panel-item" data-view="coreplus"><span class="icon">🌟</span> Core Plus</div>
+        <div class="panel-item" data-view="universal"><span class="icon">🌐</span> Universal System</div>
       </div>
       <div class="panel-section" style="margin-top: 20px;">
         <div class="panel-header" style="border:none; padding: 4px 12px;">SURFACES</div>
@@ -814,6 +816,8 @@ html, body {
       <div class="tab" data-view="invent">⚡ Invention</div>
       <div class="tab" data-view="rules">📐 Rules</div>
       <div class="tab" data-view="coreplus">🌟 Core Plus</div>
+      <div class="tab" data-view="universal">🌐 Universal</div>
+      <div class="tab" data-view="ramm1">🦎 Universal Ramm1</div>
     </div>
 
     <!-- Editor Area -->
@@ -849,6 +853,9 @@ html, body {
               <button class="chat-tool-btn" id="toolInvent">⚡ Auto-Invent</button>
               <button class="chat-tool-btn" id="toolSurfaces">▦ Surfaces</button>
               <button class="chat-tool-btn" id="toolRules">📐 Rules</button>
+              <select id="modelSelect" style="background:var(--bg); color:var(--text); border:1px solid var(--border); padding:2px 6px; border-radius:4px; font-size:11px; max-width:180px;" title="Select LLM model">
+                <option value="">Loading models...</option>
+              </select>
               <div class="chat-status">
                 <span class="status-dot" id="statusDot"></span>
                 <span id="statusText">Connecting...</span>
@@ -975,6 +982,12 @@ html, body {
             <div id="cpRinse" style="font-size:12px; color:var(--text);"></div>
           </div>
 
+          <!-- Autonomous Backend -->
+          <div style="background:rgba(86,156,214,0.1); border:1px solid var(--blue); border-radius:6px; padding:12px; margin-bottom:16px;">
+            <h3 style="color:var(--blue); font-size:13px; margin:0 0 8px 0;">🤖 Autonomous Backend — Self-Building Universal Backend</h3>
+            <div id="cpAutonomous" style="font-size:12px; color:var(--text);"></div>
+          </div>
+
           <!-- Ask Aceline -->
           <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px;">
             <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">❓ Ask Aceline</h3>
@@ -983,6 +996,172 @@ html, body {
               <button id="cpAskBtn" style="background:var(--blue); color:white; border:none; padding:6px 16px; border-radius:4px; cursor:pointer; font-size:12px;">Ask</button>
             </div>
             <div id="cpAskAnswer" style="margin-top:8px; font-size:12px; color:var(--text); white-space:pre-wrap;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Universal System View -->
+      <div class="view" id="view-universal">
+        <div class="universal-view" style="padding:16px; overflow-y:auto; height:100%;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+            <h2 style="color:var(--text-bright); font-size:18px; margin:0;">🌐 Universal System</h2>
+            <div style="display:flex; gap:8px;">
+              <button id="usRefresh" style="background:var(--btn-bg); color:var(--text); border:1px solid var(--border); padding:4px 12px; border-radius:4px; cursor:pointer; font-size:12px;">Refresh</button>
+              <button id="usStartScheduler" style="background:rgba(86,156,214,0.2); color:var(--blue); border:1px solid var(--blue); padding:4px 12px; border-radius:4px; cursor:pointer; font-size:12px;">Start Agents</button>
+            </div>
+          </div>
+
+          <!-- System Overview -->
+          <div id="usOverview" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:8px; margin-bottom:16px;"></div>
+
+          <!-- Agent Scheduler -->
+          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px; margin-bottom:16px;">
+            <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">🤖 Agent Scheduler — 32 Logical Agents, Shared Worker Pool</h3>
+            <div id="usScheduler" style="font-size:12px; color:var(--text);"></div>
+          </div>
+
+          <!-- Agent Roles -->
+          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px; margin-bottom:16px;">
+            <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">👥 Agent Roles (32 total)</h3>
+            <div id="usAgents" style="font-size:11px; color:var(--text); max-height:300px; overflow-y:auto;"></div>
+          </div>
+
+          <!-- Two-column: Projects + Instances -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+            <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px;">
+              <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">📁 Project Slots (Unlimited)</h3>
+              <div id="usProjects" style="font-size:12px; color:var(--text); max-height:200px; overflow-y:auto;"></div>
+            </div>
+            <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px;">
+              <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">🔌 Instances</h3>
+              <div id="usInstances" style="font-size:12px; color:var(--text); max-height:200px; overflow-y:auto;"></div>
+            </div>
+          </div>
+
+          <!-- Clones -->
+          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px; margin-bottom:16px;">
+            <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">📋 Clones & Lineage</h3>
+            <div id="usClones" style="font-size:12px; color:var(--text); max-height:200px; overflow-y:auto;"></div>
+          </div>
+
+          <!-- Events -->
+          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px; margin-bottom:16px;">
+            <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">📡 Events</h3>
+            <div id="usEvents" style="font-size:11px; color:var(--text); max-height:200px; overflow-y:auto;"></div>
+          </div>
+
+          <!-- Capabilities + API Keys -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+            <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px;">
+              <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">⚙️ Capabilities</h3>
+              <div id="usCapabilities" style="font-size:12px; color:var(--text); max-height:200px; overflow-y:auto;"></div>
+            </div>
+            <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px;">
+              <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">🔑 API Keys</h3>
+              <div id="usApiKeys" style="font-size:12px; color:var(--text); max-height:200px; overflow-y:auto;"></div>
+            </div>
+          </div>
+
+          <!-- Self-Model -->
+          <div style="background:rgba(86,156,214,0.1); border:1px solid var(--blue); border-radius:6px; padding:12px; margin-bottom:16px;">
+            <h3 style="color:var(--blue); font-size:13px; margin:0 0 8px 0;">🧠 Self-Model — What exists, what's running, what's broken</h3>
+            <div id="usSelfModel" style="font-size:12px; color:var(--text);"></div>
+          </div>
+
+          <!-- Submit Task -->
+          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px;">
+            <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">📤 Submit Agent Task</h3>
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+              <select id="usAgentSelect" style="background:var(--bg); color:var(--text); border:1px solid var(--border); padding:4px; border-radius:4px; font-size:12px; min-width:200px;"></select>
+              <select id="usPrioritySelect" style="background:var(--bg); color:var(--text); border:1px solid var(--border); padding:4px; border-radius:4px; font-size:12px;">
+                <option value="P0_CRITICAL">P0 Critical</option>
+                <option value="P1_HIGH">P1 High</option>
+                <option value="P2_NORMAL" selected>P2 Normal</option>
+                <option value="P3_LOW">P3 Low</option>
+                <option value="P4_MAINTENANCE">P4 Maintenance</option>
+              </select>
+            </div>
+            <input id="usTaskInput" type="text" placeholder="Task objective..." style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:6px 10px; border-radius:4px; font-size:12px; margin-bottom:8px;">
+            <button id="usSubmitTask" style="background:var(--blue); color:white; border:none; padding:6px 16px; border-radius:4px; cursor:pointer; font-size:12px;">Submit Task</button>
+          </div>
+
+          <!-- MCP Tool Calling -->
+          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px; margin-top:16px;">
+            <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">🔧 MCP Tool Calling API</h3>
+            <div style="font-size:11px; color:var(--text-dim); margin-bottom:8px;">
+              Tools exposed via <code style="color:var(--cyan);">/v1/universal-system/tools</code> and
+              <code style="color:var(--cyan);">/v1/universal-system/mcp</code> (MCP JSON-RPC).
+              External AI agents (Claude, GPT, etc.) can call these tools.
+            </div>
+            <div id="usTools" style="font-size:11px; color:var(--text); max-height:250px; overflow-y:auto; margin-bottom:12px;"></div>
+
+            <div style="border-top:1px solid var(--border); padding-top:8px;">
+              <div style="font-size:12px; color:var(--text-bright); margin-bottom:6px;">Call a Tool:</div>
+              <div style="display:flex; gap:8px; margin-bottom:8px;">
+                <select id="usToolSelect" style="background:var(--bg); color:var(--text); border:1px solid var(--border); padding:4px; border-radius:4px; font-size:12px; min-width:200px;">
+                  <option value="">Select a tool...</option>
+                </select>
+                <button id="usCallTool" style="background:var(--green); color:white; border:none; padding:4px 12px; border-radius:4px; cursor:pointer; font-size:12px;">Call</button>
+              </div>
+              <input id="usToolArgs" type="text" placeholder='JSON arguments, e.g. {"name":"test"}' style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:6px 10px; border-radius:4px; font-size:12px; margin-bottom:8px; box-sizing:border-box;">
+              <div id="usToolResult" style="background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:8px; font-size:11px; color:var(--text); max-height:200px; overflow-y:auto; white-space:pre-wrap; font-family:monospace;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Universal Ramm1 View -->
+      <div class="view" id="view-ramm1">
+        <div class="universal-view" style="padding:16px; overflow-y:auto; height:100%;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+            <h2 style="color:var(--text-bright); font-size:18px; margin:0;">🦎 Universal Ramm1 — LLM + RAMM1 OS + Builder + Memory + Scraper + Hybrid Link</h2>
+            <button id="ramm1Refresh" style="background:var(--btn-bg); color:var(--text); border:1px solid var(--border); padding:4px 12px; border-radius:4px; cursor:pointer; font-size:12px;">Refresh</button>
+          </div>
+
+          <div style="background:rgba(46,160,67,0.1); border:1px solid var(--green); border-radius:6px; padding:12px; margin-bottom:16px;">
+            <h3 style="color:var(--green); font-size:13px; margin:0 0 8px 0;">💾 RAMM1 OS — 3.5 GB RAM Lock + Universal RAM Supply</h3>
+            <div id="ramm1OsStatus" style="font-size:12px; color:var(--text);">Loading...</div>
+          </div>
+
+          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px; margin-bottom:16px;">
+            <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">🌐 Universal RAM Supply — Pool</h3>
+            <div id="ramm1Pool" style="font-size:12px; color:var(--text);">Loading...</div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+            <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px;">
+              <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">🧠 Universal Memory — Gets Smarter Every Use</h3>
+              <div id="ramm1Memory" style="font-size:12px; color:var(--text);">Loading...</div>
+            </div>
+            <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px;">
+              <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">🔧 Autonomous Builder — Never Quits</h3>
+              <div id="ramm1Builder" style="font-size:12px; color:var(--text);">Loading...</div>
+            </div>
+          </div>
+
+          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px; margin-bottom:16px;">
+            <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">🕷️ Ramm1 Web Scraper — New, Way Better</h3>
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+              <input id="ramm1ScrapeUrl" type="text" placeholder="https://example.com" style="flex:1; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:6px 10px; border-radius:4px; font-size:12px;">
+              <button id="ramm1ScrapeBtn" style="background:var(--blue); color:white; border:none; padding:6px 16px; border-radius:4px; cursor:pointer; font-size:12px;">Scrape</button>
+            </div>
+            <div id="ramm1ScrapeResult" style="background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:8px; font-size:11px; color:var(--text); max-height:200px; overflow-y:auto; white-space:pre-wrap; font-family:monospace;"></div>
+          </div>
+
+          <div style="background:rgba(86,156,214,0.1); border:1px solid var(--blue); border-radius:6px; padding:12px; margin-bottom:16px;">
+            <h3 style="color:var(--blue); font-size:13px; margin:0 0 8px 0;">🔗 Hybrid Link API — Talks to ALL LLMs, Viral Propagation</h3>
+            <div id="ramm1HybridLink" style="font-size:12px; color:var(--text); margin-bottom:8px;">Loading...</div>
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+              <input id="ramm1LinkEndpoint" type="text" placeholder="http://remote-llm:port" style="flex:1; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:6px 10px; border-radius:4px; font-size:12px;">
+              <button id="ramm1LinkConnectBtn" style="background:var(--blue); color:white; border:none; padding:6px 16px; border-radius:4px; cursor:pointer; font-size:12px;">Connect</button>
+              <button id="ramm1LinkPropagateBtn" style="background:var(--green); color:white; border:none; padding:6px 16px; border-radius:4px; cursor:pointer; font-size:12px;">Propagate</button>
+            </div>
+            <div id="ramm1LinkList" style="font-size:11px; color:var(--text); max-height:150px; overflow-y:auto;"></div>
+          </div>
+
+          <div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; padding:12px;">
+            <h3 style="color:var(--text-bright); font-size:13px; margin:0 0 8px 0;">📦 Install Status — Universal LLM Free System</h3>
+            <div id="ramm1Install" style="font-size:12px; color:var(--text);">Loading...</div>
           </div>
         </div>
       </div>
@@ -1036,14 +1215,45 @@ async function checkBackend() {
 
 async function jarvisChat(message, context = {}) {
   const t = await getToken();
+  const model = document.getElementById('modelSelect')?.value || 'glm4:9b-chat-q2_K';
   const r = await fetch(`${BASE}/v1/ai/jarvis`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` },
-    body: JSON.stringify({ message, model: 'glm-5.1', context: { agent: 'aceline', source: 'web-ui', ...context } }),
+    body: JSON.stringify({ message, model, context: { agent: 'aceline', source: 'web-ui', ...context } }),
   });
   const d = await r.json();
   if (!r.ok) throw new Error(d.detail || d.message || `HTTP ${r.status}`);
   return d.response || 'No response';
+}
+
+async function loadModels() {
+  try {
+    const r = await fetch(`${BASE}/v1/ai/models`, { signal: AbortSignal.timeout(5000) });
+    const d = await r.json();
+    const select = document.getElementById('modelSelect');
+    if (!select) return;
+    const models = d.models || [];
+    if (!models.length) {
+      select.innerHTML = '<option value="glm4:9b-chat-q2_K">glm4:9b-chat-q2_K (fallback)</option>';
+      return;
+    }
+    // Prefer GLM models first, then coder models, then others
+    const preferred = ['glm4:9b-chat-q2_K', 'glm4', 'glm', 'incentives-incllmv2', 'qwen2.5-coder:3b', 'qwen3:1.7b'];
+    models.sort((a, b) => {
+      const aPref = preferred.findIndex(p => a.name.toLowerCase().includes(p.toLowerCase()));
+      const bPref = preferred.findIndex(p => b.name.toLowerCase().includes(p.toLowerCase()));
+      const aRank = aPref === -1 ? 999 : aPref;
+      const bRank = bPref === -1 ? 999 : bPref;
+      return aRank - bRank;
+    });
+    select.innerHTML = models.map(m => `<option value="${m.name}">${m.name} (${m.details?.parameter_size || '?'})</option>`).join('');
+    // Select best GLM model by default
+    const glmModel = models.find(m => m.name.toLowerCase().includes('glm'));
+    if (glmModel) select.value = glmModel.name;
+  } catch (e) {
+    const select = document.getElementById('modelSelect');
+    if (select) select.innerHTML = '<option value="glm4:9b-chat-q2_K">glm4:9b-chat-q2_K (offline fallback)</option>';
+  }
 }
 
 async function autoInventRun() {
@@ -1612,6 +1822,45 @@ async function askAceline(question) {
   }
 }
 
+async function loadAutonomousBackend() {
+  try {
+    const resp = await fetch(`${BASE}/v1/autonomous-backend`, { signal: AbortSignal.timeout(5000) });
+    const ab = await resp.json();
+    const el = document.getElementById('cpAutonomous');
+    if (!el) return;
+
+    const modeColor = ab.mode === 'building' ? 'var(--green)' : ab.mode === 'maintenance' ? 'var(--blue)' : ab.mode === 'error' ? 'var(--red)' : 'var(--text-dim)';
+    const progress = ab.progress || 0;
+    const memCats = ab.memory?.categories || {};
+    const apiCats = ab.api?.categories || {};
+    const backendStats = ab.backend || {};
+
+    el.innerHTML = `
+      <div style="margin-bottom:6px;"><b>Mode:</b> <span style="color:${modeColor}; font-weight:bold;">${(ab.mode || 'idle').toUpperCase()}</span> | <b>Running:</b> ${ab.running ? 'YES' : 'NO'}</div>
+      <div style="margin-bottom:6px;"><b>Progress:</b> ${ab.completed_requirements || 0}/${ab.total_requirements || 0} (${progress}%)</div>
+      <div style="background:var(--bg); border-radius:3px; height:8px; margin-bottom:8px; overflow:hidden;">
+        <div style="background:var(--green); height:100%; width:${progress}%; transition:width 0.5s;"></div>
+      </div>
+      <div style="margin-bottom:4px;"><b>Current Phase:</b> ${ab.current_phase || '—'}</div>
+      <div style="margin-bottom:6px;"><b>Current Task:</b> ${ab.current_task || '—'}</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
+        <div><b>Memory:</b> ${ab.memory?.total_records || 0} records</div>
+        <div><b>Journal:</b> ${ab.journal?.total_entries || 0} entries</div>
+        <div><b>Projects:</b> ${backendStats.projects || 0}</div>
+        <div><b>Tasks:</b> ${backendStats.tasks || 0} (${backendStats.completed_tasks || 0} done, ${backendStats.failed_tasks || 0} failed)</div>
+        <div><b>Skills:</b> ${backendStats.skills || 0}</div>
+        <div><b>API Endpoints:</b> ${ab.api?.total_endpoints || 0}</div>
+      </div>
+      ${ab.build_log && ab.build_log.length > 0 ? `<div style="margin-top:8px; border-top:1px solid var(--border); padding-top:6px; max-height:150px; overflow-y:auto;">
+        <div style="color:var(--text-dim); font-size:10px; margin-bottom:4px;">BUILD LOG (last ${ab.build_log.length})</div>
+        ${ab.build_log.map(l => `<div style="font-size:11px; color:${l.severity === 'error' ? 'var(--red)' : l.severity === 'warning' ? 'var(--yellow)' : 'var(--text)'};">[${l.timestamp?.substring(11, 19) || ''}] ${l.message}</div>`).join('')}
+      </div>` : ''}
+    `;
+  } catch (e) {
+    console.error('Autonomous backend load error:', e);
+  }
+}
+
 async function initCorePlus() {
   const refreshBtn = document.getElementById('cpRefresh');
   const continuousBtn = document.getElementById('cpContinuous');
@@ -1677,6 +1926,290 @@ async function initCorePlus() {
 
   loadCorePlus();
   setInterval(loadCorePlus, 10000);
+
+  loadAutonomousBackend();
+  setInterval(loadAutonomousBackend, 5000);
+}
+
+// ═══ Universal System Functions ═══
+async function loadUniversalSystem() {
+  try {
+    const resp = await fetch(`${BASE}/v1/universal-system`, { signal: AbortSignal.timeout(5000) });
+    const state = await resp.json();
+
+    // Overview
+    const ov = document.getElementById('usOverview');
+    if (ov) {
+      const items = [
+        { label: 'Projects', value: state.project_slots?.total || 0, color: 'var(--green)' },
+        { label: 'Instances', value: state.instances?.total || 0, color: 'var(--blue)' },
+        { label: 'Connected', value: state.instances?.connected || 0, color: 'var(--green)' },
+        { label: 'Clones', value: state.clones?.total || 0, color: 'var(--magenta)' },
+        { label: 'Active Clones', value: state.clones?.active || 0, color: 'var(--yellow)' },
+        { label: 'API Keys', value: state.api_keys?.total || 0, color: 'var(--cyan)' },
+        { label: 'Events', value: state.events?.total || 0, color: 'var(--text)' },
+        { label: 'Capabilities', value: state.capabilities?.total || 0, color: 'var(--green)' },
+        { label: 'Agent Roles', value: state.agent_roles?.total || 32, color: 'var(--blue)' },
+        { label: 'Dormant', value: state.scheduler?.dormant_agents || 0, color: 'var(--text-dim)' },
+        { label: 'Active Agents', value: state.scheduler?.active_agent_roles || 0, color: 'var(--green)' },
+        { label: 'LLM Workers', value: `${state.scheduler?.llm_workers_active || 0}/${state.scheduler?.llm_workers_max || 2}`, color: 'var(--yellow)' },
+        { label: 'Det Workers', value: `${state.scheduler?.det_workers_active || 0}/${state.scheduler?.det_workers_max || 8}`, color: 'var(--green)' },
+        { label: 'Queue', value: state.scheduler?.queue_length || 0, color: 'var(--text)' },
+        { label: 'Completed', value: state.scheduler?.completed_tasks || 0, color: 'var(--green)' },
+        { label: 'Failed', value: state.scheduler?.failed_tasks || 0, color: state.scheduler?.failed_tasks > 0 ? 'var(--red)' : 'var(--text-dim)' },
+      ];
+      ov.innerHTML = items.map(i =>
+        `<div style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:4px; padding:8px;">
+          <div style="color:var(--text-dim); font-size:10px; text-transform:uppercase;">${i.label}</div>
+          <div style="color:${i.color}; font-size:16px; font-weight:bold;">${i.value}</div>
+        </div>`
+      ).join('');
+    }
+
+    // Scheduler
+    const sched = state.scheduler || {};
+    const schedEl = document.getElementById('usScheduler');
+    if (schedEl) {
+      schedEl.innerHTML = `
+        <div><b>Running:</b> ${sched.running ? 'YES' : 'NO'}</div>
+        <div><b>Queue:</b> ${sched.queue_length || 0} | <b>Active:</b> ${sched.active_tasks || 0} | <b>Completed:</b> ${sched.completed_tasks || 0} | <b>Failed:</b> ${sched.failed_tasks || 0}</div>
+        <div><b>LLM Workers:</b> ${sched.llm_workers_active || 0}/${sched.llm_workers_max || 2} <span style="color:var(--text-dim);">(only 2 LLMs at once on 12 GB RAM)</span></div>
+        <div><b>Deterministic Workers:</b> ${sched.det_workers_active || 0}/${sched.det_workers_max || 8} <span style="color:var(--text-dim);">(non-LLM, cheap)</span></div>
+        <div><b>Dormant Agents:</b> ${sched.dormant_agents || 0}/${sched.total_agent_roles || 32} <span style="color:var(--text-dim);">(wake on demand)</span></div>
+      `;
+    }
+
+    // Load agent roles
+    try {
+      const agentsResp = await fetch(`${BASE}/v1/universal-system/scheduler/agents`, { signal: AbortSignal.timeout(5000) });
+      const agentsData = await agentsResp.json();
+      const agentsEl = document.getElementById('usAgents');
+      if (agentsEl && agentsData.agents) {
+        agentsEl.innerHTML = agentsData.agents.map(a => {
+          const catColor = a.category === 'master' ? 'var(--yellow)' : a.category === 'cloning' ? 'var(--magenta)' : 'var(--blue)';
+          const llmBadge = a.uses_llm ? '<span style="color:var(--yellow); font-size:9px;">LLM</span>' : '<span style="color:var(--green); font-size:9px;">DET</span>';
+          const status = a.dormant ? '<span style="color:var(--text-dim);">💤 dormant</span>' : '<span style="color:var(--green);">▶ active</span>';
+          return `<div style="border-bottom:1px solid var(--border); padding:3px 0; display:flex; justify-content:space-between;">
+            <span><span style="color:${catColor};">[${a.category}]</span> ${a.name} ${llmBadge}</span>
+            <span>${status}</span>
+          </div>`;
+        }).join('');
+      }
+
+      // Populate agent select dropdown
+      const select = document.getElementById('usAgentSelect');
+      if (select && select.options.length === 0) {
+        select.innerHTML = agentsData.agents.map(a => `<option value="${a.id}">${a.name} (${a.category})</option>`).join('');
+      }
+    } catch (e) {}
+
+    // Load projects
+    try {
+      const projResp = await fetch(`${BASE}/v1/universal-system/projects`, { signal: AbortSignal.timeout(5000) });
+      const projData = await projResp.json();
+      const projEl = document.getElementById('usProjects');
+      if (projEl) {
+        if (!projData.projects || projData.projects.length === 0) {
+          projEl.innerHTML = '<div style="color:var(--text-dim);">No projects yet</div>';
+        } else {
+          projEl.innerHTML = projData.projects.map(p => `<div style="border-bottom:1px solid var(--border); padding:3px 0;">
+            <span style="color:var(--green);">${p.slot_id}</span> ${p.name} <span style="color:var(--text-dim);">[${p.type}]</span>
+            <div style="color:var(--text-dim); font-size:10px;">Status: ${p.status}</div>
+          </div>`).join('');
+        }
+      }
+    } catch (e) {}
+
+    // Load instances
+    try {
+      const instResp = await fetch(`${BASE}/v1/universal-system/instances`, { signal: AbortSignal.timeout(5000) });
+      const instData = await instResp.json();
+      const instEl = document.getElementById('usInstances');
+      if (instEl) {
+        if (!instData.instances || instData.instances.length === 0) {
+          instEl.innerHTML = '<div style="color:var(--text-dim);">No instances</div>';
+        } else {
+          instEl.innerHTML = instData.instances.map(i => {
+            const statusColor = i.status === 'connected' ? 'var(--green)' : i.status === 'unreachable' ? 'var(--red)' : 'var(--yellow)';
+            const trustColor = i.trust_level === 'system' ? 'var(--yellow)' : i.trust_level === 'trusted' ? 'var(--green)' : 'var(--text)';
+            return `<div style="border-bottom:1px solid var(--border); padding:3px 0;">
+              <span style="color:${statusColor};">●</span> ${i.name} <span style="color:${trustColor}; font-size:10px;">[${i.trust_level}]</span>
+              <div style="color:var(--text-dim); font-size:10px;">${i.api || 'no API'} | v${i.version}</div>
+            </div>`;
+          }).join('');
+        }
+      }
+    } catch (e) {}
+
+    // Load clones
+    try {
+      const cloneResp = await fetch(`${BASE}/v1/universal-system/clones`, { signal: AbortSignal.timeout(5000) });
+      const cloneData = await cloneResp.json();
+      const cloneEl = document.getElementById('usClones');
+      if (cloneEl) {
+        if (!cloneData.clones || cloneData.clones.length === 0) {
+          cloneEl.innerHTML = '<div style="color:var(--text-dim);">No clones yet</div>';
+        } else {
+          cloneEl.innerHTML = cloneData.clones.map(c => {
+            const statusColor = c.status === 'verified' ? 'var(--green)' : c.status === 'failed' ? 'var(--red)' : 'var(--yellow)';
+            return `<div style="border-bottom:1px solid var(--border); padding:3px 0;">
+              <span style="color:${statusColor};">●</span> ${c.clone_name} <span style="color:var(--text-dim); font-size:10px;">[${c.source_type}]</span>
+              <div style="color:var(--text-dim); font-size:10px;">v${c.clone_version} | ${c.source_url || ''}</div>
+            </div>`;
+          }).join('');
+        }
+      }
+    } catch (e) {}
+
+    // Load events
+    try {
+      const evtResp = await fetch(`${BASE}/v1/universal-system/events?limit=20`, { signal: AbortSignal.timeout(5000) });
+      const evtData = await evtResp.json();
+      const evtEl = document.getElementById('usEvents');
+      if (evtEl) {
+        if (!evtData.events || evtData.events.length === 0) {
+          evtEl.innerHTML = '<div style="color:var(--text-dim);">No events</div>';
+        } else {
+          evtEl.innerHTML = evtData.events.map(e => `<div style="border-bottom:1px solid var(--border); padding:2px 0;">
+            <span style="color:var(--cyan); font-size:10px;">[${e.event_type}]</span>
+            <span style="color:var(--text-dim); font-size:10px;">${e.timestamp?.substring(11, 19) || ''}</span>
+            <span>${e.source}</span>
+          </div>`).join('');
+        }
+      }
+    } catch (e) {}
+
+    // Load capabilities
+    try {
+      const capResp = await fetch(`${BASE}/v1/universal-system/capabilities`, { signal: AbortSignal.timeout(5000) });
+      const capData = await capResp.json();
+      const capEl = document.getElementById('usCapabilities');
+      if (capEl) {
+        if (!capData.capabilities || capData.capabilities.length === 0) {
+          capEl.innerHTML = '<div style="color:var(--text-dim);">No capabilities yet</div>';
+        } else {
+          capEl.innerHTML = capData.capabilities.map(c => `<div style="border-bottom:1px solid var(--border); padding:3px 0;">
+            <b>${c.name}</b> <span style="color:var(--text-dim); font-size:10px;">[${c.category}] ${c.resource_cost}</span>
+            <div style="color:var(--text-dim); font-size:10px;">${c.description}</div>
+          </div>`).join('');
+        }
+      }
+    } catch (e) {}
+
+    // Load API keys
+    try {
+      const keyResp = await fetch(`${BASE}/v1/universal-system/api-keys`, { signal: AbortSignal.timeout(5000) });
+      const keyData = await keyResp.json();
+      const keyEl = document.getElementById('usApiKeys');
+      if (keyEl) {
+        if (!keyData.keys || keyData.keys.length === 0) {
+          keyEl.innerHTML = '<div style="color:var(--text-dim);">No API keys</div>';
+        } else {
+          keyEl.innerHTML = keyData.keys.map(k => `<div style="border-bottom:1px solid var(--border); padding:3px 0;">
+            <b>${k.name}</b> <span style="color:${k.revoked ? 'var(--red)' : 'var(--green)'}; font-size:10px;">${k.revoked ? 'REVOKED' : 'ACTIVE'}</span>
+            <div style="color:var(--text-dim); font-size:10px;">Trust: ${k.trust_level} | Scopes: ${(k.scopes || []).join(', ')}</div>
+          </div>`).join('');
+        }
+      }
+    } catch (e) {}
+
+    // Self-model
+    try {
+      const smResp = await fetch(`${BASE}/v1/universal-system/self-model`, { signal: AbortSignal.timeout(5000) });
+      const sm = await smResp.json();
+      const smEl = document.getElementById('usSelfModel');
+      if (smEl && sm.components) {
+        smEl.innerHTML = `
+          <div style="margin-bottom:6px;"><b>Components:</b> ${sm.components.length}</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:4px; margin-bottom:8px;">
+            ${sm.components.map(c => `<div style="background:var(--bg); border:1px solid var(--border); border-radius:3px; padding:4px;">
+              <span style="color:${c.status === 'online' ? 'var(--green)' : 'var(--red)'};">●</span> ${c.name}
+            </div>`).join('')}
+          </div>
+          <div><b>Projects:</b> ${sm.projects} | <b>Instances:</b> ${sm.instances} | <b>Clones:</b> ${sm.clones}</div>
+          <div><b>Agents:</b> ${sm.agents?.total_roles || 0} total, ${sm.agents?.active || 0} active, ${sm.agents?.dormant || 0} dormant</div>
+          <div><b>Capabilities:</b> ${sm.capabilities} | <b>API Keys:</b> ${sm.api_keys} | <b>Events:</b> ${sm.events}</div>
+        `;
+      }
+    } catch (e) {}
+
+  } catch (e) {
+    console.error('Universal System load error:', e);
+  }
+}
+
+async function initUniversalSystem() {
+  const refreshBtn = document.getElementById('usRefresh');
+  const startBtn = document.getElementById('usStartScheduler');
+  const submitBtn = document.getElementById('usSubmitTask');
+  const callToolBtn = document.getElementById('usCallTool');
+
+  if (refreshBtn) refreshBtn.onclick = loadUniversalSystem;
+  if (startBtn) startBtn.onclick = async () => {
+    try { await fetch(`${BASE}/v1/universal-system/scheduler/start`, { method: 'POST' }); loadUniversalSystem(); } catch (e) {}
+  };
+  if (submitBtn) submitBtn.onclick = async () => {
+    const role = document.getElementById('usAgentSelect')?.value || 'uni_14_innovation';
+    const priority = document.getElementById('usPrioritySelect')?.value || 'P2_NORMAL';
+    const objective = document.getElementById('usTaskInput')?.value?.trim();
+    if (!objective) return;
+    try {
+      await fetch(`${BASE}/v1/universal-system/scheduler/tasks`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent_role: role, objective, priority, work_type: 'system_improvement' }),
+      });
+      document.getElementById('usTaskInput').value = '';
+      loadUniversalSystem();
+    } catch (e) {}
+  };
+  if (callToolBtn) callToolBtn.onclick = async () => {
+    const toolName = document.getElementById('usToolSelect')?.value;
+    if (!toolName) return;
+    const argsStr = document.getElementById('usToolArgs')?.value?.trim() || '{}';
+    let args = {};
+    try { args = JSON.parse(argsStr); } catch (e) {
+      document.getElementById('usToolResult').textContent = 'Error: Invalid JSON arguments';
+      return;
+    }
+    document.getElementById('usToolResult').textContent = 'Calling...';
+    try {
+      const resp = await fetch(`${BASE}/v1/universal-system/tools/call`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: toolName, arguments: args }),
+      });
+      const result = await resp.json();
+      document.getElementById('usToolResult').textContent = JSON.stringify(result, null, 2);
+    } catch (e) {
+      document.getElementById('usToolResult').textContent = `Error: ${e}`;
+    }
+  };
+
+  loadUniversalSystem();
+  loadUniversalSystemTools();
+  setInterval(loadUniversalSystem, 10000);
+}
+
+async function loadUniversalSystemTools() {
+  try {
+    const resp = await fetch(`${BASE}/v1/universal-system/tools`, { signal: AbortSignal.timeout(5000) });
+    const data = await resp.json();
+    const toolsEl = document.getElementById('usTools');
+    const selectEl = document.getElementById('usToolSelect');
+    if (toolsEl && data.tools) {
+      toolsEl.innerHTML = data.tools.map(t => `<div style="border-bottom:1px solid var(--border); padding:3px 0;">
+        <b style="color:var(--cyan);">${t.name}</b> <span style="color:var(--text-dim); font-size:10px;">${t.inputSchema?.required?.length ? 'required: ' + t.inputSchema.required.join(', ') : ''}</span>
+        <div style="color:var(--text-dim); font-size:10px;">${t.description}</div>
+      </div>`).join('');
+    }
+    if (selectEl && data.tools) {
+      const currentVal = selectEl.value;
+      selectEl.innerHTML = '<option value="">Select a tool...</option>' +
+        data.tools.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+      if (currentVal) selectEl.value = currentVal;
+    }
+  } catch (e) {
+    console.error('Tools load error:', e);
+  }
 }
 
 async function init() {
@@ -1704,6 +2237,12 @@ async function init() {
 
     // Load Core Plus
     initCorePlus();
+
+    // Load Universal System
+    initUniversalSystem();
+
+    // Load available LLM models for chat
+    loadModels();
   } else {
     dot.className = 'status-dot';
     text.textContent = 'Backend offline';

@@ -264,6 +264,47 @@ class IncLLMHarness:
             instance_id=self.universal_link.instance_id if self.settings.universal_link.enabled else "",
         )
 
+        # Universal Ramm1 — LLM + RAMM1 OS + Builder + Memory + Scraper + Hybrid Link API
+        self.ramm1 = None
+        if getattr(self.settings, 'ramm1', None) and self.settings.ramm1.enabled:
+            try:
+                from inc_llm.ramm1.os import Ramm1OS
+                from inc_llm.ramm1.pool import UniversalRAMPool
+                from inc_llm.ramm1.selector import AdaptiveModelSelector
+                from inc_llm.ramm1.memory import UniversalRamm1Memory
+                from inc_llm.ramm1.manifest import ModelManifest
+                self.ramm1_os = Ramm1OS(self.settings.ramm1)
+                self.ramm1_pool = UniversalRAMPool(self.ramm1_os)
+                self.ramm1_manifest = ModelManifest(self.settings.ramm1.model_manifest_path)
+                self.ramm1_selector = AdaptiveModelSelector(
+                    hardware_detector=self.hardware_detector,
+                    manifest=self.ramm1_manifest,
+                    pool=self.ramm1_pool,
+                )
+                self.ramm1_memory = UniversalRamm1Memory(
+                    config=self.settings.ramm1,
+                    universal_link=self.universal_link if self.settings.universal_link.enabled else None,
+                    rlt_manager=self.rlt,
+                    memory_manager=self.memory,
+                )
+                self.ramm1 = {
+                    "os": self.ramm1_os,
+                    "pool": self.ramm1_pool,
+                    "selector": self.ramm1_selector,
+                    "memory": self.ramm1_memory,
+                    "manifest": self.ramm1_manifest,
+                }
+                logger.info("Universal Ramm1 initialized (RAMM1 OS + Pool + Selector + Memory)")
+            except Exception as e:
+                logger.warning("Universal Ramm1 init failed (non-fatal): %s", e)
+                self.ramm1 = None
+        else:
+            self.ramm1_os = None
+            self.ramm1_pool = None
+            self.ramm1_selector = None
+            self.ramm1_memory = None
+            self.ramm1_manifest = None
+
         # Aceline Smart Work Watcher — background activity observation and learning
         self.observer = AcelineObserver(
             db_path=self.settings.observer.db_path,
@@ -498,6 +539,15 @@ class IncLLMHarness:
         # recursive link injection, adaptive format switching
         splitbit_data = None
         splitbit_cache_hit = False
+        # Universal Ramm1 — inject smart context (recalled turns + RLT) before inference
+        ramm1_smart_context = ""
+        if self.ramm1_memory:
+            try:
+                ramm1_smart_context = self.ramm1_memory.get_smart_context(message)
+                if ramm1_smart_context and ramm1_smart_context != rlt_context:
+                    message = f"{message}\n\n[Ramm1 Smart Context]\n{ramm1_smart_context}"
+            except Exception as e:
+                logger.debug("Ramm1 smart context skipped: %s", e)
         if self.splitbit:
             try:
                 channel = "cli"
@@ -575,6 +625,18 @@ class IncLLMHarness:
                 "key_result": response_text[:200],
                 "success": True,
             })
+
+        # Universal Ramm1 — record turn for smart-context recall (gets smarter every use)
+        if self.ramm1_memory:
+            try:
+                hw_tier = self.hardware_detector.info.tier.value if self.hardware_detector else "standard"
+                self.ramm1_memory.record_turn(
+                    user_msg=message, response=response_text,
+                    outcome="success", channel="cli",
+                    tier=hw_tier, elapsed_s=elapsed,
+                )
+            except Exception as e:
+                logger.debug("Ramm1 turn recording skipped: %s", e)
 
         # Share learning in background — don't block the response
         if self.settings.universal_link.enabled and self.settings.universal_link.share_learnings:

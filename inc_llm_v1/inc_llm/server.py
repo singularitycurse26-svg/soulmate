@@ -55,6 +55,8 @@ from inc_llm.integrations.messaging_api import router as messaging_api_router, i
 from inc_llm.integrations.telegram_aceline_bridge import router as telegram_bridge_router, init_telegram_bridge
 from inc_llm.integrations.auto_invention import router as auto_invention_router, init_auto_invention
 from inc_llm.integrations.core_plus import router as core_plus_router, init_core_plus
+from inc_llm.integrations.autonomous_backend import router as autonomous_backend_router, init_autonomous_backend
+from inc_llm.integrations.universal_system import router as universal_system_router, init_universal_system
 from inc_llm.messaging.mcp_adapter import router as mcp_router, init_mcp_adapter
 
 logger = logging.getLogger(__name__)
@@ -85,7 +87,24 @@ app.include_router(messaging_api_router)
 app.include_router(telegram_bridge_router)
 app.include_router(auto_invention_router)
 app.include_router(core_plus_router)
+app.include_router(autonomous_backend_router)
+app.include_router(universal_system_router)
 app.include_router(mcp_router)
+
+# Universal Ramm1 — LLM + RAMM1 OS + Builder + Memory + Scraper + Hybrid Link API
+try:
+    from inc_llm.ramm1.api import router as ramm1_router, init_ramm1_api
+    from inc_llm.ramm1.scraper_api import router as scraper_router, init_scraper_api
+    from inc_llm.ramm1.hybrid_link_api import router as hybrid_link_router, init_hybrid_link_api
+    from inc_llm.ramm1.install_api import router as install_router
+    app.include_router(ramm1_router)
+    app.include_router(scraper_router)
+    app.include_router(hybrid_link_router)
+    app.include_router(install_router)
+except Exception as e:
+    import logging
+    logging.getLogger(__name__).warning("Ramm1 routers not loaded (non-fatal): %s", e)
+
 
 _rate_limit_store: dict[str, list[float]] = {}
 
@@ -134,6 +153,62 @@ init_messaging_api(uma=_uma, hybrid_bus=_hybrid_bus)
 init_telegram_bridge(harness, settings, hybrid_bus=_hybrid_bus, uma=_uma)
 init_auto_invention(harness, settings, glm_queue=getattr(harness, "glm_queue", None))
 init_core_plus()
+try:
+    init_autonomous_backend()
+except Exception as e:
+    logging.getLogger(__name__).error(f"Autonomous backend init failed (non-fatal): {e}", exc_info=True)
+try:
+    init_universal_system()
+except Exception as e:
+    logging.getLogger(__name__).error(f"Universal system init failed (non-fatal): {e}", exc_info=True)
+
+# === Universal Ramm1 — LLM + RAMM1 OS + Builder + Memory + Scraper + Hybrid Link API ===
+try:
+    if getattr(settings, "ramm1", None) and settings.ramm1.enabled and harness.ramm1:
+        from inc_llm.ramm1.os import Ramm1OS
+        from inc_llm.ramm1.pool import UniversalRAMPool
+        from inc_llm.ramm1.selector import AdaptiveModelSelector
+        from inc_llm.ramm1.memory import UniversalRamm1Memory
+        from inc_llm.ramm1.manifest import ModelManifest
+        from inc_llm.ramm1.builder import AutonomousBuilder
+        from inc_llm.ramm1.scraper import Ramm1WebScraper
+        from inc_llm.ramm1.peer import PeerRegistry
+        from inc_llm.ramm1.hybrid_link import HybridLinkAPI
+        from inc_llm.ramm1.router import Ramm1Router
+        from inc_llm.ramm1.protocol import PeerProtocol
+        from inc_llm.ramm1.api import init_ramm1_api
+        from inc_llm.ramm1.scraper_api import init_scraper_api
+        from inc_llm.ramm1.hybrid_link_api import init_hybrid_link_api
+
+        ramm1_os = harness.ramm1_os
+        ramm1_pool = harness.ramm1_pool
+        ramm1_manifest = harness.ramm1_manifest
+        ramm1_selector = harness.ramm1_selector
+        ramm1_memory = harness.ramm1_memory
+        ramm1_builder = AutonomousBuilder(settings.ramm1, harness=harness)
+        ramm1_scraper = Ramm1WebScraper(settings.ramm1)
+        ramm1_peers = PeerRegistry(settings.ramm1)
+        ramm1_hybrid = HybridLinkAPI(settings.ramm1)
+        ramm1_protocol = PeerProtocol(settings.ramm1.peer_token, harness.universal_link.instance_id if settings.universal_link.enabled else "")
+        ramm1_router = Ramm1Router(ramm1_pool, ramm1_manifest, ramm1_protocol, rlos=getattr(harness, "rlos", None))
+
+        init_ramm1_api(ramm1_os, ramm1_pool, ramm1_selector, ramm1_memory, ramm1_manifest,
+                       ramm1_builder, ramm1_scraper, ramm1_peers, ramm1_hybrid, ramm1_router)
+        init_scraper_api(ramm1_scraper)
+        init_hybrid_link_api(ramm1_hybrid)
+
+        # Reserve RAM + start pressure monitor + start builder
+        import asyncio as _asyncio
+        _loop = _asyncio.get_event_loop()
+        if ramm1_os.reserve():
+            _loop.create_task(ramm1_os.start_pressure_monitor())
+        if settings.ramm1.autonomous_builder_enabled:
+            _loop.create_task(ramm1_builder.start())
+
+        logging.getLogger(__name__).info("Universal Ramm1 initialized — RAMM1 OS + Pool + Builder + Scraper + Hybrid Link")
+except Exception as e:
+    logging.getLogger(__name__).error(f"Ramm1 init failed (non-fatal): {e}", exc_info=True)
+
 
 # === LLM Process Manager — auto-starts other LLM servers ===
 import subprocess as _subproc

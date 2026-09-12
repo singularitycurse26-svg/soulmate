@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Universal Ramm1 Scraper</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; width: 400px; max-height: 500px; overflow-y: auto; margin: 0; padding: 12px; background: #0d1117; color: #c9d1d9; }
+    h1 { font-size: 16px; margin: 0 0 12px; color: #58a6ff; }
+    .section { margin-bottom: 16px; }
+    label { display: block; font-size: 12px; color: #8b949e; margin-bottom: 4px; }
+    input, textarea { width: 100%; box-sizing: border-box; padding: 6px 8px; background: #161b22; color: #c9d1d9; border: 1px solid #30363d; border-radius: 4px; font-size: 13px; }
+    button { padding: 6px 12px; background: #238636; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; margin-top: 6px; }
+    button:hover { background: #2ea043; }
+    button.secondary { background: #21262d; color: #c9d1d9; }
+    button.secondary:hover { background: #30363d; }
+    pre { background: #161b22; padding: 8px; border-radius: 4px; overflow-x: auto; font-size: 11px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+    .status { font-size: 12px; color: #8b949e; margin-top: 4px; }
+    .status.ok { color: #3fb950; }
+    .status.error { color: #f85149; }
+    .tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+    .tab { padding: 6px 12px; background: #21262d; border-radius: 4px 4px 0 0; cursor: pointer; font-size: 12px; }
+    .tab.active { background: #238636; color: #fff; }
+  </style>
+</head>
+<body>
+  <h1>Universal Ramm1 Scraper</h1>
+  <div class="status" id="health">Checking server...</div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="scrape">Scrape</div>
+    <div class="tab" data-tab="search">Search</div>
+  </div>
+
+  <div class="section" id="scrape-tab">
+    <label for="scrape-url">URL to scrape</label>
+    <input type="text" id="scrape-url" placeholder="https://example.com">
+    <button id="scrape-btn">Scrape</button>
+    <button class="secondary" id="scrape-export-json">Export JSON</button>
+    <button class="secondary" id="scrape-export-md">Export Markdown</button>
+    <pre id="scrape-result"></pre>
+  </div>
+
+  <div class="section" id="search-tab" style="display:none">
+    <label for="search-query">Search query</label>
+    <input type="text" id="search-query" placeholder="latest AI news">
+    <button id="search-btn">Search + Scrape</button>
+    <pre id="search-result"></pre>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
