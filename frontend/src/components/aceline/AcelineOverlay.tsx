@@ -10,7 +10,7 @@ import { AcelineTerminal } from "@/components/aceline/AcelineTerminal";
 import { useStore, type AppPage } from "@/lib/store";
 import {
   X, Send, Brain, Mic, MapPin, Zap, Sparkles, Terminal as TerminalIcon,
-  Compass, Trash2, Bot, Volume2,
+  Compass, Trash2, Bot, Volume2, Settings,
 } from "lucide-react";
 
 const PAGE_LABELS: Record<AppPage, string> = {
@@ -51,6 +51,7 @@ export function AcelineOverlay() {
   const [showTravel, setShowTravel] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [showMemory, setShowMemory] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [panelMode, setPanelMode] = useState<PanelMode>("chat");
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -69,6 +70,15 @@ export function AcelineOverlay() {
     voiceEnabled: aceline.voiceEnabled && voiceConsent,
     voiceMode: aceline.voiceMode,
   });
+
+  // Auto-enable Jarvis wake-word mode when voice mode is on + personality is Jarvis
+  useEffect(() => {
+    if (aceline.personality === "jarvis" && aceline.voiceMode && voiceConsent && aceline.voiceEnabled) {
+      voice.enableWakeWord();
+    } else {
+      voice.disableWakeWord();
+    }
+  }, [aceline.personality, aceline.voiceMode, voiceConsent, aceline.voiceEnabled]);
 
   // Build auto-API when arriving at a new page
   useEffect(() => {
@@ -138,6 +148,19 @@ export function AcelineOverlay() {
         const termExec = (window as any).__acelineTerminalExec;
         if (termExec && cmd.length < 500) {
           setTimeout(() => termExec(cmd), 200);
+        }
+      }
+      // If Aceline returns a NAVIGATE: tool call, travel to that page
+      const navMatch = result.response.match(/NAVIGATE:\s*(\w+)/);
+      if (navMatch && consent.isFeatureEnabled("customActions")) {
+        const targetPage = navMatch[1].trim().toLowerCase();
+        const validPages = Object.keys(PAGE_LABELS) as AppPage[];
+        const matched = validPages.find(p => p === targetPage || PAGE_LABELS[p].toLowerCase().includes(targetPage));
+        if (matched && matched !== aceline.location) {
+          setTimeout(() => {
+            setActivePage(matched);
+            aceline.dispatch(matched);
+          }, 300);
         }
       }
     } catch {
@@ -430,22 +453,105 @@ export function AcelineOverlay() {
         </div>
       )}
 
+      {/* Settings panel */}
+      {showSettings && (
+        <div className="p-2 border-t border-white/10 bg-bg-alt max-h-40 overflow-y-auto no-scrollbar space-y-2">
+          <p className="text-[10px] text-muted font-semibold">ACELINE SETTINGS</p>
+
+          {/* Consent status */}
+          <div className="flex items-center gap-2 p-1.5 rounded-lg bg-bg-card">
+            <span className={cn(
+              "text-[8px] px-1.5 py-0.5 rounded-full font-mono",
+              consent.given ? "bg-success/20 text-success" : "bg-danger/20 text-danger"
+            )}>
+              {consent.given ? "CONSENTED" : "NOT CONSENTED"}
+            </span>
+            <span className="text-[9px] text-muted">
+              {consent.masterAllow ? "Full capabilities" : "Safe mode"}
+            </span>
+            <button
+              onClick={() => consent.reset()}
+              className="text-[9px] px-2 py-0.5 rounded-lg bg-accent/20 text-accent hover:bg-accent/30 ml-auto"
+            >
+              Re-consent
+            </button>
+          </div>
+
+          {/* Personality */}
+          <div className="flex items-center gap-2 p-1.5 rounded-lg bg-bg-card">
+            <span className="text-[9px] text-muted">Personality:</span>
+            <button
+              onClick={() => aceline.setPersonality("aceline")}
+              className={cn("text-[9px] px-2 py-0.5 rounded-lg",
+                aceline.personality === "aceline" ? "bg-accent/20 text-accent" : "text-muted hover:text-text")}
+            >
+              Aceline
+            </button>
+            <button
+              onClick={() => aceline.setPersonality("jarvis")}
+              className={cn("text-[9px] px-2 py-0.5 rounded-lg",
+                aceline.personality === "jarvis" ? "bg-blue-500/20 text-blue-400" : "text-muted hover:text-text")}
+            >
+              Jarvis
+            </button>
+          </div>
+
+          {/* Voice mode */}
+          <div className="flex items-center gap-2 p-1.5 rounded-lg bg-bg-card">
+            <span className="text-[9px] text-muted">Voice:</span>
+            <button
+              onClick={() => aceline.setVoiceEnabled(!aceline.voiceEnabled)}
+              className={cn("text-[9px] px-2 py-0.5 rounded-lg",
+                aceline.voiceEnabled ? "bg-accent/20 text-accent" : "text-muted hover:text-text")}
+            >
+              {aceline.voiceEnabled ? "On" : "Off"}
+            </button>
+            <button
+              onClick={() => aceline.setVoiceMode(!aceline.voiceMode)}
+              className={cn("text-[9px] px-2 py-0.5 rounded-lg ml-auto",
+                aceline.voiceMode ? "bg-blue-500/20 text-blue-400" : "text-muted hover:text-text")}
+            >
+              Wake word: {aceline.voiceMode ? "On" : "Off"}
+            </button>
+          </div>
+
+          {/* Custom directives */}
+          <div className="p-1.5 rounded-lg bg-bg-card">
+            <p className="text-[9px] text-muted mb-1">Custom directives:</p>
+            <textarea
+              value={consent.customDirectives}
+              onChange={(e) => consent.setCustomDirectives(e.target.value)}
+              placeholder="Tell Aceline to do something..."
+              rows={2}
+              className="w-full px-2 py-1 rounded-lg bg-bg-alt border border-white/10 text-[10px] resize-none focus:outline-none focus:border-accent/50"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Bottom controls */}
       <div className="p-2 border-t border-white/10 bg-bg-card">
         <div className="flex items-center gap-1 mb-1.5">
           <button
-            onClick={() => { setShowActions(!showActions); setShowMemory(false); }}
+            onClick={() => { setShowActions(!showActions); setShowMemory(false); setShowSettings(false); }}
             className={cn("text-[9px] px-2 py-1 rounded-lg flex items-center gap-1 transition",
               showActions ? "bg-accent/20 text-accent" : "bg-bg-alt text-muted hover:text-text")}
           >
             <Zap className="w-2.5 h-2.5" /> {actions.length} actions
           </button>
           <button
-            onClick={() => { setShowMemory(!showMemory); setShowActions(false); }}
+            onClick={() => { setShowMemory(!showMemory); setShowActions(false); setShowSettings(false); }}
             className={cn("text-[9px] px-2 py-1 rounded-lg flex items-center gap-1 transition",
               showMemory ? "bg-accent/20 text-accent" : "bg-bg-alt text-muted hover:text-text")}
           >
             <Brain className="w-2.5 h-2.5" /> {aceline.memory.length} mem
+          </button>
+          <button
+            onClick={() => { setShowSettings(!showSettings); setShowActions(false); setShowMemory(false); }}
+            className={cn("text-[9px] px-2 py-1 rounded-lg flex items-center gap-1 transition",
+              showSettings ? "bg-accent/20 text-accent" : "bg-bg-alt text-muted hover:text-text")}
+          >
+            <Settings className="w-2.5 h-2.5" /> Settings
           </button>
           {voice.speaking && (
             <span className="text-[9px] text-accent flex items-center gap-1 animate-pulse">
