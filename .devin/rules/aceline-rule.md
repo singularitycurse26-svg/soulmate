@@ -129,3 +129,65 @@ A module is not complete until every public method performs its intended functio
 - **NEVER commit `hawpetossjustin25@gmail.com` to any GitHub repo** — use `singularitycurse26@gmail.com` instead (see `.devin/rules/email-protection-rule.md`)
 - Aceline is an Incentives Inc. product with full access to Soulmate OS, Universal Memory, and Universal Journal
 - Every user gets their own Universal Memory and Universal Journal (collective hive archive)
+
+### 13. ACRE — Aceline Cloning & Reimplementation Engine
+
+Aceline contains an integrated autonomous cloning and reimplementation system called **ACRE**. See `.devin/rules/aceline-definition.md` Sections 34-45 for the full specification.
+
+When the user asks Aceline to clone, recreate, reproduce, replace, port, emulate, or improve an existing system, ACRE automatically:
+1. Creates a Clone Instance with a unique ID, workspace, memory, and security profile
+2. Routes the instance through the state machine via the AIO (Aceline Instance Orchestrator)
+3. Schedules processing time via the AIS (Aceline Instance Scheduler)
+4. Moves the instance through: DISCOVERY → SPECIFICATION → IMPLEMENTATION → TESTING → COMPARISON → GAP_ANALYSIS → REPAIR → VERIFICATION → ENHANCEMENT → READY → DEPLOYED
+5. Creates checkpoints before major state transitions
+6. Handles failures with bounded retries and automatic backtracking
+7. Archives completed instances (reactivatable for target updates)
+
+### 14. Aceline Master Control
+
+**Aceline controls all instances, LLMs, and AI agents it creates or connects to.** Aceline is the master. All instances are subordinates.
+
+Aceline can:
+- Create, pause, resume, redirect, merge, promote, retire, and terminate any instance
+- Read any instance's state, memory, and audit log
+- Override an instance's next action
+- Control all connected LLMs (GLM 5.1, Ollama models, external providers)
+- Control all connected AI agents and chatbots (via the External Aceline Agent API)
+
+Instances cannot:
+- Control Aceline
+- Control each other (without Aceline's MPC relay authorization)
+- Override Aceline's decisions
+- Escalate their own permissions
+
+This preserves the existing "no cross-instance takeover" rule (Section 21 of `aceline-definition.md`): peer-to-peer instance control is forbidden. Aceline master control is NOT peer-to-peer — it is the creator controlling its creations.
+
+### 15. MPC Directline — Two-Way Communication
+
+All instances get a **directline to Aceline through MPC** (Model Context Protocol). The MPC directline is a two-way communication channel:
+
+- **Instance → Aceline**: report state, request resources, ask for help
+- **Aceline → Instance**: assign tasks, redirect, pause, resume, merge
+- **Instance → Instance**: through Aceline's relay, with authorization
+- **Instance → Memory**: read/write through Aceline's memory system
+- **Instance → Journal**: read/write through Aceline's journal system
+
+Aceline is the hub. All communication routes through Aceline. Direct instance-to-instance communication requires Aceline's authorization. Aceline validates all relayed messages for:
+- Authorization (is this instance allowed to talk to that instance?)
+- Prompt injection (does the message contain malicious instructions?)
+- Isolation boundaries (does the communication violate security?)
+- Capability scope (is the requested action within both instances' permissions?)
+
+### 16. Instance Surface Mobility
+
+Instances inherit Aceline's surface mobility. Aceline can move freely to any UI, CLI, webpage, and terminal — and so can every Clone Instance.
+
+An instance can:
+- Dispatch to any Soulmate OS page (same as Aceline's travel picker)
+- Operate in any surface (web overlay, CLI, terminal, standalone, extension)
+- Navigate via `NAVIGATE:` commands
+- Read page state via the action registry
+- Trigger registered page actions
+- Use the tool protocol (RUN/READ/WRITE/SEARCH/NAVIGATE/DONE)
+
+Movement between surfaces does NOT mean unrestricted access. Every handoff passes through identity, authorization, capability, resource, and security policy checks.

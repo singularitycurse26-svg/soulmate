@@ -1,4 +1,5 @@
-# Universal Software Cloning & Reimplementation Framework
+# ACRE — Aceline Cloning & Reimplementation Engine
+## Universal Software Cloning & Reimplementation Framework
 
 ## CORE RULE
 
@@ -7,6 +8,8 @@ Whenever the task is to clone, recreate, reproduce, replace, port, or make a sof
 **DO NOT GUESS. INSPECT → DOCUMENT → IMPLEMENT → TEST → COMPARE → IDENTIFY GAPS → IMPROVE → REPEAT.**
 
 Continue this cycle until the implementation meets the defined target requirements and no known functional, behavioral, interface, or documentation gaps remain.
+
+This framework is the core algorithm executed by **ACRE** (Aceline Cloning & Reimplementation Engine). ACRE is the named engine for this framework, defined in detail in `.devin/rules/aceline-definition.md` Sections 34-45. ACRE creates Clone Instances that move through the state machine below via the AIO (Aceline Instance Orchestrator). All instances get an MPC directline to Aceline for two-way communication (see Section 39).
 
 ---
 
@@ -461,6 +464,19 @@ Toggle via `aceline.setPersonality("jarvis" | "aceline")`. Wake-word mode auto-e
 ### If Aceline Is Already Part of the Project
 
 If the project already has Aceline integrated (check for `@/lib/aceline` import or `AcelineButton` component), do NOT re-add it. The existing Aceline system already provides all the required functionality.
+
+### ACRE Instance Requirements (MANDATORY)
+
+Every clone created by ACRE must:
+1. **Create a Clone Instance** with a unique CLONE_INSTANCE_ID, workspace, memory, security profile, and task queue (see `aceline-definition.md` Section 34).
+2. **Establish an MPC directline** to Aceline for two-way communication (see `aceline-definition.md` Section 39). The instance must be able to:
+   - Report state to Aceline
+   - Request resources from Aceline
+   - Read/write to memory through Aceline's relay
+   - Read/write to the journal through Aceline's relay
+   - Communicate with other instances through Aceline's relay (with authorization)
+3. **Inherit Aceline's surface mobility** — the instance can move to any UI, CLI, webpage, and terminal (see `aceline-definition.md` Section 37).
+4. **Be controlled by Aceline** — Aceline is the master. The instance is subordinate. Aceline can pause, resume, redirect, merge, promote, or retire the instance (see `aceline-definition.md` Section 38).
 
 ---
 
