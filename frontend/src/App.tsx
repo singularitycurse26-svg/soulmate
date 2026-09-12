@@ -322,35 +322,37 @@ export default function App() {
       <Sidebar />
       <main className="md:ml-64 min-h-screen pt-14 md:pt-0 pb-20 md:pb-0" style={{ paddingTop: "calc(56px + env(safe-area-inset-top))", paddingBottom: "calc(56px + env(safe-area-inset-bottom))" }}>
         <div className="max-w-7xl mx-auto p-4 md:p-7">
-          {activePage === "dashboard" && <DashboardPage />}
+          {activePage === "dashboard" && <ErrorBoundary><DashboardPage /></ErrorBoundary>}
           {activePage === "business" && <ErrorBoundary><BusinessArchivePage /></ErrorBoundary>}
-          {activePage === "email" && <EmailPage />}
+          {activePage === "email" && <ErrorBoundary><EmailPage /></ErrorBoundary>}
           {activePage === "phone" && (
-            <PhoneGateWrapper />
+            <ErrorBoundary><PhoneGateWrapper /></ErrorBoundary>
           )}
-          {activePage === "contacts" && <ContactsPage />}
-          {activePage === "ai" && <AIPage />}
-          {activePage === "games" && <GamesPage />}
-          {activePage === "wallet" && <WalletPage />}
-          {activePage === "security" && <SecurityPage />}
-          {activePage === "openclaw" && <OpenClawPage />}
-          {activePage === "hermes" && <HermesPage />}
-          {activePage === "marketplace" && <MarketplacePage />}
-          {activePage === "agent_market" && <AgentMarketplacePage />}
-          {activePage === "dating" && <DatingPage />}
+          {activePage === "contacts" && <ErrorBoundary><ContactsPage /></ErrorBoundary>}
+          {activePage === "ai" && <ErrorBoundary><AIPage /></ErrorBoundary>}
+          {activePage === "games" && <ErrorBoundary><GamesPage /></ErrorBoundary>}
+          {activePage === "wallet" && <ErrorBoundary><WalletPage /></ErrorBoundary>}
+          {activePage === "security" && <ErrorBoundary><SecurityPage /></ErrorBoundary>}
+          {activePage === "openclaw" && <ErrorBoundary><OpenClawPage /></ErrorBoundary>}
+          {activePage === "hermes" && <ErrorBoundary><HermesPage /></ErrorBoundary>}
+          {activePage === "marketplace" && <ErrorBoundary><MarketplacePage /></ErrorBoundary>}
+          {activePage === "agent_market" && <ErrorBoundary><AgentMarketplacePage /></ErrorBoundary>}
+          {activePage === "dating" && <ErrorBoundary><DatingPage /></ErrorBoundary>}
           {activePage === "incentives" && <ErrorBoundary><IncentivesPage /></ErrorBoundary>}
           {activePage === "daytrading" && <ErrorBoundary><DayTradingPage /></ErrorBoundary>}
           {activePage === "frequency" && <ErrorBoundary><FrequencyGeneratorPage /></ErrorBoundary>}
-          {activePage === "healing" && <HealingPage />}
-          {activePage === "journal" && <SessionJournalPage />}
+          {activePage === "healing" && <ErrorBoundary><HealingPage /></ErrorBoundary>}
+          {activePage === "journal" && <ErrorBoundary><SessionJournalPage /></ErrorBoundary>}
           {activePage === "soultube" && <ErrorBoundary><SoulTubePage /></ErrorBoundary>}
           {activePage === "soulillusions" && <ErrorBoundary><SoulIllusionsPage /></ErrorBoundary>}
           {activePage === "wakkii" && (
-            <WakkiiLinks
-              userName={localStorage.getItem("auth_email") || "Soulmate User"}
-              mode="ptt"
-              defaultRole="speaker"
-            />
+            <ErrorBoundary>
+              <WakkiiLinks
+                userName={localStorage.getItem("auth_email") || "Soulmate User"}
+                mode="ptt"
+                defaultRole="speaker"
+              />
+            </ErrorBoundary>
           )}
         </div>
       </main>

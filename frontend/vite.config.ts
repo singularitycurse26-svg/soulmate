@@ -14,7 +14,7 @@ export default defineConfig({
     host: true,
     proxy: {
       "/v1": {
-        target: "http://191.44.121.29:8546",
+        target: "http://localhost:8547",
         changeOrigin: true,
         secure: false,
       },
