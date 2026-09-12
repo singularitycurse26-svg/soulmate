@@ -450,7 +450,9 @@ function displayHelp(): void {
     aceline invent framework   Show the Innovation Framework rule
     aceline invent acre        Show the ACRE cloning rule
     aceline invent design      Show the Design Engineering rule
-    aceline invent rules       Show all 3 mandatory rules
+    aceline invent self-building  Show the Self-Building System rule
+    aceline invent suggestion  Show the Suggestion Engine rule
+    aceline invent rules       Show all 5 mandatory rules
 
   ${COLORS.dim}Environment:
     INCLLMV2_BASE              Backend URL (default: http://localhost:8547)${COLORS.reset}
@@ -711,6 +713,30 @@ async function main(): Promise<void> {
       return;
     }
 
+    if (subcmd === "self-building") {
+      const resp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/self-building`, { signal: AbortSignal.timeout(5000) });
+      const sr = await resp.json();
+      console.log(`\n  ${sr.name}`);
+      console.log(`  Purpose: ${sr.master_purpose}`);
+      console.log(`  Master: ${sr.master_rule}`);
+      console.log(`  Principle: ${sr.ultimate_principle}`);
+      console.log(`  Rules: ${sr.rule_count}`);
+      rl.close();
+      return;
+    }
+
+    if (subcmd === "suggestion") {
+      const resp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/suggestion-engine`, { signal: AbortSignal.timeout(5000) });
+      const sr = await resp.json();
+      console.log(`\n  ${sr.name}`);
+      console.log(`  Purpose: ${sr.master_purpose}`);
+      console.log(`  Master: ${sr.master_rule}`);
+      console.log(`  Layers: ${sr.five_layers}`);
+      console.log(`  Rules: ${sr.rule_count}`);
+      rl.close();
+      return;
+    }
+
     if (subcmd === "rules") {
       const fwResp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/framework`, { signal: AbortSignal.timeout(5000) });
       const fw = await fwResp.json();
@@ -718,7 +744,11 @@ async function main(): Promise<void> {
       const acre = await acreResp.json();
       const designResp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/design`, { signal: AbortSignal.timeout(5000) });
       const design = await designResp.json();
-      console.log(`\n  ${COLORS.bold}3 Mandatory Rules Active:${COLORS.reset}\n`);
+      const sbResp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/self-building`, { signal: AbortSignal.timeout(5000) });
+      const sb = await sbResp.json();
+      const seResp = await fetch(`${INCLLMV2_BASE}/v1/auto-invention/suggestion-engine`, { signal: AbortSignal.timeout(5000) });
+      const se = await seResp.json();
+      console.log(`\n  ${COLORS.bold}5 Mandatory Rules Active:${COLORS.reset}\n`);
       console.log(`  ${COLORS.cyan}1. ${fw.name}${COLORS.reset}`);
       console.log(`     Core: ${fw.core_rule}`);
       console.log(`     Sections: ${fw.sections.length}`);
@@ -730,6 +760,14 @@ async function main(): Promise<void> {
       console.log(`  ${COLORS.magenta}3. ${design.name}${COLORS.reset}`);
       console.log(`     Master: ${design.master_rule}`);
       console.log(`     Rules: ${design.rule_count}`);
+      console.log();
+      console.log(`  ${COLORS.yellow}4. ${sb.name}${COLORS.reset}`);
+      console.log(`     Master: ${sb.master_rule}`);
+      console.log(`     Rules: ${sb.rule_count}`);
+      console.log();
+      console.log(`  ${COLORS.blue}5. ${se.name}${COLORS.reset}`);
+      console.log(`     Master: ${se.master_rule}`);
+      console.log(`     Rules: ${se.rule_count}`);
       rl.close();
       return;
     }
