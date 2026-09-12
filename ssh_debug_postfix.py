@@ -39,7 +39,7 @@ run("timeout 10 bash -c 'echo QUIT | nc -w5 smtp.gmail.com 587' 2>&1", "test por
 
 # 6. Check what happened to the email
 print("\n=== Mail delivery logs ===")
-run("grep -r 'hawpetossjustin25@gmail.com' /var/log/ 2>&1 | tail -10", "gmail in logs")
+run("grep -r 'singularitycurse26@gmail.com' /var/log/ 2>&1 | tail -10", "gmail in logs")
 run("journalctl --no-pager -n 50 2>&1 | grep -i mail | tail -20", "mail in journal")
 
 ssh.close()

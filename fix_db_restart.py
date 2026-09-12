@@ -49,7 +49,7 @@ conn.close()
     if pid:
         # Test the login endpoint returns is_founder
         _, stdout, _ = c.exec_command(
-            'curl -s -X POST http://localhost:8546/v1/auth/login -H "Content-Type: application/json" -d \'{"email":"hawpetossjustin25@gmail.com","password":"test"}\'',
+            'curl -s -X POST http://localhost:8546/v1/auth/login -H "Content-Type: application/json" -d \'{"email":"singularitycurse26@gmail.com","password":"test"}\'',
             timeout=10
         )
         result = stdout.read().decode()

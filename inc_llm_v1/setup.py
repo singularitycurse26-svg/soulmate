@@ -5,7 +5,7 @@ setup(
     version="1.0.0",
     description="Self-improving LLM harness with universal recursive linking and RLOS",
     author="Incentives Inc — An AI Crypto Company",
-    author_email="hawpetossjustin25@gmail.com",
+    author_email="singularitycurse26@gmail.com",
     license="MIT",
     url="https://github.com/incentivesinc/incllmv2",
     packages=find_packages(),

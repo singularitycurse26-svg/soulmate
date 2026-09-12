@@ -75,7 +75,7 @@ run("systemctl is-active postfix 2>&1", "postfix status")
 print("\n=== Test email via Brevo relay ===")
 run("""echo "Subject: Test from Soulmate OS via Brevo
 From: hawpetossjustin25@191.44.121.29.sslip.io
-To: hawpetossjustin25@gmail.com
+To: singularitycurse26@gmail.com
 
 This is a test email from Soulmate OS sent through Brevo SMTP relay.
 If you received this, email delivery is working!" | sendmail -t 2>&1""", "send test email", timeout=15)
@@ -88,7 +88,7 @@ run("postqueue -p 2>&1", "queue")
 # 8. Check logs
 print("\n=== Postfix logs ===")
 run("journalctl -u postfix --no-pager -n 15 2>&1", "postfix logs")
-run("grep -i 'hawpetossjustin25@gmail.com' /var/log/syslog 2>&1 | tail -5", "gmail delivery log")
+run("grep -i 'singularitycurse26@gmail.com' /var/log/syslog 2>&1 | tail -5", "gmail delivery log")
 
 sftp.close()
 ssh.close()

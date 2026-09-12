@@ -182,7 +182,7 @@ class PaymentConfig:
     # Soulmate OS wallet integration
     soulmate_api_url: str = "https://191.44.121.29.sslip.io"
     soulmate_api_token: str = "soulmate_wallet_2024"
-    founder_email: str = "hawpetossjustin25@gmail.com"
+    founder_email: str = "singularitycurse26@gmail.com"
     founder_wallet_address: str = ""  # fetched from API at startup
     payment_method: str = "soulmate_wallet"
 

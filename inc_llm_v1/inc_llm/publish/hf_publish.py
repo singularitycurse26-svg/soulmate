@@ -116,7 +116,7 @@ MIT License - see LICENSE file for details.
 
 ## Author
 
-Soulmate OS - hawpetossjustin25@gmail.com
+Soulmate OS - singularitycurse26@gmail.com
 """
 
 

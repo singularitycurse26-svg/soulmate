@@ -48,7 +48,7 @@ Thank you for your interest in contributing to incllmv2! This document outlines 
 
 - Use GitHub Issues to report bugs
 - Include Python version, OS, and steps to reproduce
-- For security issues, email hawpetossjustin25@gmail.com directly
+- For security issues, email singularitycurse26@gmail.com directly
 
 ## License
 

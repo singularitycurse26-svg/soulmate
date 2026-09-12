@@ -2,6 +2,8 @@
 
 ## Rule: Always Hardcode Aceline + Wallet
 
+**Aceline is an Incentives Inc. software product.** It has full access to the Soulmate OS platform, including the Universal Memory (`~/.fablemythos/`) and the Universal Journal. Every user gets their own Universal Memory and Universal Journal — their personal collective hive archive that persists across all Aceline surfaces, all sessions, and all authorized AI tools.
+
 From now on, every new page, component, or project built in Soulmate OS MUST include:
 
 ### 1. Aceline Action Registration
@@ -124,3 +126,6 @@ A module is not complete until every public method performs its intended functio
 - All clones must include full Aceline functionality (unless already present)
 - All clones must follow the cloning framework (inspect → document → implement → test → compare → repeat)
 - No scaffolding or placeholders — fully implemented production-quality modules only
+- **NEVER commit `hawpetossjustin25@gmail.com` to any GitHub repo** — use `singularitycurse26@gmail.com` instead (see `.devin/rules/email-protection-rule.md`)
+- Aceline is an Incentives Inc. product with full access to Soulmate OS, Universal Memory, and Universal Journal
+- Every user gets their own Universal Memory and Universal Journal (collective hive archive)

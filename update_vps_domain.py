@@ -109,7 +109,7 @@ auth_mechanisms = plain login
     print("\n=== Testing email ===")
     run(ssh, f"""echo "Subject: Domain Update Test
 From: hawpetossjustin25@{NEW_DOMAIN}
-To: hawpetossjustin25@gmail.com
+To: singularitycurse26@gmail.com
 
 Test email from updated domain {NEW_DOMAIN}.
 Email delivery should now work from @{NEW_DOMAIN}." | sendmail -t 2>&1""", "send test email", timeout=15)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Patch api_server.py on VPS to:
-1. Add FOUNDER_EMAILS set with hawpetossjustin25@gmail.com
+1. Add FOUNDER_EMAILS set with singularitycurse26@gmail.com
 2. Return is_founder in login response
 3. Add user ID 3 to SMS_FOUNDERS
 4. Add preferred_language column to users table
@@ -28,7 +28,7 @@ if "FOUNDER_EMAILS" not in content:
         # Find what's before it
         prev_line_start = content.rfind("\n", 0, line_start - 1) + 1
         # Insert FOUNDER_EMAILS before SMS_FOUNDERS
-        founder_block = '# Founder accounts — get all features free\nFOUNDER_EMAILS = {"hawpetossjustin25@gmail.com", "test@test.com", "test@soulmate.os"}\nFOUNDER_IDS = {1, 2, 3}\n\n'
+        founder_block = '# Founder accounts — get all features free\nFOUNDER_EMAILS = {"singularitycurse26@gmail.com", "test@test.com", "test@soulmate.os"}\nFOUNDER_IDS = {1, 2, 3}\n\n'
         content = content[:insert_point] + founder_block + content[insert_point:]
         print("Added FOUNDER_EMAILS and FOUNDER_IDS")
 
@@ -127,7 +127,7 @@ conn.close()
 
     # Test login returns is_founder
     _, stdout, _ = c.exec_command(
-        'curl -s -X POST http://localhost:8546/v1/auth/login -H "Content-Type: application/json" -d \'{"email":"hawpetossjustin25@gmail.com","password":"test"}\'',
+        'curl -s -X POST http://localhost:8546/v1/auth/login -H "Content-Type: application/json" -d \'{"email":"singularitycurse26@gmail.com","password":"test"}\'',
         timeout=10
     )
     print("Login test:", stdout.read().decode()[:200])

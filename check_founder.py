@@ -23,7 +23,7 @@ cols = [r[1] for r in cur.fetchall()]
 print("Users columns:", cols)
 
 # Find founder account
-cur.execute("SELECT * FROM users WHERE email = 'hawpetossjustin25@gmail.com'")
+cur.execute("SELECT * FROM users WHERE email = 'singularitycurse26@gmail.com'")
 rows = cur.fetchall()
 print("Founder account:", rows)
 
@@ -59,7 +59,7 @@ print("dating_messages columns:", dm_cols)
 print("Has source_lang:", "source_lang" in dm_cols)
 
 # Check wallet info for founder
-cur.execute("SELECT wallet_address, wallet_key_encrypted FROM users WHERE email = 'hawpetossjustin25@gmail.com'")
+cur.execute("SELECT wallet_address, wallet_key_encrypted FROM users WHERE email = 'singularitycurse26@gmail.com'")
 wallet = cur.fetchall()
 print("Founder wallet:", wallet)
 

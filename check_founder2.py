@@ -32,7 +32,7 @@ for dbf in db_files:
             cols = [r[1] for r in cur.fetchall()]
             print("  users columns: " + str(cols))
             
-            cur.execute("SELECT email, is_founder, wallet_address FROM users WHERE email = 'hawpetossjustin25@gmail.com'")
+            cur.execute("SELECT email, is_founder, wallet_address FROM users WHERE email = 'singularitycurse26@gmail.com'")
             rows = cur.fetchall()
             print("  Founder account: " + str(rows))
             

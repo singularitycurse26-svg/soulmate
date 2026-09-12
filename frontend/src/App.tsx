@@ -161,7 +161,7 @@ export default function App() {
       // Local founder session (offline mode — backend not running)
       const localFounderToken = localStorage.getItem("local_founder_session");
       if (localFounderToken) {
-        const founderEmail = localStorage.getItem("auth_email") || "hawpetossjustin25@gmail.com";
+        const founderEmail = localStorage.getItem("auth_email") || "singularitycurse26@gmail.com";
         setAuth(localFounderToken, founderEmail);
         useStore.getState().setFounder(true);
         if (!walletKey || !walletAddress) {

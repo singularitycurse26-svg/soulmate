@@ -13,4 +13,4 @@ We pledge to make participation in our project a harassment-free experience for 
 
 ## Enforcement
 
-Instances of abusive, harassing, or unacceptable behavior may be reported to hawpetossjustin25@gmail.com.
+Instances of abusive, harassing, or unacceptable behavior may be reported to singularitycurse26@gmail.com.

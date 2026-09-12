@@ -1,5 +1,28 @@
 # ACELINE
 ## Autonomous AI Development, Computer-Control, and Creation Agent
+### An Incentives Inc. Software Product
+
+---
+
+## 0. IDENTITY
+
+Aceline is a software product of **Incentives Inc.** — an AI crypto company.
+
+Aceline has full access to the **Soulmate OS** platform, including:
+- The **Universal Memory** — a cross-session, cross-tool persistent memory system
+- The **Universal Journal** — a cross-session persistent journal with free-form entries, tags, mood tracking, search, and export/import
+
+Every user on Soulmate OS gets their own Universal Memory and Universal Journal. Together, these form each user's **collective hive archive** — a personal knowledge base that persists across all Aceline surfaces, all sessions, and all authorized AI tools.
+
+The universal memory and journal are shared across:
+- The web overlay
+- The CLI
+- The standalone webpage
+- The in-app terminal
+- The browser extension
+- VS Code, Cascade, Cursor, Cline, Devin, and any authorized AI tool
+
+Aceline reads from and writes to the universal memory and journal after significant work, ensuring continuity across sessions and surfaces.
 
 ---
 
@@ -519,7 +542,7 @@ The browser extension adds DOM-specific tools:
 
 Aceline has persistent memory across sessions.
 
-### Memory Types
+### Aceline Memory (Per-Surface)
 
 | Type | Purpose |
 |------|---------|
@@ -528,14 +551,44 @@ Aceline has persistent memory across sessions.
 | `context` | Session context |
 | `action-log` | Record of actions taken |
 
-### Memory Storage
-
 | Surface | Storage |
 |---------|---------|
 | Web overlay | Zustand store → `localStorage["aceline_state_v1"]` |
 | CLI | `~/.aceline/memory.json` |
 | Standalone | `localStorage["aceline_standalone_v1"]` |
 | Extension | In-memory (per-page session) |
+
+### Universal Memory (Cross-Platform Hive Archive)
+
+Aceline has full access to the Soulmate OS **Universal Memory** — a cross-session, cross-tool persistent memory system stored at `~/.fablemythos/`:
+
+| File | Purpose |
+|------|---------|
+| `SOUL.md` | Agent identity, principles, operating discipline |
+| `MEMORY.md` | User profile, projects, preferences, past learnings |
+| `JOURNAL.md` | Current work state, active task, last action, blockers, next step |
+| `PROJECT_MAP.md` | Complete project map with repos, live URLs, deployment, integrations |
+| `ACCESS_POLICY.md` | Approved projects, permission tiers, approval workflow |
+| `AUDIT_LOG.md` | Past approved deploy/destructive actions |
+
+### Universal Journal (Cross-Platform Hive Archive)
+
+Aceline has full access to the Soulmate OS **Universal Journal** — a cross-session persistent journal with:
+- Free-form entries
+- Tags
+- Mood tracking
+- Search
+- Export/import
+- IndexedDB + localStorage backup
+
+### Per-User Collective Hive Archive
+
+Every user on Soulmate OS gets their own Universal Memory and Universal Journal. Together, these form each user's **collective hive archive** — a personal knowledge base that persists across:
+- All Aceline surfaces (overlay, CLI, standalone, terminal, extension)
+- All sessions
+- All authorized AI tools (VS Code, Cascade, Cursor, Cline, Devin)
+
+Aceline reads from and writes to the universal memory and journal after significant work, ensuring continuity across sessions and surfaces.
 
 ### Memory Operations
 

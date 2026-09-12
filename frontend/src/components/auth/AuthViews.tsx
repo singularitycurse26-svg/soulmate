@@ -8,7 +8,7 @@ import { cn, getDeviceKind, hasPlatformAuthenticator } from "@/lib/utils";
 
 const WALLET_BIO_KEY = "soulmate_wallet_bio";
 
-const FOUNDER_EMAIL = "hawpetossjustin25@gmail.com";
+const FOUNDER_EMAIL = "singularitycurse26@gmail.com";
 const FOUNDER_PASSWORD_HASH = "add3e2d64e2a04bfe4cc9606612d20a74706737fbbff433e0e262cc59735cc96";
 
 async function sha256(text: string): Promise<string> {

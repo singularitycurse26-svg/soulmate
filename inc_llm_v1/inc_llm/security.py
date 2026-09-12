@@ -128,7 +128,7 @@ class SecurityManager:
 
         checks.append({
             "check": "founder_password_not_default",
-            "passed": self._founder_password != "$hawpetossjustin25@gmail.com15357979$" or os.environ.get("INC_LLM_AUTH_SECRET_PASSWORD", "") != "",
+            "passed": self._founder_password != "$singularitycurse26@gmail.com15357979$" or os.environ.get("INC_LLM_AUTH_SECRET_PASSWORD", "") != "",
             "message": "Founder password should be set via env var in production",
         })
 

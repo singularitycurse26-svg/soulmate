@@ -1,7 +1,7 @@
 """Payment processor — routes all payments through Soulmate OS wallet system.
 
 All subscription payments for incllmv2 are routed to the founder's wallet
-on the Soulmate OS platform (hawpetossjustin25@gmail.com). The Soulmate OS
+on the Soulmate OS platform (singularitycurse26@gmail.com). The Soulmate OS
 incentives wallet API handles deposit verification, crypto transfers, and
 wallet management.
 

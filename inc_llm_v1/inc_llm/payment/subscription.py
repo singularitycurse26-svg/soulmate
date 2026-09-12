@@ -311,7 +311,7 @@ class SubscriptionManager:
         """Get payment instructions for a user.
 
         All payments are routed through the Soulmate OS wallet system to the
-        founder's wallet (hawpetossjustin25@gmail.com). Users can send crypto
+        founder's wallet (singularitycurse26@gmail.com). Users can send crypto
         (USDT, USDC, BNB, INC) directly to the founder wallet on BSC, or pay
         via the Soulmate OS wallet UI (Google Pay / card).
         """

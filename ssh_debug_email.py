@@ -48,7 +48,7 @@ run("postconf myhostname mydomain mydestination 2>&1", "postfix config")
 print("\n=== Manual test send ===")
 run("""echo "Subject: Test from Soulmate
 From: hawpetossjustin25@191.44.121.29.sslip.io
-To: hawpetossjustin25@gmail.com
+To: singularitycurse26@gmail.com
 
 This is a test email from Soulmate OS." | sendmail -t -v 2>&1 | head -20""", "manual send test", timeout=15)
 

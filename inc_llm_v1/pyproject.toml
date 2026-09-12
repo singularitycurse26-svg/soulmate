@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "Self-improving LLM harness with universal recursive linking and RLOS"
 readme = "README.md"
 license = {text = "MIT"}
-authors = [{name = "Incentives Inc — An AI Crypto Company", email = "hawpetossjustin25@gmail.com"}]
+authors = [{name = "Incentives Inc — An AI Crypto Company", email = "singularitycurse26@gmail.com"}]
 requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 4 - Beta",

@@ -74,7 +74,7 @@ class AuthManager:
         if password == self.config.secret_password and self.config.password_grants_free_access:
             user_id = "founder"
             token = self._create_session(user_id, free_access=True, permanent=True)
-            self._ensure_user(user_id, email="hawpetossjustin25@gmail.com", is_owner=True, is_founder=True)
+            self._ensure_user(user_id, email="singularitycurse26@gmail.com", is_owner=True, is_founder=True)
             logger.info("Founder authenticated via secret password")
             return {
                 "status": "ok",

@@ -45,7 +45,7 @@ def main():
             print("Columns:", stdout.read().decode().strip())
 
             # Get founder account
-            cmd4 = "python3 -c \"import sqlite3; db=sqlite3.connect('" + dbf + "'); cur=db.cursor(); cur.execute(\\\"SELECT email, is_founder, wallet_address FROM users WHERE email='hawpetossjustin25@gmail.com'\\\"); print(cur.fetchall())\""
+            cmd4 = "python3 -c \"import sqlite3; db=sqlite3.connect('" + dbf + "'); cur=db.cursor(); cur.execute(\\\"SELECT email, is_founder, wallet_address FROM users WHERE email='singularitycurse26@gmail.com'\\\"); print(cur.fetchall())\""
             _, stdout, _ = c.exec_command(cmd4, timeout=10)
             print("Founder account:", stdout.read().decode().strip())
 
