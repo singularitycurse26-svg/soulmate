@@ -827,6 +827,12 @@ class Settings:
     def from_env() -> "Settings":
         s = Settings()
         prefix = "INC_LLM_"
+        # Load .env file if present (gitignored, for local secrets)
+        try:
+            from dotenv import load_dotenv
+            load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+        except Exception:
+            pass
         if os.environ.get(f"{prefix}HARDWARE_TIER"):
             s.hardware_tier = HardwareTier(os.environ[f"{prefix}HARDWARE_TIER"].lower())
         if os.environ.get(f"{prefix}PROVIDER_BACKEND"):
