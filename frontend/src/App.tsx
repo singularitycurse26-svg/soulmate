@@ -23,6 +23,7 @@ import { ArchivePage } from "@/components/pages/ArchivePage";
 import { DiagnosticPage } from "@/components/pages/DiagnosticPage";
 import { ObserverPage } from "@/components/pages/ObserverPage";
 import { MessagingPage } from "@/components/pages/MessagingPage";
+import { AutoInventionOverlay } from "@/components/aceline/AutoInventionOverlay";
 import { DatingPage } from "@/components/pages/DatingPage";
 import { IncentivesPage } from "@/components/pages/IncentivesPage";
 import { DayTradingPage } from "@/components/pages/DayTradingPage";
@@ -380,6 +381,7 @@ export default function App() {
       <MobileNav />
       <AcelineButton />
       <AcelineOverlay />
+      <AutoInventionOverlay />
       <AcelineConsentModal />
     </>
   );

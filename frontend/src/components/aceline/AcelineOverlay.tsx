@@ -8,8 +8,10 @@ import { acelineChat, executeAction, buildAndStorePageApi } from "@/lib/acelineA
 import { useAcelineVoice } from "@/lib/acelineVoice";
 import { AcelineTerminal } from "@/components/aceline/AcelineTerminal";
 import { useStore, type AppPage } from "@/lib/store";
+import { autoInventionApi } from "@/lib/api";
 import {
   X, Send, Brain, Mic, MapPin, Zap, Sparkles, Terminal as TerminalIcon,
+  Lightbulb, Loader2,
   Compass, Trash2, Bot, Volume2, Settings,
 } from "lucide-react";
 
@@ -57,6 +59,8 @@ export function AcelineOverlay() {
   const [showActions, setShowActions] = useState(false);
   const [showMemory, setShowMemory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [autoMode, setAutoMode] = useState(false);
+  const [autoModeLoading, setAutoModeLoading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [panelMode, setPanelMode] = useState<PanelMode>("chat");
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -557,6 +561,22 @@ export function AcelineOverlay() {
               showSettings ? "bg-accent/20 text-accent" : "bg-bg-alt text-muted hover:text-text")}
           >
             <Settings className="w-2.5 h-2.5" /> Settings
+          </button>
+          <button
+            onClick={async () => {
+              setAutoModeLoading(true);
+              try {
+                await autoInventionApi.setAutoMode(!autoMode);
+                setAutoMode(!autoMode);
+              } catch (e) { console.error("Auto mode toggle failed:", e); }
+              setAutoModeLoading(false);
+            }}
+            className={cn("text-[9px] px-2 py-1 rounded-lg flex items-center gap-1 transition",
+              autoMode ? "bg-yellow-500/20 text-yellow-400 animate-pulse" : "bg-bg-alt text-muted hover:text-text")}
+            title="Toggle auto-invention mode — Aceline generates, tests, and picks the best approach"
+          >
+            {autoModeLoading ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Lightbulb className="w-2.5 h-2.5" />}
+            {autoMode ? "Auto ON" : "Auto"}
           </button>
           {voice.speaking && (
             <span className="text-[9px] text-accent flex items-center gap-1 animate-pulse">

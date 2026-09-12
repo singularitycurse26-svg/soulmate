@@ -683,6 +683,23 @@ export const telegramBridgeApi = {
     }),
 };
 
+// ── Auto-Invention API ────────────────────────────────────────────────
+export const autoInventionApi = {
+  state: () => incllmv2Fetch("/v1/auto-invention/state"),
+  setAutoMode: (enabled: boolean) =>
+    incllmv2Fetch("/v1/auto-invention/auto-mode", {
+      method: "POST",
+      body: JSON.stringify({ enabled }),
+    }),
+  setSummaryMode: (enabled: boolean) =>
+    incllmv2Fetch("/v1/auto-invention/summary-mode", {
+      method: "POST",
+      body: JSON.stringify({ enabled }),
+    }),
+  run: () => incllmv2Fetch("/v1/auto-invention/run", { method: "POST" }),
+  approaches: () => incllmv2Fetch("/v1/auto-invention/approaches"),
+};
+
 // ── MCP API ────────────────────────────────────────────────────────────
 export const mcpApi = {
   tools: () =>
