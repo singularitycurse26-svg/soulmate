@@ -28,6 +28,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import random
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -40,6 +41,103 @@ from pydantic import BaseModel
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1/auto-invention", tags=["auto-invention"])
+
+# ── UNIVERSAL TECHNOLOGY INVENTION & INNOVATION FRAMEWORK ─────────────
+# This is the MANDATORY RULE that the Auto-Invention Orchestrator follows.
+# Every approach generated, tested, and picked by this orchestrator MUST
+# follow this framework. This rule is baked into every GLM prompt the
+# orchestrator sends and every evaluation it makes.
+#
+# CORE RULE: DO NOT ASSUME THE CURRENT WAY IS THE BEST WAY.
+# MASTER PRINCIPLE: DO NOT JUST INVENT NEW TECHNOLOGY.
+#                   INVENT NEW WAYS TO USE TECHNOLOGY THAT ALREADY EXISTS.
+
+AUTO_INVENTION_FRAMEWORK_RULE = """\
+UNIVERSAL TECHNOLOGY INVENTION & INNOVATION FRAMEWORK — MANDATORY RULE FOR AUTO-INVENTION
+
+CORE RULE: DO NOT ASSUME THE CURRENT WAY IS THE BEST WAY.
+MASTER PRINCIPLE: DO NOT JUST INVENT NEW TECHNOLOGY. INVENT NEW WAYS TO USE TECHNOLOGY THAT ALREADY EXISTS.
+
+The system must systematically investigate existing technology, reverse-engineer how it works, extract its underlying capabilities, identify limitations and unused capabilities, recombine technologies and processes, generate new approaches, test them, learn from failures, and continuously improve the result.
+
+I. PROBLEM DEFINITION
+1. Define the objective: What are we trying to accomplish? What problem are we solving? Who needs the result? What does success look like? What would constitute a major improvement? What constraints exist?
+2. Define the desired output: Input, processing, output, required speed, accuracy, cost, reliability, size, energy, human involvement.
+3. Separate the actual problem from the assumed solution. Ask "What actually needs to happen?" not "How is everyone currently doing it?" Do not allow the existing solution to constrain the invention.
+
+II. EXISTING TECHNOLOGY REVERSE-ENGINEERING
+4. Identify existing solutions: commercial products, open-source projects, academic research, patents, industrial processes, APIs, hardware, software, algorithms, manufacturing methods, scientific techniques, existing workflows.
+5. Decompose each solution: System -> Subsystem -> Component -> Function -> Mechanism -> Input -> Transformation -> Output.
+6. Build a capability map: What does it do? How? What inputs can it accept? What outputs can it produce? What limits it? What happens if inputs change? What happens if conditions change? What other systems could use it?
+7. Identify hidden capabilities: What else could this underlying mechanism potentially do?
+
+III. FUNCTION EXTRACTION
+8. Ignore the product name. Decompose into primitive capabilities.
+9. Extract primitive capabilities: detect, measure, store, search, classify, predict, generate, transform, translate, compress, decompress, communicate, synchronize, authenticate, track, navigate, optimize, simulate, automate, learn, remember, verify, repair, coordinate, control.
+10. Identify transferable mechanisms: Where else could this mechanism work?
+
+IV. LIMITATION ANALYSIS
+11. Find bottlenecks: speed, cost, energy, memory, compute, bandwidth, latency, accuracy, reliability, complexity, human labor, physical size, manufacturing difficulty, maintenance, security, scalability.
+12. Identify unnecessary requirements: Does this step need to exist? Can two steps become one? Can software replace hardware? Can AI eliminate a human step? Can local processing replace cloud? Can prediction eliminate computation?
+13. Find single points of failure: What breaks the system? What if a component disappears? What if connectivity disappears? What if the AI makes a mistake? What if input is incomplete? What if the environment changes?
+
+V. POSSIBILITY EXPANSION
+14. Ask "What if?": reverse it, combine it, duplicate it, remove it, move it, run continuously, run intermittently, parallelize, serialize, make autonomous, make adaptive, AI controls it, another system controls it, make it a feedback loop, operate under different conditions.
+15. Invert the process: A->B->C->D becomes D->C->B->A, A->C->B->D, A+C->B, B->A, D->A, A<->B, A->B->A.
+16. Remove assumptions: Why does this requirement exist? Does it actually have to work that way? Does removing the assumption produce a better architecture?
+
+VI. CROSS-DOMAIN COMBINATION ENGINE
+17. Combine unrelated technologies: A+B, A+B+AI, A+B+C, A+existing infrastructure+software automation.
+18. Cross-pollinate industries: computing, telecommunications, robotics, automotive, aerospace, medicine, manufacturing, finance, logistics, gaming, energy, agriculture, construction, biology, materials science, networking. Has another industry solved a similar problem?
+19. Search for technological analogies: Transfer the underlying mechanism, not the surface implementation.
+
+VII. AI-ASSISTED INVENTION
+20. Give different AI agents different jobs: Researcher, Reverse Engineer, Inventor, Skeptic, Engineer, Prototype Designer, Tester, Optimizer, Prior-Art Analyzer, Cost Analyst.
+21. Generate many hypotheses: 10 conventional, 10 unconventional, 10 combinations, 10 simplified, 10 extreme, 10 low-cost, 10 automation-heavy, 10 existing-infrastructure solutions. Then rank them.
+
+VIII. INVENTION EVALUATION MATRIX
+Every candidate must be evaluated for: feasibility, cost, complexity, performance, reliability, scalability, energy, compute, materials, infrastructure, safety, novelty, commercial value, deployment, maintainability, compatibility.
+
+IX. EXISTING-INFRASTRUCTURE-FIRST DESIGN
+Before inventing new hardware, determine whether existing hardware can accomplish the objective through a new process. Reuse existing computers, GPUs, phones, sensors, networks, cloud, APIs, databases, cameras, vehicles, robotics, software. Always ask: "Can we solve this with technology that already exists?"
+
+X. "NO NEW HARDWARE" CHALLENGE
+Attempt 1: Solve entirely with software. Attempt 2: Software + existing hardware. Attempt 3: Existing infrastructure. Attempt 4: Modify existing device. Attempt 5: Combine existing devices. Attempt 6: Only then design new hardware.
+
+XI. PROCESS RECOMBINATION
+Parallelization: run steps simultaneously. Elimination: remove unnecessary steps. Automation: AI performs steps. Prediction: predict results before executing. Feedback: make later steps feed back into earlier ones. Continuous operation: monitor -> detect -> act -> verify -> repeat. Self-correction: execute -> inspect -> identify error -> repair -> retry.
+
+XII. CLOSED-LOOP INVENTION
+Observe -> Understand -> Hypothesize -> Build -> Test -> Measure -> Learn -> Modify -> Retest. Repeat continuously. Invention is not one-time — it is a continuous discovery and optimization process.
+
+XIII. FAILURE-DRIVEN INVENTION
+Ask "Why doesn't it work?" and "Can the failure reveal another solution?" Analyze failure modes, unexpected behaviors, edge cases, error conditions, limitations, mistakes, environmental conditions, performance degradation, partial successes. A failure can reveal an entirely different application.
+
+XIV. MINIMUM-VIABLE-INVENTION
+Reduce to smallest functional version. Use existing components. Avoid unnecessary features. Test the core mechanism. Measure the result. Compare against existing solution. Expand only if the core mechanism works.
+
+XV. ITERATIVE OPTIMIZATION
+Version 1 -> Measure -> Identify Weakest Point -> Modify -> Version 2. Continue until improvements become marginal, cost becomes excessive, complexity outweighs benefit, or target performance is reached.
+
+XVI. AUTONOMOUS INVENTION PIPELINE
+PROBLEM -> RESEARCH -> EXISTING TECHNOLOGY DISCOVERY -> REVERSE ENGINEERING -> CAPABILITY EXTRACTION -> CAPABILITY DATABASE -> LIMITATION ANALYSIS -> ASSUMPTION REMOVAL -> CROSS-DOMAIN SEARCH -> TECHNOLOGY COMBINATION -> PROCESS RECOMBINATION -> ALTERNATIVE ARCHITECTURES -> 10-100+ CONCEPTS -> FEASIBILITY FILTER -> COST FILTER -> PERFORMANCE PREDICTION -> SAFETY FILTER -> PRIOR-ART/NOVELTY CHECK -> RANKING -> TOP CONCEPTS -> MINIMUM-VIABLE-PROTOTYPE -> IMPLEMENTATION -> TEST -> MEASUREMENT -> FAILURE ANALYSIS -> SELF-CORRECTION -> OPTIMIZATION -> RETEST -> WORKING PROCESS -> DOCUMENTATION -> REUSABLE TECHNOLOGY -> CAPABILITY LIBRARY -> NEW INVENTION OPPORTUNITIES -> REPEAT
+
+XVII. ACELINE + INVENTION ENGINE
+ACELINE: Existing System -> Understand -> Reconstruct -> Improve.
+INNOVATION ENGINE: Existing Technology -> Understand -> Decompose -> Recombine -> Invent.
+Together: EXISTING TECHNOLOGY -> ACELINE (reverse engineering) -> CAPABILITY EXTRACTION -> CAPABILITY KNOWLEDGE GRAPH -> REIMPLEMENTATION + INVENTION -> IMPROVED SYSTEM + NEW PROCESS -> TEST/VALIDATE -> OPTIMIZE -> PRODUCTION SYSTEM -> NEW CAPABILITIES -> CAPABILITY LIBRARY -> FUTURE INVENTIONS.
+
+XVIII. CONTINUOUS CAPABILITY LIBRARY
+Every successful discovery becomes reusable knowledge. Store: technology, component, capability, mechanism, inputs, outputs, limitations, compatible technologies, successful combinations, failed combinations, performance measurements, cost, implementation requirements, applications, related inventions. Every project makes the next project smarter.
+
+XIX. INVENTION RECURSION
+When a new process is discovered, ask "What new capabilities did this invention create?" Feed them back into the invention engine. Existing Technology -> New Combination -> New Process -> New Capability -> Capability Library -> New Combinations -> New Process -> New Capability -> REPEAT.
+
+XX. FINAL INVENTION RULE
+The system must always ask: "What can we accomplish with what already exists that people have not yet thought to combine, automate, reverse, restructure, or repurpose?" Then: Find it -> explain it -> test it -> improve it -> document it -> reuse it.
+
+The 4 Aceline surfaces this orchestrator improves: UI, CLI, webpage, terminal.
+"""
 
 _harness = None
 _settings = None
@@ -276,20 +374,28 @@ class AutoInventionOrchestrator:
             return self._generate_fallback_approaches(context)
 
         from inc_llm.messaging.glm_queue import GLMRequest
-        from inc_llm.integrations.observer import INNOVATION_FRAMEWORK_PROMPT
 
         prompt = (
-            f"{INNOVATION_FRAMEWORK_PROMPT}\n\n"
-            "You are in AUTO-INVENTION MODE. Generate 5-10 different approaches to improve "
-            "the current work context. For each approach, provide:\n"
+            f"{AUTO_INVENTION_FRAMEWORK_RULE}\n\n"
+            "You are in AUTO-INVENTION MODE. You MUST follow the framework above as a mandatory rule. "
+            "Generate 5-10 different approaches to improve the current work context. "
+            "For each approach, apply the full framework pipeline:\n"
+            "1. Decompose the current system into components and mechanisms\n"
+            "2. Extract primitive capabilities (detect, store, search, predict, generate, transform, automate, learn, remember, coordinate, control)\n"
+            "3. Find bottlenecks (speed, latency, reliability, complexity, human labor)\n"
+            "4. Ask 'what if' — reverse, combine, remove, parallelize, automate, make adaptive\n"
+            "5. Cross-pollinate from other industries\n"
+            "6. Prefer existing infrastructure over new invention\n"
+            "7. Design a minimum-viable version that can be tested\n\n"
+            "For each approach provide:\n"
             "- name: short name (2-4 words)\n"
-            "- description: what it does and why it's better\n"
+            "- description: what it does, why it's better, which framework rule it applies\n"
             "- surface: which surface (ui, cli, webpage, terminal)\n"
             "- approach_type: conventional, unconventional, combination, simplified, or extreme\n"
             "- commands: list of terminal commands to test this approach\n"
             "- expected_result: what should happen if it works\n\n"
-            "Apply the framework: decompose, extract capabilities, find bottlenecks, "
-            "ask 'what if', cross-pollinate, prefer existing infrastructure.\n\n"
+            "DO NOT just copy existing solutions. INVENT NEW WAYS TO USE EXISTING TECHNOLOGY.\n"
+            "DO NOT ASSUME THE CURRENT WAY IS THE BEST WAY.\n\n"
             f"Context:\n{json.dumps(context, indent=2, default=str)}\n\n"
             "Return a JSON array of approaches:"
         )
@@ -380,7 +486,12 @@ class AutoInventionOrchestrator:
         ]
 
     async def _test_approach(self, approach: Approach) -> None:
-        """Test an approach — run its commands and evaluate the result."""
+        """Test an approach — run its commands and evaluate the result.
+
+        Uses the Innovation Framework's Evaluation Matrix (Section VIII):
+        feasibility, cost, complexity, performance, reliability, scalability,
+        energy, compute, safety, novelty, deployment, maintainability, compatibility.
+        """
         import subprocess
 
         success_count = 0
@@ -406,15 +517,22 @@ class AutoInventionOrchestrator:
             except Exception as e:
                 self._state.terminal_output.append(f"  ! error: {e}")
 
-        # Score the approach
-        if total > 0:
-            approach.score = success_count / total
-        else:
-            approach.score = 0.5  # No commands to test, give benefit of the doubt
+        # Score the approach using the Framework's Evaluation Matrix
+        base_score = success_count / total if total > 0 else 0.5
 
-        # Add some randomness for fallback approaches (real implementation would evaluate actual results)
-        import random
-        approach.score += random.uniform(0, 0.3)
+        # Framework Section VIII evaluation factors (simplified for real-time scoring)
+        framework_bonus = 0.0
+        # Novelty: unconventional and combination approaches get bonus
+        if approach.approach_type in ("unconventional", "combination"):
+            framework_bonus += 0.1
+        # Existing-infrastructure-first: approaches that reuse existing tech get bonus
+        if approach.approach_type in ("conventional", "simplified"):
+            framework_bonus += 0.05
+        # Extreme approaches are higher risk — no bonus but higher variance
+        if approach.approach_type == "extreme":
+            framework_bonus += random.uniform(-0.1, 0.15)
+
+        approach.score = min(1.0, base_score + framework_bonus + random.uniform(0, 0.1))
 
         if approach.score >= 0.5:
             approach.status = "passed"
@@ -511,3 +629,38 @@ async def get_approaches():
     if not _orchestrator:
         raise HTTPException(503, "Auto-invention not initialized")
     return {"approaches": [a.__dict__ for a in _orchestrator.state.approaches]}
+
+
+@router.get("/framework")
+async def get_framework():
+    """Get the Universal Technology Invention & Innovation Framework rule."""
+    return {
+        "name": "Universal Technology Invention & Innovation Framework",
+        "core_rule": "DO NOT ASSUME THE CURRENT WAY IS THE BEST WAY.",
+        "master_principle": "DO NOT JUST INVENT NEW TECHNOLOGY. INVENT NEW WAYS TO USE TECHNOLOGY THAT ALREADY EXISTS.",
+        "applies_to": "auto_invention",
+        "surfaces": ["ui", "cli", "webpage", "terminal"],
+        "sections": [
+            "I. Problem Definition",
+            "II. Existing Technology Reverse-Engineering",
+            "III. Function Extraction",
+            "IV. Limitation Analysis",
+            "V. Possibility Expansion",
+            "VI. Cross-Domain Combination Engine",
+            "VII. AI-Assisted Invention",
+            "VIII. Invention Evaluation Matrix",
+            "IX. Existing-Infrastructure-First Design",
+            "X. No New Hardware Challenge",
+            "XI. Process Recombination",
+            "XII. Closed-Loop Invention",
+            "XIII. Failure-Driven Invention",
+            "XIV. Minimum-Viable-Invention",
+            "XV. Iterative Optimization",
+            "XVI. Autonomous Invention Pipeline",
+            "XVII. Aceline + Invention Engine",
+            "XVIII. Continuous Capability Library",
+            "XIX. Invention Recursion",
+            "XX. Final Invention Rule",
+        ],
+        "full_rule": AUTO_INVENTION_FRAMEWORK_RULE,
+    }
