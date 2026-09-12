@@ -65,6 +65,7 @@ from inc_llm.integrations.ai_gaming import AIGamingIntegration
 from inc_llm.integrations.openclaw import OpenClawIntegration
 from inc_llm.integrations.soul_movies import SoulMoviesEngine
 from inc_llm.integrations.soul_tube import SoulTubeEngine
+from inc_llm.integrations.observer import AcelineObserver
 from inc_llm.math_core.precision import SplitBitMath
 from inc_llm.splitbit_accelerator import SplitBitAccelerator
 
@@ -263,6 +264,28 @@ class IncLLMHarness:
             instance_id=self.universal_link.instance_id if self.settings.universal_link.enabled else "",
         )
 
+        # Aceline Smart Work Watcher — background activity observation and learning
+        self.observer = AcelineObserver(
+            db_path=self.settings.observer.db_path,
+            detection_interval_s=self.settings.observer.detection_interval_s,
+            prune_after_days=self.settings.observer.prune_after_days,
+            observer_model=getattr(self.settings.observer, "observer_model", ""),
+            batch_analysis=getattr(self.settings.observer, "batch_analysis", True),
+            ollama_base=getattr(self.settings.ollama, "base_url", "http://localhost:11434"),
+        ) if self.settings.observer.enabled else None
+
+        # GLM Priority Queue — solves GLM contention (user always preempts observer)
+        from inc_llm.messaging.glm_queue import GLMPriorityQueue
+        self.glm_queue = GLMPriorityQueue(
+            ollama_base=getattr(self.settings.ollama, "base_url", "http://localhost:11434"),
+            primary_model=self.settings.models.base,
+            observer_model=getattr(self.settings.observer, "observer_model", ""),
+        )
+
+        # Wire GLM queue into observer so it uses priority-based GLM calls
+        if self.observer:
+            self.observer.glm_queue = self.glm_queue
+
         self._initialized = False
 
     async def initialize(self) -> None:
@@ -308,8 +331,23 @@ class IncLLMHarness:
         # SplitBit background maintenance — tier migration, link decay, GC (every 5 min)
         asyncio.create_task(self._bg_splitbit_maintenance())
 
+        # Aceline Smart Work Watcher — background observation and learning
+        if self.observer:
+            asyncio.create_task(self._bg_observer_start())
+
+        # GLM Priority Queue — user always preempts observer
+        asyncio.create_task(self._bg_glm_queue_start())
+
         self._initialized = True
         logger.info("Harness initialized (background tasks starting)")
+
+    async def _bg_glm_queue_start(self) -> None:
+        """Start the GLM priority queue in the background."""
+        try:
+            await self.glm_queue.start()
+            logger.info("GLM priority queue started (user preempts observer)")
+        except Exception as e:
+            logger.warning("GLM priority queue start failed: %s", e)
 
     async def _bg_splitbit_maintenance(self) -> None:
         """Background maintenance for SplitBit Token OS — tier migration, link decay, GC.
@@ -1138,6 +1176,10 @@ class IncLLMHarness:
             await self.trading_engine.stop_autonomous_trading()
         if self.splitbit:
             self.splitbit.shutdown()
+        if self.observer:
+            await self.observer.stop()
+        if self.glm_queue:
+            await self.glm_queue.stop()
         await self.peer_sync.stop()
         if self.mesh_link:
             await self.mesh_link.stop_mesh_sync()

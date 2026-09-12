@@ -11,6 +11,8 @@
     "security": "Security",
     "archive": "Catalog",
     "diagnostics": "Diagnostics",
+    "observer": "Observer",
+    "messaging": "Messaging",
     "openclaw": "OpenClaw",
     "hermes": "Hermes",
     "marketplace": "Marketplace",

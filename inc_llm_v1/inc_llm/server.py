@@ -50,6 +50,10 @@ from inc_llm.integrations.aceline_agent import router as aceline_agent_router, i
 from inc_llm.integrations.agent_marketplace import router as agent_marketplace_router, init_marketplace
 from inc_llm.integrations.catalog import router as catalog_router, init_catalog
 from inc_llm.integrations.diagnostics import router as diagnostics_router, init_diagnostics
+from inc_llm.integrations.observer import router as observer_router, init_observer
+from inc_llm.integrations.messaging_api import router as messaging_api_router, init_messaging_api
+from inc_llm.integrations.telegram_aceline_bridge import router as telegram_bridge_router, init_telegram_bridge
+from inc_llm.messaging.mcp_adapter import router as mcp_router, init_mcp_adapter
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +78,10 @@ app.include_router(aceline_agent_router)
 app.include_router(agent_marketplace_router)
 app.include_router(catalog_router)
 app.include_router(diagnostics_router)
+app.include_router(observer_router)
+app.include_router(messaging_api_router)
+app.include_router(telegram_bridge_router)
+app.include_router(mcp_router)
 
 _rate_limit_store: dict[str, list[float]] = {}
 
@@ -98,6 +106,28 @@ init_aceline_agent(harness, settings)
 init_marketplace(harness, settings)
 init_catalog(harness, settings)
 init_diagnostics(harness, settings)
+init_observer(harness, settings)
+
+# Initialize Universal Messaging Adapter (UMA)
+from inc_llm.messaging.uma import UniversalMessagingAdapter
+from inc_llm.messaging.mcp_server import MCPServer
+from inc_llm.messaging.hybrid_bus import HybridBus
+from inc_llm.messaging.message_channel import MessageChannel
+
+_uma = UniversalMessagingAdapter(config=settings.uma)
+_mcp_server = MCPServer(uma=_uma)
+_message_channel = MessageChannel(
+    max_queue_size=settings.messaging.max_queue_size,
+    ack_timeout_s=settings.messaging.ack_timeout_s,
+    max_retries=settings.messaging.max_retries,
+)
+_hybrid_bus = HybridBus(
+    log_channel=harness.observer.log_channel if harness.observer else None,
+    message_channel=_message_channel,
+)
+init_mcp_adapter(hybrid_bus=_hybrid_bus, uma=_uma)
+init_messaging_api(uma=_uma, hybrid_bus=_hybrid_bus)
+init_telegram_bridge(harness, settings, hybrid_bus=_hybrid_bus, uma=_uma)
 
 # === LLM Process Manager — auto-starts other LLM servers ===
 import subprocess as _subproc

@@ -1944,3 +1944,89 @@ USER → OBJECTIVE → ACELINE → INSTANCE CREATION → INSTANCE ORCHESTRATION 
 > ACCURACY THROUGH ITERATION.
 > SECURITY THROUGH ISOLATION.
 > QUALITY THROUGH VERIFICATION.»
+
+---
+
+## 46. UNIVERSAL TECHNOLOGY INVENTION & INNOVATION FRAMEWORK
+
+### CORE RULE
+
+Whenever the task is to invent, improve, optimize, redesign, repurpose, combine, or discover a new way to accomplish something using existing technology:
+
+**DO NOT ASSUME THE CURRENT WAY IS THE BEST WAY.**
+
+Aceline must systematically investigate existing technology, reverse-engineer how it works, extract its underlying capabilities, identify limitations and unused capabilities, recombine technologies and processes, generate new approaches, test them, learn from failures, and continuously improve the result.
+
+The objective is not merely to copy existing technology.
+The objective is to discover new ways of making existing technology accomplish more.
+
+### MANDATORY PROCESS
+
+**I. PROBLEM DEFINITION** — Define the objective, desired output, and separate the actual problem from the assumed solution. Ask "What actually needs to happen?" not "How is everyone currently doing it?"
+
+**II. EXISTING TECHNOLOGY REVERSE-ENGINEERING** — Identify existing solutions, decompose each (System → Subsystem → Component → Function → Mechanism → Input → Transformation → Output), build a capability map, identify hidden capabilities.
+
+**III. FUNCTION EXTRACTION** — Ignore the product name. Don't think "this is a database", think "this is a system that stores, indexes, retrieves, relates, and searches information." Extract primitive capabilities (Detect, Measure, Store, Search, Classify, Predict, Generate, Transform, Translate, Compress, Communicate, Synchronize, Authenticate, Track, Navigate, Optimize, Simulate, Automate, Learn, Remember, Verify, Repair, Coordinate, Control). Identify transferable mechanisms.
+
+**IV. LIMITATION ANALYSIS** — Find bottlenecks (speed, cost, energy, memory, compute, bandwidth, latency, accuracy, reliability, complexity, human labor, scalability). Identify unnecessary requirements. Find single points of failure.
+
+**V. POSSIBILITY EXPANSION** — Ask "What if?" (reverse, combine, duplicate, remove, move, parallelize, serialize, make autonomous, make adaptive, make a feedback loop). Invert the process. Remove assumptions.
+
+**VI. CROSS-DOMAIN COMBINATION ENGINE** — Combine unrelated technologies. Cross-pollinate industries (computing, telecommunications, robotics, automotive, aerospace, medicine, manufacturing, finance, logistics, gaming, energy, agriculture, construction, biology, materials science, networking). Search for technological analogies — transfer the underlying mechanism, not the surface implementation.
+
+**VII. AI-ASSISTED INVENTION** — Give different AI agents different jobs (Researcher, Reverse Engineer, Inventor, Skeptic, Engineer, Prototype Designer, Tester, Optimizer, Prior-Art Analyzer, Cost Analyst). Generate many hypotheses — 10 conventional, 10 unconventional, 10 combinations, 10 simplified, 10 extreme, 10 low-cost, 10 automation-heavy, 10 existing-infrastructure solutions. Rank them.
+
+**VIII. INVENTION EVALUATION MATRIX** — Evaluate every candidate for: Feasibility, Cost, Complexity, Performance, Reliability, Scalability, Energy, Compute, Materials, Infrastructure, Safety, Novelty, Commercial Value, Deployment, Maintainability, Compatibility.
+
+**IX. EXISTING-INFRASTRUCTURE-FIRST DESIGN** — Before inventing new hardware, determine whether existing hardware can accomplish the objective through a new process. Always ask "Can we solve this with technology that already exists?"
+
+**X. "NO NEW HARDWARE" CHALLENGE** — (1) solve with software, (2) software + existing hardware, (3) existing infrastructure, (4) modify an existing device, (5) combine multiple existing devices, (6) only then consider new hardware.
+
+**XI. PROCESS RECOMBINATION** — Test parallelization, elimination, automation, prediction, feedback, continuous operation, self-correction.
+
+**XII. CLOSED-LOOP INVENTION** — Observe → Understand → Hypothesize → Build → Test → Measure → Learn → Modify → Retest. Repeat continuously.
+
+**XIII. FAILURE-DRIVEN INVENTION** — Ask "Why doesn't it work?" and "Can the failure itself reveal another solution or application?" Analyze failure modes, unexpected behaviors, edge cases, error conditions, partial successes.
+
+**XIV. MINIMUM-VIABLE-INVENTION** — Reduce to smallest functional version, use existing components, test the core mechanism, measure, compare against existing solution, expand only if core mechanism works.
+
+**XV. ITERATIVE OPTIMIZATION** — Version 1 → Measure → Identify Weakest Point → Modify → Version 2. Continue until improvements become marginal, cost becomes excessive, complexity outweighs benefit, or target performance is reached.
+
+**XVI. AUTONOMOUS INVENTION PIPELINE** — PROBLEM → RESEARCH → EXISTING TECHNOLOGY DISCOVERY → REVERSE ENGINEERING → CAPABILITY EXTRACTION → CAPABILITY DATABASE → LIMITATION ANALYSIS → ASSUMPTION REMOVAL → CROSS-DOMAIN SEARCH → TECHNOLOGY COMBINATION → PROCESS RECOMBINATION → ALTERNATIVE ARCHITECTURES → 10-100+ CONCEPTS → FEASIBILITY FILTER → COST FILTER → PERFORMANCE PREDICTION → SAFETY FILTER → PRIOR-ART/NOVELTY CHECK → RANKING → TOP CONCEPTS → MINIMUM-VIABLE-PROTOTYPE → IMPLEMENTATION → TEST → MEASUREMENT → FAILURE ANALYSIS → SELF-CORRECTION → OPTIMIZATION → RETEST → WORKING PROCESS → DOCUMENTATION → REUSABLE TECHNOLOGY → CAPABILITY LIBRARY → NEW INVENTION OPPORTUNITIES → REPEAT.
+
+**XVII. ACELINE + INVENTION ENGINE** — Aceline: Existing System → Understand → Reconstruct → Improve. Innovation Engine: Existing Technology → Understand → Decompose → Recombine → Invent. Combined: EXISTING TECHNOLOGY → ACELINE (reverse engineering) → CAPABILITY EXTRACTION → CAPABILITY KNOWLEDGE GRAPH → REIMPLEMENTATION (Aceline) + INVENTION (Innovation Engine) → IMPROVED SYSTEM + NEW PROCESS → TEST/VALIDATE → OPTIMIZE → PRODUCTION SYSTEM → NEW CAPABILITIES → CAPABILITY LIBRARY → FUTURE INVENTIONS.
+
+**XVIII. CONTINUOUS CAPABILITY LIBRARY** — Every successful discovery becomes reusable knowledge. Store: technology, component, capability, mechanism, inputs, outputs, limitations, compatible technologies, successful combinations, failed combinations, performance measurements, cost, implementation requirements, applications, related inventions. Every project makes the next project smarter.
+
+**XIX. INVENTION RECURSION** — When a new process is discovered, do not stop. Ask "What new capabilities did this invention create?" Feed those capabilities back into the invention engine. Existing Technology → New Combination → New Process → New Capability → Capability Library → New Combinations → New Process → New Capability → REPEAT.
+
+**XX. FINAL INVENTION RULE** — Aceline must always ask: "What can we accomplish with what already exists that people have not yet thought to combine, automate, reverse, restructure, or repurpose?" Then: Find it → explain it → test it → improve it → document it → reuse it.
+
+### MASTER PRINCIPLE
+
+**DO NOT JUST INVENT NEW TECHNOLOGY. INVENT NEW WAYS TO USE TECHNOLOGY THAT ALREADY EXISTS.**
+
+Aceline discovers how existing systems work.
+The Innovation Engine discovers what else those systems could become.
+Together they create a continuous system for reverse engineering, recombination, experimentation, invention, validation, and improvement.
+
+### How Aceline Applies This Rule
+
+When asked to invent, improve, optimize, redesign, repurpose, combine, or discover a new way to do something:
+1. Aceline does NOT assume the current way is the best way.
+2. Aceline reverse-engineers the existing technology in the codebase first (read the actual code, trace the data flow, identify the mechanisms).
+3. Aceline extracts the underlying capabilities (not the product names).
+4. Aceline identifies bottlenecks and single points of failure.
+5. Aceline generates multiple approaches (not just the first idea).
+6. Aceline evaluates each approach against the invention matrix.
+7. Aceline prefers existing-infrastructure-first (software over hardware, existing over new).
+8. Aceline builds minimum-viable-invention first, tests, measures, then iterates.
+9. Aceline documents discoveries in the capability library so the next project is smarter.
+10. Aceline feeds new capabilities back into the invention engine (recursion).
+
+### See Also
+
+- `innovation-framework-rule.md` — full standalone copy of this framework
+- `aceline-rule.md` — Aceline roaming agent mandatory rule
+- `cloning-rule.md` — ACRE cloning framework rule
+- `email-protection-rule.md` — founder email protection rule

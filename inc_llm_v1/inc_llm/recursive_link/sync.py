@@ -148,3 +148,62 @@ class PeerSyncManager:
     @property
     def last_sync(self) -> float:
         return self._last_sync
+
+    # ── WebSocket support (Phase 4 extension) ──
+    # The existing periodic sync (every 300s) remains for background learning.
+    # WebSocket support enables real-time, interactive messaging between peers.
+    # Interactive messaging does NOT depend on the 300-second periodic sync cycle.
+
+    _websocket_connections: set = set()  # type: ignore[assignment]
+
+    async def handle_websocket(self, ws: Any) -> None:
+        """Handle a WebSocket connection for real-time peer messaging.
+
+        This runs for the lifetime of the WebSocket connection.
+        Messages received from peers are passed to receive_message().
+        Messages to send are forwarded through the WebSocket.
+        """
+        self._websocket_connections.add(ws)
+        logger.info("Peer WebSocket connected (total: %s)", len(self._websocket_connections))
+        try:
+            while self._running:
+                try:
+                    data = await ws.receive_json()
+                except Exception:
+                    break
+                if not data:
+                    continue
+                # Route to receive_message (handles both messages and learnings)
+                self.universal.receive_message(data)
+        except Exception as e:
+            logger.debug("WebSocket handler error: %s", e)
+        finally:
+            self._websocket_connections.discard(ws)
+            logger.info("Peer WebSocket disconnected (total: %s)", len(self._websocket_connections))
+
+    async def send_via_websocket(self, message: dict) -> bool:
+        """Send a message to all connected peers via WebSocket.
+
+        Returns True if sent to at least one peer.
+        """
+        if not self._websocket_connections:
+            return False
+        sent = 0
+        dead = []
+        for ws in self._websocket_connections:
+            try:
+                await ws.send_json(message)
+                sent += 1
+            except Exception:
+                dead.append(ws)
+        for ws in dead:
+            self._websocket_connections.discard(ws)
+        return sent > 0
+
+    def get_websocket_stats(self) -> dict:
+        """Get WebSocket connection statistics."""
+        return {
+            "active_connections": len(self._websocket_connections),
+            "periodic_sync_running": self._running,
+            "last_periodic_sync": self._last_sync,
+        }

@@ -34,7 +34,9 @@ export type AppPage =
   | "wakkii"
   | "agent_market"
   | "archive"
-  | "diagnostics";
+  | "diagnostics"
+  | "observer"
+  | "messaging";
 
 interface Alert {
   id: number;

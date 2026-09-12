@@ -38,6 +38,8 @@ const PAGE_LABELS: Record<AppPage, string> = {
   agent_market: "AI Agent Marketplace",
   archive: "Soulmate OS Catalog",
   diagnostics: "System Diagnostics",
+  observer: "Aceline Smart Work Watcher",
+  messaging: "Messaging Center",
 };
 
 type PanelMode = "chat" | "terminal";

@@ -291,6 +291,71 @@ class TelegramConfig:
 
 
 @dataclass
+class ObserverConfig:
+    """Aceline Smart Work Watcher configuration.
+
+    The observer logs activity events, detects workflows, generates
+    improvement notes, and produces monthly reports. Uses a separate
+    SQLite database from the catalog to avoid write contention.
+    """
+
+    enabled: bool = True
+    db_path: str = "~/.inc_llm/observer.db"
+    detection_interval_s: int = 1800  # 30 minutes
+    prune_after_days: int = 90
+    # Separate model for observer (avoids GLM contention with user requests)
+    # Empty = use primary model with preemption via GLMPriorityQueue
+    observer_model: str = ""
+    # Batch all analysis into one GLM call (less frequent, longer)
+    batch_analysis: bool = True
+
+
+@dataclass
+class MessagingConfig:
+    """Hybrid message bus configuration.
+
+    Two specialized channels:
+    - Log Channel: fire-and-forget, batch SQLite (for observer)
+    - Message Channel: guaranteed delivery, real-time (for messaging)
+    """
+
+    enabled: bool = True
+    # Message Channel settings
+    max_queue_size: int = 10000
+    ack_timeout_s: float = 30.0
+    max_retries: int = 3
+    # Local sync server (replaces cloud endpoint)
+    local_sync_enabled: bool = True
+    # MCP server
+    mcp_enabled: bool = True
+    # WebSocket
+    websocket_enabled: bool = True
+
+
+@dataclass
+class UMAConfig:
+    """Universal Messaging Adapter configuration.
+
+    One interface for Telegram, WhatsApp, WeChat, Signal.
+    Each adapter can be enabled/disabled independently.
+    """
+
+    enabled: bool = True
+    # Telegram (wraps existing integration — no extra config needed)
+    telegram_enabled: bool = True
+    # WhatsApp (uses whatsapp-web.js bridge — free, local)
+    whatsapp_enabled: bool = False  # Disabled by default (requires Node.js + npm install)
+    whatsapp_bridge_path: str = "~/.inc_llm/whatsapp_bridge"
+    # WeChat (uses Wechaty bridge — free, local)
+    wechat_enabled: bool = False  # Disabled by default (requires Node.js + npm install)
+    wechat_bridge_path: str = "~/.inc_llm/wechat_bridge"
+    # Signal (uses signal-cli — free, local, most reliable)
+    signal_enabled: bool = False  # Disabled by default (requires Java + signal-cli)
+    signal_phone_number: str = ""
+    signal_cli_path: str = "signal-cli"
+
+
+@dataclass
 class TradingPlatformConfig:
     """Trading platform credentials."""
 
@@ -763,6 +828,9 @@ class Settings:
     gaming_skills: GamingSkillConfig = field(default_factory=GamingSkillConfig)
     founder_wallet: FounderWalletConfig = field(default_factory=FounderWalletConfig)
     youtube: YouTubeConfig = field(default_factory=YouTubeConfig)
+    observer: ObserverConfig = field(default_factory=ObserverConfig)
+    messaging: MessagingConfig = field(default_factory=MessagingConfig)
+    uma: UMAConfig = field(default_factory=UMAConfig)
     planning: PlanConfig = field(default_factory=PlanConfig)
     execution: ExecutionConfig = field(default_factory=ExecutionConfig)
     free_server_slots: FreeServerSlotConfig = field(default_factory=FreeServerSlotConfig)

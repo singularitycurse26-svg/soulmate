@@ -21,6 +21,8 @@ import { MarketplacePage } from "@/components/pages/MarketplacePage";
 import { AgentMarketplacePage } from "@/components/pages/AgentMarketplacePage";
 import { ArchivePage } from "@/components/pages/ArchivePage";
 import { DiagnosticPage } from "@/components/pages/DiagnosticPage";
+import { ObserverPage } from "@/components/pages/ObserverPage";
+import { MessagingPage } from "@/components/pages/MessagingPage";
 import { DatingPage } from "@/components/pages/DatingPage";
 import { IncentivesPage } from "@/components/pages/IncentivesPage";
 import { DayTradingPage } from "@/components/pages/DayTradingPage";
@@ -42,6 +44,7 @@ import { initWalletAuto } from "@/lib/walletAuto";
 import { initVaultSessionTracker, logWork } from "@/lib/vault";
 import { hasPlatformAuthenticator } from "@/lib/utils";
 import { AutoFitContainer } from "@/lib/useAutoFit.tsx";
+import { startActivityWatcher, setPageForTracking } from "@/lib/activityWatcher";
 
 function PhoneGateWrapper() {
   const [bioSetupDone, setBioSetupDone] = useState(!!localStorage.getItem("bio_unlock_setup"));
@@ -239,6 +242,19 @@ export default function App() {
     initWalletAuto();
   }, []);
 
+  // Start Aceline Smart Work Watcher (background activity observation)
+  useEffect(() => {
+    startActivityWatcher();
+    return () => {
+      // Watcher stops on page unload via beforeunload handler
+    };
+  }, []);
+
+  // Track page navigation for the observer
+  useEffect(() => {
+    setPageForTracking(activePage);
+  }, [activePage]);
+
   // Cmd+K / Ctrl+K to toggle Aceline
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -341,6 +357,8 @@ export default function App() {
           {activePage === "agent_market" && <ErrorBoundary><AgentMarketplacePage /></ErrorBoundary>}
           {activePage === "archive" && <ErrorBoundary><ArchivePage /></ErrorBoundary>}
           {activePage === "diagnostics" && <ErrorBoundary><DiagnosticPage /></ErrorBoundary>}
+          {activePage === "observer" && <ErrorBoundary><ObserverPage /></ErrorBoundary>}
+          {activePage === "messaging" && <ErrorBoundary><MessagingPage /></ErrorBoundary>}
           {activePage === "dating" && <ErrorBoundary><DatingPage /></ErrorBoundary>}
           {activePage === "incentives" && <ErrorBoundary><IncentivesPage /></ErrorBoundary>}
           {activePage === "daytrading" && <ErrorBoundary><DayTradingPage /></ErrorBoundary>}

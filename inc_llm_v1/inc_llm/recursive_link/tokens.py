@@ -185,6 +185,86 @@ class LinkTokenBuilder:
             source="local",
         )
 
+    # ── Message-oriented token types (Phase 4 extension) ──
+    # MSG = message, WF = workflow, NT = note, CMD = command, NAV = navigation
+    # These extend RLT for interactive messaging without breaking existing context types.
+
+    @staticmethod
+    def from_message(message: dict[str, Any], source: str = "local") -> LinkToken:
+        """Convert a message into a link token (MSG type)."""
+        conv_id = message.get("conversation_id", "")
+        content = message.get("content", "")
+        key = _slugify(conv_id, max_len=20)
+        value = _compress_value(content, max_len=25)
+        return LinkToken(
+            token_type="MSG",
+            key=key,
+            value=value,
+            priority=0.8,  # Messages are high priority
+            source=source,
+            raw_id=message.get("id", ""),
+        )
+
+    @staticmethod
+    def from_workflow(workflow: dict[str, Any], source: str = "local") -> LinkToken:
+        """Convert a detected workflow into a link token (WF type)."""
+        name = workflow.get("name", "")
+        key = _slugify(name, max_len=20)
+        freq = workflow.get("frequency", 1)
+        value = f"fx{freq}"
+        return LinkToken(
+            token_type="WF",
+            key=key,
+            value=value,
+            priority=0.5,
+            source=source,
+            raw_id=workflow.get("id", ""),
+        )
+
+    @staticmethod
+    def from_note(note: dict[str, Any], source: str = "local") -> LinkToken:
+        """Convert an improvement note into a link token (NT type)."""
+        title = note.get("title", "")
+        severity = note.get("severity", "low")
+        key = _slugify(title, max_len=20)
+        return LinkToken(
+            token_type="NT",
+            key=key,
+            value=severity,
+            priority=0.4,
+            source=source,
+            raw_id=note.get("id", ""),
+        )
+
+    @staticmethod
+    def from_command(command: dict[str, Any], source: str = "local") -> LinkToken:
+        """Convert a command into a link token (CMD type)."""
+        cmd = command.get("command", "")
+        key = _slugify(cmd, max_len=20)
+        exit_code = command.get("exit_code", 0)
+        value = "ok" if exit_code == 0 else f"err{exit_code}"
+        return LinkToken(
+            token_type="CMD",
+            key=key,
+            value=value,
+            priority=0.3,
+            source=source,
+        )
+
+    @staticmethod
+    def from_navigation(nav: dict[str, Any], source: str = "local") -> LinkToken:
+        """Convert a navigation event into a link token (NAV type)."""
+        page = nav.get("page", "")
+        action = nav.get("action", "enter")
+        key = _slugify(page, max_len=20)
+        return LinkToken(
+            token_type="NAV",
+            key=key,
+            value=action,
+            priority=0.2,
+            source=source,
+        )
+
 
 class LinkTokenBudget:
     """Manages a token budget and selects the highest-priority link tokens to inject.

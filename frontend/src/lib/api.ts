@@ -612,6 +612,97 @@ export const diagnosticsApi = {
   quick: () => incllmv2Fetch("/v1/diagnostics/quick"),
 };
 
+// ── Observer API — Aceline Smart Work Watcher ─────────────────────────
+export const observerApi = {
+  stats: () => incllmv2Fetch("/v1/observer/stats"),
+  events: (events: any[]) =>
+    incllmv2Fetch("/v1/observer/events", {
+      method: "POST",
+      body: JSON.stringify({ events }),
+    }),
+  workflows: () => incllmv2Fetch("/v1/observer/workflows"),
+  runWorkflow: (id: string) =>
+    incllmv2Fetch(`/v1/observer/workflows/${id}/run`, { method: "POST" }),
+  routines: () => incllmv2Fetch("/v1/observer/routines"),
+  notes: (status?: string) =>
+    incllmv2Fetch(`/v1/observer/notes${status ? `?status=${status}` : ""}`),
+  approveNote: (id: string) =>
+    incllmv2Fetch(`/v1/observer/notes/${id}/approve`, { method: "POST" }),
+  rejectNote: (id: string) =>
+    incllmv2Fetch(`/v1/observer/notes/${id}/reject`, { method: "POST" }),
+  monthlyReports: () => incllmv2Fetch("/v1/observer/monthly-report"),
+  monthlyReport: (id: string) => incllmv2Fetch(`/v1/observer/monthly-report/${id}`),
+  approveMonthlyReport: (reportId: string, noteIds: string[]) =>
+    incllmv2Fetch("/v1/observer/monthly-report/approve", {
+      method: "POST",
+      body: JSON.stringify({ report_id: reportId, approved_note_ids: noteIds }),
+    }),
+  sessions: (limit = 50) => incllmv2Fetch(`/v1/observer/sessions?limit=${limit}`),
+  activity: (limit = 100, since = 0) =>
+    incllmv2Fetch(`/v1/observer/activity?limit=${limit}&since=${since}`),
+  detect: () => incllmv2Fetch("/v1/observer/detect", { method: "POST" }),
+};
+
+// ── Messaging API — Universal Messaging Adapter (UMA) ──────────────────
+export const messagingApi = {
+  apps: () => incllmv2Fetch("/v1/messaging/apps"),
+  connect: (app: string, credentials: Record<string, any> = {}) =>
+    incllmv2Fetch("/v1/messaging/connect", {
+      method: "POST",
+      body: JSON.stringify({ app, credentials }),
+    }),
+  disconnect: (app: string) =>
+    incllmv2Fetch("/v1/messaging/disconnect", {
+      method: "POST",
+      body: JSON.stringify({ app }),
+    }),
+  send: (app: string, recipient: string, content: string, conversationId = "") =>
+    incllmv2Fetch("/v1/messaging/send", {
+      method: "POST",
+      body: JSON.stringify({ app, recipient, content, conversation_id: conversationId }),
+    }),
+  receive: (app = "all", conversationId = "", limit = 50) =>
+    incllmv2Fetch("/v1/messaging/receive", {
+      method: "POST",
+      body: JSON.stringify({ app, conversation_id: conversationId, limit }),
+    }),
+  chats: (app = "all") => incllmv2Fetch(`/v1/messaging/chats?app=${app}`),
+  stats: () => incllmv2Fetch("/v1/messaging/stats"),
+};
+
+// ── Telegram Bridge API ────────────────────────────────────────────────
+export const telegramBridgeApi = {
+  status: () => incllmv2Fetch("/v1/telegram-bridge/status"),
+  commands: () => incllmv2Fetch("/v1/telegram-bridge/commands"),
+  send: (chatId: string, text: string) =>
+    incllmv2Fetch("/v1/telegram-bridge/send", {
+      method: "POST",
+      body: JSON.stringify({ chat_id: chatId, text }),
+    }),
+};
+
+// ── MCP API ────────────────────────────────────────────────────────────
+export const mcpApi = {
+  tools: () =>
+    fetch(`${INCLLMV2_BASE}/v1/mcp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+    }).then((r) => r.json()),
+  callTool: (name: string, args: Record<string, any> = {}) =>
+    fetch(`${INCLLMV2_BASE}/v1/mcp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } }),
+    }).then((r) => r.json()),
+  resources: () =>
+    fetch(`${INCLLMV2_BASE}/v1/mcp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "resources/list" }),
+    }).then((r) => r.json()),
+};
+
 // --- Trill / Singularity / SplitBit LLM APIs ---
 // All route through incllmv2 (port 8547) with a model parameter.
 // incllmv2 handles the request using its RLOS+Ollama backend with

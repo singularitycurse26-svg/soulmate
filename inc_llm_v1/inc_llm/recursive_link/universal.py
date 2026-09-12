@@ -228,3 +228,98 @@ class UniversalLinkManager:
         if self.mesh_link:
             stats["mesh"] = self.mesh_link.get_stats()
         return stats
+
+    # ── Message-oriented methods (Phase 4 extension) ──
+    # These extend UniversalLinkManager for interactive messaging.
+    # The existing share_learning/receive_learning remains for background learning.
+    # These new methods are for real-time, interactive messages.
+
+    def send_message(self, recipient: str, content: str, conversation_id: str = "",
+                     msg_type: str = "text", metadata: dict | None = None) -> dict[str, Any]:
+        """Send a message to a peer instance or external recipient.
+
+        This is a synchronous wrapper that stores the message locally.
+        The actual delivery happens through the MessageChannel (async).
+        """
+        msg_id = hashlib.sha256(f"{self.instance_id}:{content}:{time.time()}".encode()).hexdigest()[:16]
+        record = {
+            "id": msg_id,
+            "learning_type": "message",  # Reuse shared_learnings table
+            "content": content,
+            "source_instance": self.instance_id,
+            "source_episode_id": conversation_id,
+            "timestamp": time.time(),
+            "metadata": json.dumps({
+                "msg_type": msg_type,
+                "recipient": recipient,
+                "conversation_id": conversation_id,
+                **(metadata or {}),
+            }),
+        }
+        with sqlite3.connect(str(self.db_path)) as conn:
+            conn.execute(
+                """INSERT OR REPLACE INTO shared_learnings
+                   (id, learning_type, content, source_instance, source_episode_id, timestamp, metadata)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (record["id"], record["learning_type"], record["content"],
+                 record["source_instance"], record["source_episode_id"],
+                 record["timestamp"], record["metadata"]),
+            )
+        logger.info("Sent message %s to %s (conv: %s)", msg_id, recipient, conversation_id)
+        return record
+
+    def receive_message(self, message: dict[str, Any]) -> bool:
+        """Receive a message from a peer instance.
+
+        Returns True if the message was new and applied.
+        """
+        msg_id = message.get("id", "")
+        source_instance = message.get("source_instance", "")
+        content = message.get("content", "")
+
+        if not msg_id or not content:
+            return False
+        if source_instance == self.instance_id:
+            return False  # Don't receive our own messages
+
+        metadata = json.loads(message.get("metadata", "{}"))
+        if metadata.get("msg_type") != "message" and message.get("learning_type") != "message":
+            # Not a message — delegate to receive_learning for regular learnings
+            return self.receive_learning(message)
+
+        # Store as received message
+        with sqlite3.connect(str(self.db_path)) as conn:
+            conn.execute(
+                """INSERT OR IGNORE INTO shared_learnings
+                   (id, learning_type, content, source_instance, source_episode_id, timestamp, metadata)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (msg_id, "message", content, source_instance,
+                 message.get("source_episode_id", ""),
+                 message.get("timestamp", time.time()),
+                 message.get("metadata", "{}")),
+            )
+        logger.info("Received message %s from %s", msg_id, source_instance)
+        return True
+
+    def broadcast_message(self, content: str, conversation_id: str = "",
+                           msg_type: str = "text", metadata: dict | None = None) -> dict[str, Any]:
+        """Broadcast a message to all peers via mesh link.
+
+        Falls back to share_learning if mesh link is not available.
+        """
+        record = self.send_message("broadcast", content, conversation_id, msg_type, metadata)
+        if self.mesh_link:
+            try:
+                self.mesh_link.propagate_learning(
+                    learning_type="message",
+                    content=content,
+                    metadata={
+                        "msg_type": msg_type,
+                        "conversation_id": conversation_id,
+                        "message_id": record["id"],
+                        **(metadata or {}),
+                    },
+                )
+            except Exception as e:
+                logger.warning("Mesh broadcast failed: %s", e)
+        return record
