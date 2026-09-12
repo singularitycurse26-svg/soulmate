@@ -46,6 +46,7 @@ from inc_llm.openai_compat import setup_openai_compat
 from inc_llm.integrations.soul_movies_api import router as soul_movies_router, init_soul_movies_api
 from inc_llm.integrations.soul_tube_api import router as soul_tube_router, init_soul_tube_api
 from inc_llm.integrations.soulmate_os_web import router as soulmate_os_router
+from inc_llm.integrations.aceline_agent import router as aceline_agent_router, init_aceline_agent
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,7 @@ app.add_middleware(
 app.include_router(soulmate_os_router)
 app.include_router(soul_movies_router)
 app.include_router(soul_tube_router)
+app.include_router(aceline_agent_router)
 
 _rate_limit_store: dict[str, list[float]] = {}
 
@@ -86,6 +88,7 @@ async def rate_limit_middleware(request: Request, call_next):
 settings = Settings.from_env()
 harness = IncLLMHarness(settings)
 setup_openai_compat(app, harness, harness.api_keys)
+init_aceline_agent(harness, settings)
 
 # === LLM Process Manager — auto-starts other LLM servers ===
 import subprocess as _subproc

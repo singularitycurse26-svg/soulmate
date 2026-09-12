@@ -28,7 +28,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-SCOPES = ("chat", "chat_stream", "embed", "skills", "goals", "memory", "sync", "admin")
+SCOPES = ("chat", "chat_stream", "embed", "skills", "goals", "memory", "sync", "admin", "aceline")
 
 
 @dataclass

@@ -466,6 +466,47 @@ export const incllmv2Api = {
   },
 };
 
+// ── Aceline Agent API — external AI/agent/chatbot connection layer ──
+export const acelineAgentApi = {
+  health: () =>
+    fetch(`${INCLLMV2_BASE}/v1/aceline/health`).then((r) => r.json()),
+  docs: () =>
+    fetch(`${INCLLMV2_BASE}/v1/aceline/docs`).then((r) => r.json()),
+  tools: () =>
+    incllmv2Fetch("/v1/aceline/tools"),
+  agent: (message: string, model?: string, context?: any, maxSteps?: number, cwd?: string) =>
+    incllmv2Fetch("/v1/aceline/agent", {
+      method: "POST",
+      body: JSON.stringify({
+        message,
+        model: model || "glm-5.1",
+        context: context || {},
+        max_steps: maxSteps || 15,
+        cwd: cwd || "",
+      }),
+    }),
+  run: (command: string, cwd?: string, timeout?: number) =>
+    incllmv2Fetch("/v1/aceline/run", {
+      method: "POST",
+      body: JSON.stringify({ command, cwd: cwd || "", timeout: timeout || 120 }),
+    }),
+  read: (path: string) =>
+    incllmv2Fetch("/v1/aceline/read", {
+      method: "POST",
+      body: JSON.stringify({ path }),
+    }),
+  write: (path: string, content: string) =>
+    incllmv2Fetch("/v1/aceline/write", {
+      method: "POST",
+      body: JSON.stringify({ path, content }),
+    }),
+  search: (pattern: string, cwd?: string, maxResults?: number) =>
+    incllmv2Fetch("/v1/aceline/search", {
+      method: "POST",
+      body: JSON.stringify({ pattern, cwd: cwd || "", max_results: maxResults || 30 }),
+    }),
+};
+
 // --- Trill / Singularity / SplitBit LLM APIs ---
 // All route through incllmv2 (port 8547) with a model parameter.
 // incllmv2 handles the request using its RLOS+Ollama backend with
