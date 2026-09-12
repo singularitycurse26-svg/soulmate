@@ -4,6 +4,7 @@ import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Shield, Crown, Check, Loader2, Copy, Fingerprint } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageShell";
+import { AcelineCLI } from "@/components/aceline/AcelineCLI";
 
 export function SecurityPage() {
   const { showAlert, authEmail } = useStore();
@@ -60,7 +61,10 @@ export function SecurityPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageHeader icon={Shield} title="Security & Subscription" subtitle="Manage your account, biometrics, and plan" />
+      <PageHeader icon={Shield} title="Security & Subscription" subtitle="Manage your account, biometrics, plan, and Aceline CLI" />
+
+      {/* Aceline CLI — Incentives Inc. autonomous agent with full Soulmate OS access */}
+      <AcelineCLI />
 
       {/* Current tier badge */}
       <div className={cn(
