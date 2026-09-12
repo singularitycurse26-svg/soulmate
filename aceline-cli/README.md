@@ -10,6 +10,15 @@ npm install
 npm run build
 ```
 
+## Global Install (optional)
+
+```powershell
+cd aceline-cli
+npm run link
+# Now you can run 'aceline' from anywhere
+aceline help
+```
+
 ## Usage
 
 ```powershell

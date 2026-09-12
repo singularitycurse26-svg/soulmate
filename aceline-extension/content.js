@@ -317,11 +317,38 @@
       addMessage("ai", resp);
       speak(resp);
 
-      // Parse DOM actions from response
-      const actionMatch = resp.match(/CLICK:\s*(.+)/i);
-      if (actionMatch && consent.features.customActions) {
-        const selector = actionMatch[1].trim();
-        executeDomAction({ type: "click", selector });
+      // Parse DOM actions from response (consent-gated)
+      if (consent.features.customActions) {
+        // CLICK: <selector>
+        const clickMatch = resp.match(/CLICK:\s*(.+)/i);
+        if (clickMatch) executeDomAction({ type: "click", selector: clickMatch[1].trim() });
+
+        // FILL: <selector> = <value>
+        const fillMatch = resp.match(/FILL:\s*([^\s=]+)\s*=\s*(.+)/i);
+        if (fillMatch) executeDomAction({ type: "fill", selector: fillMatch[1].trim(), value: fillMatch[2].trim() });
+
+        // READ: <selector>
+        const readMatch = resp.match(/READ:\s*(.+)/i);
+        if (readMatch) {
+          const result = executeDomAction({ type: "read", selector: readMatch[1].trim() });
+          addMessage("ai", `📖 Read: ${result}`);
+        }
+
+        // NAVIGATE: <url>
+        const navMatch = resp.match(/NAVIGATE:\s*(.+)/i);
+        if (navMatch) executeDomAction({ type: "navigate", url: navMatch[1].trim() });
+
+        // SCROLL: <direction|selector>
+        const scrollMatch = resp.match(/SCROLL:\s*(.+)/i);
+        if (scrollMatch) {
+          const target = scrollMatch[1].trim().toLowerCase();
+          if (target === "top") window.scrollTo({ top: 0, behavior: "smooth" });
+          else if (target === "bottom") window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+          else {
+            const el = document.querySelector(target);
+            if (el) el.scrollIntoView({ behavior: "smooth" });
+          }
+        }
       }
     } catch (e) {
       document.getElementById("__aceline-thinking")?.remove();
