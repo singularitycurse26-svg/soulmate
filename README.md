@@ -801,6 +801,175 @@ All 8 departments share a single localStorage-based universal memory store:
 | `frontend/src/components/pages/BusinessArchivePage.tsx` | Main page with 8 department grid + Cline agent |
 | `frontend/src/components/trading/business-archive/index.tsx` | All department components (Fax, Contacts, Project Analyzer, Custom, Cline) |
 
+## Aceline Smart Work Watcher + Hybrid Messaging
+
+A two-channel architecture that solves two bottlenecks: GLM inference contention and high-volume event traffic. The observer watches how you work across 4 Aceline surfaces (UI, CLI, webpage, terminal) and generates improvement notes using the Universal Technology Invention & Innovation Framework.
+
+### Architecture
+
+```
+Frontend activity (50-200 events/min)
+    ↓
+activityWatcher.ts — dedup, throttle, coalesce
+    ↓ (10-30 events/min)
+LogChannel — fire-and-forget, batch SQLite, WAL mode
+    ↓
+AcelineObserver — workflow detection, improvement notes, monthly reports
+    ↓ (via GLM priority queue — user preempts observer)
+GLM inference
+```
+
+**Two channels:**
+- **LogChannel** — high-volume, fire-and-forget, batch SQLite (observer events)
+- **MessageChannel** — low-volume, guaranteed delivery, acks + retries (messaging)
+
+**HybridBus** combines both into one interface.
+
+### Bottleneck Fix 1: GLM Priority Queue
+
+5 priority levels — user requests preempt observer analysis:
+
+| Priority | Who | Model |
+|----------|-----|-------|
+| 5 (urgent) | User / remote control | primary |
+| 4 | Aceline agent | primary |
+| 3 | Observer analysis | observer_model (separate, zero contention) |
+| 2 | Background tasks | any |
+| 1 | Prefetch | any |
+
+### Bottleneck Fix 2: Frontend activityWatcher
+
+- Filters mouse/scroll/hover/keystroke noise
+- Deduplicates same event within 100ms
+- Throttles to max 10 events/second
+- Coalesces rapid clicks into one "clicked Nx" event
+- Reduces 50-200 events/min → 10-30 meaningful events/min
+
+### Universal Technology Invention & Innovation Framework
+
+The observer follows this mandatory framework when generating improvement notes and monthly reports for the 4 Aceline surfaces (UI, CLI, webpage, terminal):
+
+**Master principle:** DO NOT JUST INVENT NEW TECHNOLOGY. INVENT NEW WAYS TO USE TECHNOLOGY THAT ALREADY EXISTS.
+
+**Core rule:** DO NOT ASSUME THE CURRENT WAY IS THE BEST WAY.
+
+The framework's invention pipeline:
+1. Problem definition — separate actual problem from assumed solution
+2. Existing technology reverse-engineering — decompose: System → Subsystem → Component → Function → Mechanism
+3. Function extraction — primitive capabilities: detect, store, search, predict, generate, transform, automate, learn, remember, coordinate, control
+4. Limitation analysis — find bottlenecks, remove unnecessary steps, find single points of failure
+5. Possibility expansion — ask "what if": reverse, combine, remove, parallelize, automate, make adaptive
+6. Cross-domain combination — transfer underlying mechanisms across industries
+7. AI-assisted invention — 10+ conventional, 10+ unconventional, 10+ combination solutions, then rank
+8. Existing-infrastructure-first — before new hardware, solve with software + existing hardware
+9. Minimum-viable-invention — smallest functional version, test core mechanism, measure, expand only if it works
+10. Failure-driven invention — "why doesn't it work?" → can the failure reveal another solution?
+11. Continuous capability library — every discovery becomes reusable knowledge
+12. Invention recursion — feed new capabilities back into the engine
+
+### Observer Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v1/observer/events` | POST | Batch event ingest |
+| `/v1/observer/stats` | GET | Observer statistics |
+| `/v1/observer/workflows` | GET | Detected workflows |
+| `/v1/observer/notes` | GET | Improvement notes |
+| `/v1/observer/notes/{id}/approve` | POST | Approve a note |
+| `/v1/observer/monthly-report` | GET | Monthly reports |
+| `/v1/observer/detect` | POST | Manually trigger detection |
+| `/v1/observer/innovate` | POST | Run the innovation framework on recent activity |
+| `/v1/observer/framework` | GET | Get the framework rules |
+
+### Universal Messaging Adapter (UMA)
+
+One interface for Telegram, WhatsApp, WeChat, and Signal:
+
+```python
+uma.send("telegram", "@user", "Hello")
+uma.send("whatsapp", "+1234567890", "Hello")
+uma.send("wechat", "user_id", "Hello")
+uma.send("signal", "+1234567890", "Hello")
+uma.send("auto", "@user", "Hello")  # Picks best available
+```
+
+| App | Method | Requires |
+|-----|--------|----------|
+| Telegram | Bot API (HTTP REST) | Bot token |
+| WhatsApp | whatsapp-web.js (Node.js bridge) | Node.js, QR pairing |
+| WeChat | Wechaty (Node.js bridge) | Node.js, QR pairing |
+| Signal | signal-cli (subprocess) | Java, phone number |
+
+Bridge scripts at `~/.inc_llm/whatsapp_bridge/` and `~/.inc_llm/wechat_bridge/`.
+
+### Messaging Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v1/messaging/apps` | GET | List messaging apps |
+| `/v1/messaging/connect` | POST | Connect to an app |
+| `/v1/messaging/disconnect` | POST | Disconnect from an app |
+| `/v1/messaging/send` | POST | Send a message |
+| `/v1/messaging/receive` | POST | Receive messages |
+| `/v1/messaging/chats` | GET | List active chats |
+| `/v1/messaging/stats` | GET | Messaging statistics |
+
+### MCP JSON-RPC Adapter
+
+External AI tools (Claude, GPT, etc.) can use Aceline's messaging via standard MCP:
+
+```json
+{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "messaging_send", "arguments": {"app": "telegram", "recipient": "@user", "content": "Hello"}}}
+```
+
+MCP tools: `messaging_send`, `messaging_receive`, `messaging_apps`.
+
+### Telegram-Aceline Bridge
+
+Interact with Aceline through Telegram bot commands:
+
+| Command | Description |
+|---------|-------------|
+| `/help` | Show help |
+| `/aceline <message>` | Send a message to Aceline |
+| `/workflows` | List detected workflows |
+| `/notes` | List improvement notes |
+| `/stats` | Show observer statistics |
+| `/messaging` | Show messaging app status |
+
+### RLT Token Extensions
+
+New message-oriented token types added to the Recursive Link system:
+
+| Token | Purpose |
+|-------|---------|
+| `MSG` | Message record |
+| `WF` | Workflow pattern |
+| `NT` | Improvement note |
+| `CMD` | Command request |
+| `NAV` | Navigation event |
+
+`UniversalLinkManager` extended with `send_message()`, `receive_message()`, `broadcast_message()`. `PeerSyncManager` extended with WebSocket support for real-time peer messaging.
+
+### Aceline Observer Files
+
+| File | Description |
+|------|-------------|
+| `inc_llm/integrations/observer.py` | Observer backend + innovation framework |
+| `inc_llm/messaging/log_channel.py` | High-volume log channel (batch SQLite) |
+| `inc_llm/messaging/glm_queue.py` | GLM priority queue (5 levels, preemption) |
+| `inc_llm/messaging/message_channel.py` | Guaranteed delivery message channel |
+| `inc_llm/messaging/hybrid_bus.py` | Combined log + message bus |
+| `inc_llm/messaging/mcp_adapter.py` | MCP JSON-RPC adapter |
+| `inc_llm/messaging/uma.py` | Universal Messaging Adapter (4 apps) |
+| `inc_llm/messaging/mcp_server.py` | Standalone MCP server |
+| `inc_llm/integrations/messaging_api.py` | REST API for messaging |
+| `inc_llm/integrations/telegram_aceline_bridge.py` | Telegram-Aceline bridge |
+| `frontend/src/lib/activityWatcher.ts` | Frontend activity dedup/throttle/coalesce |
+| `frontend/src/components/pages/ObserverPage.tsx` | Observer dashboard |
+| `frontend/src/components/pages/MessagingPage.tsx` | Messaging center |
+
 ## Support the Project
 
 If Soulmate helps you, consider supporting development:
